@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧医疗管理系统 (双语版)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="navbar">
+        <div class="nav-brand">
+            <h1 data-i18n="navTitle">🏥 智慧医疗诊所管理系统</h1>
+            <span class="badge" data-i18n="badgeText">模拟数据库: 已激活</span>
+        </div>
+        <!-- 语言切换按钮组件 -->
+        <div class="lang-switch">
+            <button class="btn btn-lang active" id="btnZh" onclick="switchLanguage('zh')">中文</button>
+            <button class="btn btn-lang" id="btnEn" onclick="switchLanguage('en')">English</button>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- 侧边栏：新增/编辑表单 -->
+        <section class="card form-section">
+            <h2 id="formTitle" data-i18n="formTitleAdd">新建挂号记录</h2>
+            <form id="patientForm" onsubmit="handleFormSubmit(event)">
+                <input type="hidden" id="recordId">
+                
+                <div class="form-group">
+                    <label data-i18n="labelName">患者姓名</label>
+                    <input type="text" id="patientName" data-i18n-ph="phName" placeholder="例如：张三" required>
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="labelGenderAge">性别与年龄</label>
+                    <div class="flex-row">
+                        <select id="gender">
+                            <option value="男" data-i18n="optMale">男</option>
+                            <option value="女" data-i18n="optFemale">女</option>
+                        </select>
+                        <input type="number" id="age" data-i18n-ph="phAge" placeholder="年龄" min="1" max="120" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="labelDepartment">就诊科室</label>
+                    <select id="department">
+                        <option value="全科医学科" data-i18n="deptGeneral">全科医学科</option>
+                        <option value="内科" data-i18n="deptInternal">内科</option>
+                        <option value="外科" data-i18n="deptSurgery">外科</option>
+                        <option value="儿科" data-i18n="deptPediatrics">儿科</option>
+                        <option value="眼科" data-i18n="deptOphthalmology">眼科</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="labelSymptoms">病情描述</label>
+                    <textarea id="symptoms" rows="3" data-i18n-ph="phSymptoms" placeholder="简述患者症状..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="saveBtn" data-i18n="btnSave">保存到数据库</button>
+                    <button type="button" class="btn btn-secondary" onclick="resetForm()" data-i18n="btnReset">重置</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 主内容区：查询过滤与数据表格 -->
+        <section class="card data-section">
+            <div class="table-header">
+                <h2 data-i18n="tableTitle">患者挂号数据库列表</h2>
+                <div class="search-bar">
+                    <input type="text" id="searchInput" data-i18n-ph="phSearch" placeholder="搜索姓名或科室..." oninput="handleSearch()">
+                    <button class="btn btn-danger btn-sm" onclick="clearAllData()" data-i18n="btnClearDb">清空模拟数据库</button>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-i18n="thId">ID</th>
+                            <th data-i18n="thName">患者姓名</th>
+                            <th data-i18n="thGenderAge">性别/年龄</th>
+                            <th data-i18n="thDepartment">就诊科室</th>
+                            <th data-i18n="thSymptoms">病情描述</th>
+                            <th data-i18n="thTime">挂号时间</th>
+                            <th data-i18n="thAction">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTable">
+                        <!-- 动态渲染数据列 -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="emptyState" class="empty-state" style="display: none;" data-i18n="emptyText">
+                暂无记录，请在左侧添加新挂号信息。
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
