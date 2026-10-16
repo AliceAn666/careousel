@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role { PATIENT STAFF ADMIN }
+enum SlotStatus { AVAILABLE HELD BOOKED WITHDRAWN }
+enum BookingStatus { CONFIRMED CANCELLED RESCHEDULED }
+enum WaitlistStatus { ACTIVE FULFILLED WITHDRAWN }
+enum OfferStatus { PENDING ACCEPTED DECLINED EXPIRED REVOKED }
+enum SuggestionStatus { ELIGIBLE DISMISSED }
+enum NotificationKind { OFFER BOOKING CANCELLED INFO }
+
+model User {
+  id String @id @default(uuid()) @db.Uuid
+  displayName String
+  email String @unique
+  role Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  patient PatientProfile?
+  memberships StaffMembership[]
+  notifications Notification[]
+  auditEvents AuditEvent[] @relation("ActorEvents")
+}
+
+model PatientProfile {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @unique @db.Uuid
+  user User @relation(fields: [userId], references: [id])
+  bookings Booking[]
+  waitlists WaitlistRequest[]
+  offers Offer[]
+}
+
+model Clinic {
+  id String @id @default(uuid()) @db.Uuid
+  name String
+  city String
+  address String
+  timezone String @default("America/Los_Angeles")
+  createdAt DateTime @default(now())
+  memberships StaffMembership[]
+  services ClinicService[]
+  slots Slot[]
+  auditEvents AuditEvent[]
+}
+
+model StaffMembership {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  clinicId String @db.Uuid
+  user User @relation(fields: [userId], references: [id])
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+  @@unique([userId, clinicId])
+}
+
+model Service {
+  id String @id @default(uuid()) @db.Uuid
+  name String @unique
+  specialty String
+  clinicServices ClinicService[]
+  waitlists WaitlistRequest[]
+}
+
+model InsurancePlan {
+  id String @id @default(uuid()) @db.Uuid
+  name String @unique
+  clinicServices ClinicServicePlan[]
+  waitlists WaitlistRequest[]
+}
+
+model ClinicService {
+  id String @id @default(uuid()) @db.Uuid
+  clinicId String @db.Uuid
+  serviceId String @db.Uuid
+  visitType String
+  durationMinutes Int
+  estimatedPriceCents Int
+  currency String @default("USD")
+  allowsSelfPay Boolean @default(false)
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+  acceptedPlans ClinicServicePlan[]
+  slots Slot[]
+  @@unique([clinicId, serviceId, visitType])
+}
+
+model ClinicServicePlan {
+  clinicServiceId String @db.Uuid
+  insurancePlanId String @db.Uuid
+  clinicService ClinicService @relation(fields: [clinicServiceId], references: [id])
+  insurancePlan InsurancePlan @relation(fields: [insurancePlanId], references: [id])
+  @@id([clinicServiceId, insurancePlanId])
+}
+
+model Slot {
+  id String @id @default(uuid()) @db.Uuid
+  clinicId String @db.Uuid
+  clinicServiceId String @db.Uuid
+  startsAt DateTime @db.Timestamptz(3)
+  endsAt DateTime @db.Timestamptz(3)
+  status SlotStatus @default(AVAILABLE)
+  version Int @default(0)
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+  clinicService ClinicService @relation(fields: [clinicServiceId], references: [id])
+  bookings Booking[]
+  offers Offer[]
+  suggestions MatchSuggestion[]
+  @@index([clinicId, startsAt])
+  @@index([status, startsAt])
+}
+
+model Booking {
+  id String @id @default(uuid()) @db.Uuid
+  patientId String @db.Uuid
+  slotId String @db.Uuid
+  status BookingStatus @default(CONFIRMED)
+  replacedBookingId String? @unique @db.Uuid
+  replacedBooking Booking? @relation("Replacement", fields: [replacedBookingId], references: [id])
+  replacement Booking? @relation("Replacement")
+  patient PatientProfile @relation(fields: [patientId], references: [id])
+  slot Slot @relation(fields: [slotId], references: [id])
+  waitlists WaitlistRequest[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([patientId, status])
+}
+
+model WaitlistRequest {
+  id String @id @default(uuid()) @db.Uuid
+  patientId String @db.Uuid
+  serviceId String @db.Uuid
+  linkedBookingId String? @db.Uuid
+  insurancePlanId String? @db.Uuid
+  allowSelfPay Boolean @default(false)
+  visitType String
+  allowedClinicIds String[] @default([])
+  allowedCities String[] @default([])
+  preferredWeekdays Int[] @default([])
+  earliestTimeMinutes Int?
+  latestTimeMinutes Int?
+  earliestDate DateTime? @db.Date
+  latestDate DateTime? @db.Date
+  maxPriceCents Int
+  status WaitlistStatus @default(ACTIVE)
+  patient PatientProfile @relation(fields: [patientId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+  linkedBooking Booking? @relation(fields: [linkedBookingId], references: [id])
+  insurancePlan InsurancePlan? @relation(fields: [insurancePlanId], references: [id])
+  suggestions MatchSuggestion[]
+  offers Offer[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([serviceId, status, createdAt])
+}
+
+model MatchSuggestion {
+  id String @id @default(uuid()) @db.Uuid
+  slotId String @db.Uuid
+  waitlistId String @db.Uuid
+  status SuggestionStatus @default(ELIGIBLE)
+  reasons Json
+  createdAt DateTime @default(now())
+  slot Slot @relation(fields: [slotId], references: [id])
+  waitlist WaitlistRequest @relation(fields: [waitlistId], references: [id])
+  @@unique([slotId, waitlistId])
+}
+
+model Offer {
+  id String @id @default(uuid()) @db.Uuid
+  slotId String @db.Uuid
+  patientId String @db.Uuid
+  waitlistId String @db.Uuid
+  status OfferStatus @default(PENDING)
+  expiresAt DateTime @db.Timestamptz(3)
+  approvalReason String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  slot Slot @relation(fields: [slotId], references: [id])
+  patient PatientProfile @relation(fields: [patientId], references: [id])
+  waitlist WaitlistRequest @relation(fields: [waitlistId], references: [id])
+  notifications Notification[]
+  @@index([patientId, status])
+}
+
+model Notification {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  offerId String? @db.Uuid
+  kind NotificationKind
+  title String
+  body String
+  readAt DateTime? @db.Timestamptz(3)
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id])
+  offer Offer? @relation(fields: [offerId], references: [id])
+  @@index([userId, createdAt])
+}
+
+model AuditEvent {
+  id String @id @default(uuid()) @db.Uuid
+  clinicId String? @db.Uuid
+  actorId String? @db.Uuid
+  eventType String
+  entityType String
+  entityId String
+  details Json
+  createdAt DateTime @default(now())
+  clinic Clinic? @relation(fields: [clinicId], references: [id])
+  actor User? @relation("ActorEvents", fields: [actorId], references: [id])
+  @@index([clinicId, createdAt])
+}
