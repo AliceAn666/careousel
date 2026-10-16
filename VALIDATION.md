@@ -104,3 +104,11 @@ Group delivery is still in-app only. The worker reconciles every five seconds an
 
 - Final manual browser check: Chinese desktop search, 375px mobile search and staff group composer rendered correctly; no browser page errors. Existing demo appointments were not changed by this inspection.
 - `npm run format:check` passed after formatting the new styles.
+
+## Codespaces startup repair — 2026-10-16
+
+Found a concrete remote-development compatibility gap: Next.js had no `allowedDevOrigins` entry for the current Codespace preview hostname. Added only the hostname derived from `CODESPACE_NAME`, preserving unrelated-origin rejection and existing API CSRF checks. A real browser/HTTP regression confirms the configured preview can load development assets (200) while another Codespace is rejected (403). This diagnoses a code issue; without the user's terminal output it does not establish the cause of their particular startup failure.
+
+Setup now checks Node/Docker/Compose before installation, shows six numbered stages, reports failed stages, stops before reinstalling dependencies if a live dev server is found (stale/zombie locks are accepted), creates `.env` before client generation and bounds the database-readiness wait. No existing configuration or demo bookings are reset.
+
+Validation: lint, TypeScript and all 26 unit tests passed; all eight Chromium tests passed, including the new Codespaces regression and the previous group/language/booking flows. The complete updated setup script passed with all six stages; the final production build is verified before publishing the branch fix. An actual new GitHub Codespace has not been provisioned by this task.

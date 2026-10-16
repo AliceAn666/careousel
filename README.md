@@ -10,7 +10,7 @@ Select the `feat/batch-notifications-bilingual` branch on GitHub, then **Code �
 bash scripts/setup-demo.sh && npm run dev
 ```
 
-Then open **Ports → 3000 → Open in Browser**. The setup helper requires Node.js 22.12+ and Docker Compose (available in the standard Codespaces environment); it installs locked dependencies, generates a local session secret only when `.env` is absent, starts PostgreSQL, applies migrations and initializes only an empty local synthetic database. It preserves existing bookings. Run setup before starting the app, never while servers/tests are running. Language can be switched using **English / 中文** in the header.
+Then open **Ports → 3000 → Open in Browser**. The setup prints six numbered steps. If a step stops, copy its error output; if setup says a development server is already running, stop that server with Ctrl+C first. Codespaces preview assets are allowed only for this Codespace's port-3000 hostname. The setup helper requires Node.js 22.12+ and Docker Compose (available in the standard Codespaces environment); it installs locked dependencies, generates a local session secret only when `.env` is absent, starts PostgreSQL, applies migrations and initializes only an empty local synthetic database. It preserves existing bookings. Run setup before starting the app, never while servers/tests are running. Language can be switched using **English / 中文** in the header.
 
 ## Run locally
 

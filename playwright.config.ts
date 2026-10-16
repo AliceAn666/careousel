@@ -35,6 +35,7 @@ export default defineConfig({
       DATABASE_URL: url,
       DEMO_MODE: "true",
       SESSION_SECRET: "browser-test-secret-at-least-32-characters",
+      CODESPACE_NAME: "careousel-codespace",
     },
     timeout: 120000,
   },
