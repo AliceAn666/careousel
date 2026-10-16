@@ -2,7 +2,7 @@
 
 ## Current authorization
 
-This repository is in planning only. The user authorized creation of `PRD.md`, `AGENTS.md`, and `TASKS.md` only. Do not implement application code, install dependencies, or deploy until the user approves implementation. Approval to implement does not by itself authorize deployment. Record accepted changes to proposed decisions in the planning documents as work proceeds.
+The user explicitly approved application implementation on 2026-10-16, including dependencies, a synthetic demo database, local execution, testing, a dedicated branch and a review PR. Start from scratch; do not restore or reuse deleted `index.html`, `style.css`, or `app.js`. Public deployment remains unauthorized. Preserve teammate changes and document implementation decisions.
 
 ## Read first
 
@@ -13,7 +13,7 @@ This repository is in planning only. The user authorized creation of `PRD.md`, `
 
 ## Architecture after approval
 
-Proposed baseline: Next.js App Router, React, strict TypeScript, Tailwind, shadcn/ui, PostgreSQL, Prisma, Zod, npm, Vitest and Playwright. Confirm versions and commit one lockfile at bootstrap. Do not introduce a second framework, ORM, package manager, database, or state library without a concrete need and documented decision.
+Implemented baseline: Next.js App Router, React, strict TypeScript, original responsive CSS, Lucide, PostgreSQL, Prisma with the JavaScript pg adapter, Zod, npm, Vitest and Playwright. Tailwind/shadcn are deferred. Versions are locked in package-lock.json. Do not introduce a second framework, ORM, package manager, database, or state library without a concrete need and documented decision.
 
 Keep UI in `src/app`/`src/components`, domain behavior in `src/server/services`, authorization in `src/server/auth`, shared schemas/utilities in `src/lib`, schema/migrations/seeds in `prisma`, and tests in `tests`. Server routes should be thin. Do not access Prisma from browser components. Use one shared Prisma client pattern appropriate for Next.js development. Keep server-only secrets and modules outside client bundles.
 
@@ -29,7 +29,7 @@ Keep UI in `src/app`/`src/components`, domain behavior in `src/server/services`,
 
 ## Scheduling correctness
 
-The PRD state model is authoritative. All booking, cancellation, approval, expiry and offer acceptance transitions belong in domain services with transactions and database constraints.
+The PRD state model is authoritative. All booking, cancellation, approval, expiry and offer acceptance transitions belong in domain services with transactions and database constraints. The current demo deliberately serializes all scheduling reads/writes with PostgreSQL advisory lock 728194. Do not remove or bypass this lock without replacing it with tested patient/slot serialization.
 
 - At most one confirmed booking or active hold per slot. Prevent patient overlap across slots with patient-level transactional serialization.
 - Recheck eligibility, ownership, current state and server-time expiry at mutation time.
@@ -45,11 +45,11 @@ Use invented identities and reserved example contact domains only. Never ingest 
 
 Use server-issued demo sessions and enforce patient ownership and clinic membership on every read and mutation. Do not trust client-selected roles or IDs. Gate persona switching and confirmed reset behind explicit demo mode, and reset behind server authorization. Protect cookie-based mutations against CSRF. Do not claim production security, regulatory compliance, insurance verification or real clinical prioritization.
 
-Committed changes must persist across app restarts. Ordinary startup must not reseed or reset the database. Use reviewed migrations; coordinate schema ownership and never reset a shared database casually.
+Committed changes must persist across app restarts. Ordinary startup must not reseed or reset the database. Use reviewed migrations; coordinate schema ownership and never reset a shared database casually. Run `npm run db:migrate` (checksum-tracked SQL), not `prisma migrate dev` or `db push`. Prisma 6.19.2 packages are pinned together; `npm run db:generate` uses its pinned generator API without unused Rust downloads. Review this integration before upgrades.
 
 ## Verification after approval
 
-Establish and document scripts at bootstrap: `lint`, `typecheck`, `test`, `test:integration`, `test:e2e`, and `build`. Script names are planned; they do not exist yet.
+Available scripts: `lint`, `typecheck`, `test`, `test:integration`, `test:e2e`, and `build`. Use `npm run db:test:prepare` to prepare the explicitly isolated careousel_test database.
 
 - Domain tests: each eligibility exclusion, FIFO/ties, earlier-only rule, intervals, offer expiry and transitions.
 - PostgreSQL integration tests: direct booking races, concurrent approvals, patient overlap, idempotency, rollback, rescheduling, authorization and expired/stale offers.
@@ -69,4 +69,14 @@ Do not spawn agents just because the team has five members; use delegated agents
 
 ## Completion reporting
 
-Summarize behavior changed, relevant tests and remaining risks. Keep task statuses honest. If blocked, complete independent authorized work and identify the exact blocker. Stop at the current authorization boundary; for this initial task, return the three planning documents and await approval.
+Summarize behavior changed, relevant tests and remaining risks after each milestone. Keep task statuses honest and record verification in VALIDATION.md. If blocked, complete independent authorized work and identify the exact blocker. Implementation is authorized; public deployment is not.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

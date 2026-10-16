@@ -1,6 +1,6 @@
 # Careousel Product Requirements
 
-Status: Proposed; awaiting team approval before implementation.
+Status: Implementation approved on 2026-10-16. The application is being built from scratch on a dedicated development branch; no public deployment is authorized. See README.md and VALIDATION.md for actual capabilities and evidence.
 
 ## 1. Purpose and success
 
@@ -16,16 +16,16 @@ Inspection on 2026-10-16: repository root is `/workspace/careousel`; only `READM
 
 Proposed stack, subject to approval:
 
-| Area | Choice | Reason |
-| --- | --- | --- |
-| Application | Next.js App Router, React, strict TypeScript, Node.js LTS | One repository and language for UI and server; familiar Codex workflows |
-| UI | Tailwind CSS, shadcn/ui with accessible primitives, Lucide icons | Consistent professional components and rapid iteration |
-| Persistence | PostgreSQL with Prisma migrations and client | Transactions, relational constraints, explicit migration history |
-| Validation | Zod at server boundaries | Shared input contracts with authoritative server validation |
-| Tests | Vitest for domain and database integration; Playwright for browser journeys | Test rules, concurrency, and the actual demo |
-| Tooling | npm with committed lockfile, ESLint, TypeScript checks, GitHub Actions | Reproducible setup and shared PR checks |
-| Notifications | Persistent in-app inbox with short polling | Reliable without email/SMS credentials |
-| Matching | Deterministic rules and transparent ranking | Explainable, testable, no model dependency or clinical inference |
+| Area          | Choice                                                                      | Reason                                                                  |
+| ------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Application   | Next.js App Router, React, strict TypeScript, Node.js LTS                   | One repository and language for UI and server; familiar Codex workflows |
+| UI            | Tailwind CSS, shadcn/ui with accessible primitives, Lucide icons            | Consistent professional components and rapid iteration                  |
+| Persistence   | PostgreSQL with Prisma migrations and client                                | Transactions, relational constraints, explicit migration history        |
+| Validation    | Zod at server boundaries                                                    | Shared input contracts with authoritative server validation             |
+| Tests         | Vitest for domain and database integration; Playwright for browser journeys | Test rules, concurrency, and the actual demo                            |
+| Tooling       | npm with committed lockfile, ESLint, TypeScript checks, GitHub Actions      | Reproducible setup and shared PR checks                                 |
+| Notifications | Persistent in-app inbox with short polling                                  | Reliable without email/SMS credentials                                  |
+| Matching      | Deterministic rules and transparent ranking                                 | Explainable, testable, no model dependency or clinical inference        |
 
 Use one deployable application and one PostgreSQL database. Server route handlers invoke domain services; services own authorization, transactions, matching, and state changes. React components do not write to the database directly. Proposed structure: `src/app`, `src/components`, `src/lib`, `src/server/services`, `src/server/auth`, `prisma`, `tests`. Run a supported local PostgreSQL instance for the offline fallback; select hosting later. Pin mutually compatible stable versions during approved implementation; do not install anything in this planning phase.
 
@@ -59,35 +59,35 @@ Out of scope: real clinical data, EHR integrations, real insurance verification 
 
 ## 4. Roles and stories
 
-| Role | Story | Observable result |
-| --- | --- | --- |
-| Patient | Find clinics accepting my plan within my budget and preferred dates | Combined filters produce matching slots with clear estimates |
-| Patient | Book a slot and view my appointment | One confirmed booking persists after refresh |
-| Patient | Keep my existing booking while seeking an earlier slot | Joining a waitlist leaves the original booking confirmed |
-| Patient | Receive and respond to an approved offer | Inbox shows expiry, clinic, time, and consequences of acceptance |
-| Patient | Decline or miss an offer without losing my appointment | Original booking remains; waitlist stays active |
-| Staff | Cancel a booking and release the slot | Schedule updates and candidates appear |
-| Staff | Understand and approve an eligible candidate | Eligibility reasons are visible; approval creates a reserved offer |
-| Staff | Manage my clinic's schedules and waitlists | Other clinics' patient details and mutations are inaccessible |
-| Presenter | Repeat a reliable synthetic scenario | Explicit reset restores a documented baseline |
+| Role      | Story                                                               | Observable result                                                  |
+| --------- | ------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Patient   | Find clinics accepting my plan within my budget and preferred dates | Combined filters produce matching slots with clear estimates       |
+| Patient   | Book a slot and view my appointment                                 | One confirmed booking persists after refresh                       |
+| Patient   | Keep my existing booking while seeking an earlier slot              | Joining a waitlist leaves the original booking confirmed           |
+| Patient   | Receive and respond to an approved offer                            | Inbox shows expiry, clinic, time, and consequences of acceptance   |
+| Patient   | Decline or miss an offer without losing my appointment              | Original booking remains; waitlist stays active                    |
+| Staff     | Cancel a booking and release the slot                               | Schedule updates and candidates appear                             |
+| Staff     | Understand and approve an eligible candidate                        | Eligibility reasons are visible; approval creates a reserved offer |
+| Staff     | Manage my clinic's schedules and waitlists                          | Other clinics' patient details and mutations are inaccessible      |
+| Presenter | Repeat a reliable synthetic scenario                                | Explicit reset restores a documented baseline                      |
 
 ## 5. Pages and behavior
 
 All pages show Careousel branding and a visible synthetic-demo notice. Insurance acceptance and cost labels state that they are simulated and estimates respectively. Payment simulation, if shown, never requests real card details.
 
-| Page / proposed route | Content and actions |
-| --- | --- |
-| Demo entry `/` | Product explanation, synthetic patient/staff persona selection, session entry |
-| Search `/search` | Specialty, city/area, plan, maximum cost, date range; clinic/slot cards; clear filters; loading, empty and failure states |
-| Clinic `/clinics/[id]` | Address, services, accepted demo plans, accessibility information, estimated prices, available slots |
-| Booking review `/appointments/new` | Selected slot, estimate, demo insurance status, final confirmation with conflict recovery |
-| My appointments `/appointments` | Confirmed/cancelled bookings, details, cancellation confirmation, join-earlier-waitlist entry point |
-| My waitlists `/waitlists` | Preferences, linked booking, status, edit and withdraw |
-| Inbox `/notifications` | Persistent unread/read notifications and offer details; accept/decline only when actionable |
-| Clinic schedule `/clinic/schedule` | Date-filtered schedule, bookings and availability, release/create future slots, cancellations |
-| Clinic waitlists `/clinic/waitlists` | Clinic-relevant eligible requests, released slots, ranked candidates, reasons, approve/reject for this slot |
-| Clinic activity `/clinic/activity` | Booking, cancellation, approval and acceptance audit trail within clinic scope |
-| Demo tools `/demo` | Staff/demo-administrator-only reset confirmation and scenario guide; hidden/disabled outside demo mode |
+| Page / proposed route                | Content and actions                                                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Demo entry `/`                       | Product explanation, synthetic patient/staff persona selection, session entry                                             |
+| Search `/search`                     | Specialty, city/area, plan, maximum cost, date range; clinic/slot cards; clear filters; loading, empty and failure states |
+| Clinic `/clinics/[id]`               | Address, services, accepted demo plans, accessibility information, estimated prices, available slots                      |
+| Booking review `/appointments/new`   | Selected slot, estimate, demo insurance status, final confirmation with conflict recovery                                 |
+| My appointments `/appointments`      | Confirmed/cancelled bookings, details, cancellation confirmation, join-earlier-waitlist entry point                       |
+| My waitlists `/waitlists`            | Preferences, linked booking, status, edit and withdraw                                                                    |
+| Inbox `/notifications`               | Persistent unread/read notifications and offer details; accept/decline only when actionable                               |
+| Clinic schedule `/clinic/schedule`   | Date-filtered schedule, bookings and availability, release/create future slots, cancellations                             |
+| Clinic waitlists `/clinic/waitlists` | Clinic-relevant eligible requests, released slots, ranked candidates, reasons, approve/reject for this slot               |
+| Clinic activity `/clinic/activity`   | Booking, cancellation, approval and acceptance audit trail within clinic scope                                            |
+| Demo tools `/demo`                   | Staff/demo-administrator-only reset confirmation and scenario guide; hidden/disabled outside demo mode                    |
 
 Clinic staff must not see unrestricted cross-clinic histories. Candidate views disclose only synthetic identity, relevant preferences, eligibility and scheduling details. Date/time displays include the clinic timezone. Desktop dashboards and mobile patient flows must remain usable at 375px width. Inputs need labels, keyboard focus, inline validation, adequate contrast, and non-color-only statuses.
 
@@ -156,52 +156,65 @@ Database changes survive browser refresh and application restart. Reset is an ex
 
 ## 10. Acceptance criteria
 
-| ID | Priority | Given / when / then |
-| --- | --- | --- |
-| AC01 | P0 | Combined specialty, location, insurance, price and date filters return only compatible seeded availability; clearing filters restores results |
-| AC02 | P0 | Two patients simultaneously book one available slot; exactly one confirmed booking exists and the loser sees a conflict |
-| AC03 | P0 | A patient joins an earlier waitlist; linked appointment stays confirmed and preferences persist after refresh |
-| AC04 | P0 | Staff cancels a booking; slot becomes available and matching excludes each incompatible fixture with deterministic eligible ordering |
-| AC05 | P0 | Staff approves a candidate; one hold and one actionable notification are persisted; no new booking exists yet |
-| AC06 | P0 | Patient accepts valid offer; new booking, old reschedule, waitlist fulfillment, slot changes and audit commit atomically |
-| AC07 | P0 | Decline, expiry or failed acceptance leaves original booking intact; hold is released and next candidate can be reviewed |
-| AC08 | P0 | Repeat requests, two approvals and stale offers cannot create duplicate bookings, holds or notifications |
-| AC09 | P0 | A patient or staff member calls another identity/clinic's endpoint directly; server denies read/mutation without leaking records |
-| AC10 | P0 | Restart the app against the same database; previous booking and inbox changes remain visible |
-| AC11 | P0 | Confirm demo reset; baseline returns with future relative dates; ordinary startup and non-demo mode cannot reset data |
-| AC12 | P0 | Complete workflow B through browser UI without database edits or external APIs; keyboard and mobile patient flow remain usable |
-| AC13 | P0 | Simultaneous attempts book overlapping slots for one patient; at most one commits; adjacent slots remain allowed |
-| AC14 | P0 | Preference change, withdrawal or original-booking cancellation invalidates affected pending offers; stale acceptance safely fails |
-| AC15 | P0 | Inject failure during replacement; rollback leaves original booking confirmed and no partial new booking |
+| ID   | Priority | Given / when / then                                                                                                                           |
+| ---- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC01 | P0       | Combined specialty, location, insurance, price and date filters return only compatible seeded availability; clearing filters restores results |
+| AC02 | P0       | Two patients simultaneously book one available slot; exactly one confirmed booking exists and the loser sees a conflict                       |
+| AC03 | P0       | A patient joins an earlier waitlist; linked appointment stays confirmed and preferences persist after refresh                                 |
+| AC04 | P0       | Staff cancels a booking; slot becomes available and matching excludes each incompatible fixture with deterministic eligible ordering          |
+| AC05 | P0       | Staff approves a candidate; one hold and one actionable notification are persisted; no new booking exists yet                                 |
+| AC06 | P0       | Patient accepts valid offer; new booking, old reschedule, waitlist fulfillment, slot changes and audit commit atomically                      |
+| AC07 | P0       | Decline, expiry or failed acceptance leaves original booking intact; hold is released and next candidate can be reviewed                      |
+| AC08 | P0       | Repeat requests, two approvals and stale offers cannot create duplicate bookings, holds or notifications                                      |
+| AC09 | P0       | A patient or staff member calls another identity/clinic's endpoint directly; server denies read/mutation without leaking records              |
+| AC10 | P0       | Restart the app against the same database; previous booking and inbox changes remain visible                                                  |
+| AC11 | P0       | Confirm demo reset; baseline returns with future relative dates; ordinary startup and non-demo mode cannot reset data                         |
+| AC12 | P0       | Complete workflow B through browser UI without database edits or external APIs; keyboard and mobile patient flow remain usable                |
+| AC13 | P0       | Simultaneous attempts book overlapping slots for one patient; at most one commits; adjacent slots remain allowed                              |
+| AC14 | P0       | Preference change, withdrawal or original-booking cancellation invalidates affected pending offers; stale acceptance safely fails             |
+| AC15 | P0       | Inject failure during replacement; rollback leaves original booking confirmed and no partial new booking                                      |
 
 ## 11. Risks and controls
 
-| Risk | Control / scope decision |
-| --- | --- |
-| Overbuilding under deadline | Deliver one tested vertical slice first; cut P2 and P1 before P0 integrity |
-| Race conditions and partial reschedules | PostgreSQL transactions, constraints, patient/slot locks and concurrency tests |
-| Fragmented contributions | Shared contracts and schema owner, small PRs, protected main, CI |
-| Unreliable live services | Persistent inbox, deterministic matching, local app/database rehearsal |
-| Timezone and seed drift | UTC storage, clinic timezone display, relative seed dates, test clock |
-| Misleading healthcare claims | Synthetic labels, explainable administrative rules, explicit human approval |
-| Schema/hosting incompatibility | PostgreSQL from first integration; hosting chosen before deployment work |
-| Public demo misuse | Server authorization, demo-mode gates, synthetic-only data; production readiness out of scope |
+| Risk                                    | Control / scope decision                                                                      |
+| --------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Overbuilding under deadline             | Deliver one tested vertical slice first; cut P2 and P1 before P0 integrity                    |
+| Race conditions and partial reschedules | PostgreSQL transactions, constraints, patient/slot locks and concurrency tests                |
+| Fragmented contributions                | Shared contracts and schema owner, small PRs, protected main, CI                              |
+| Unreliable live services                | Persistent inbox, deterministic matching, local app/database rehearsal                        |
+| Timezone and seed drift                 | UTC storage, clinic timezone display, relative seed dates, test clock                         |
+| Misleading healthcare claims            | Synthetic labels, explainable administrative rules, explicit human approval                   |
+| Schema/hosting incompatibility          | PostgreSQL from first integration; hosting chosen before deployment work                      |
+| Public demo misuse                      | Server authorization, demo-mode gates, synthetic-only data; production readiness out of scope |
 
 ## 12. Assumptions and unresolved decisions
 
 These are proposed defaults, not approved implementation choices.
 
-| ID | Topic | Proposed default / unresolved input |
-| --- | --- | --- |
-| D01 | Stack | Next.js + PostgreSQL + Prisma as above; confirm team familiarity |
-| D02 | Deadline | Hackathon duration unknown; use dependency-based milestones rather than promised dates |
-| D03 | Hosting | Unresolved provider, budget and credentials; require durable PostgreSQL and local fallback; deployment needs later authorization |
-| D04 | Demo access | Seeded signed-cookie personas; production authentication excluded |
-| D05 | Geographic scope | One US metro, USD, city/area filtering, clinic timezone America/Los_Angeles; no geocoding needed |
-| D06 | Offer policy | One exclusive offer per slot, ten-minute lifetime, clinic approval before patient notification |
-| D07 | Ranking | FIFO among eligible patients; no automated clinical urgency ranking |
-| D08 | Waitlist policy | One active request per patient/service; decline/expiry keeps request active; cross-clinic replacement explicitly consented to |
-| D09 | Eligibility | Structured service, time, location, budget and demo insurance; specialized clinical eligibility excluded from fixture services |
-| D10 | Staffing | Five suggested owners in TASKS.md; actual names and strengths unresolved |
+| ID  | Topic            | Proposed default / unresolved input                                                                                              |
+| --- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| D01 | Stack            | Next.js + PostgreSQL + Prisma as above; confirm team familiarity                                                                 |
+| D02 | Deadline         | Hackathon duration unknown; use dependency-based milestones rather than promised dates                                           |
+| D03 | Hosting          | Unresolved provider, budget and credentials; require durable PostgreSQL and local fallback; deployment needs later authorization |
+| D04 | Demo access      | Seeded signed-cookie personas; production authentication excluded                                                                |
+| D05 | Geographic scope | One US metro, USD, city/area filtering, clinic timezone America/Los_Angeles; no geocoding needed                                 |
+| D06 | Offer policy     | One exclusive offer per slot, ten-minute lifetime, clinic approval before patient notification                                   |
+| D07 | Ranking          | FIFO among eligible patients; no automated clinical urgency ranking                                                              |
+| D08 | Waitlist policy  | One active request per patient/service; decline/expiry keeps request active; cross-clinic replacement explicitly consented to    |
+| D09 | Eligibility      | Structured service, time, location, budget and demo insurance; specialized clinical eligibility excluded from fixture services   |
+| D10 | Staffing         | Five suggested owners in TASKS.md; actual names and strengths unresolved                                                         |
 
 Approval of planning should resolve or accept the proposed defaults; implementation must not begin before the user's approval.
+
+## 13. Implementation decisions — 2026-10-16
+
+- Latest main at implementation start: `0a620b06b3082bf0710f2ddb420fc84aa052ce4a`. The previous frontend was deliberately deleted; it is neither restored nor reused. Section 2's README-only observation is historical.
+- D01: Next.js/React/TypeScript, PostgreSQL/Prisma, Zod, Vitest and Playwright adopted. Original CSS and Lucide provide the design system; Tailwind/shadcn are deferred to avoid unnecessary setup. One application and one durable database remain the architecture.
+- Prisma 6.19.2 uses the JavaScript PostgreSQL driver adapter. The environment blocks the native-engine distribution host. Generation uses a pinned generator API; migrations use reviewed SQL with checksums and transaction locking. No integrity/TLS checks are disabled. `README.md` is the setup source of truth.
+- Scheduling uses one PostgreSQL transaction-scoped advisory lock for the small demo rather than finer-grained patient/slot locks. Partial unique indexes still enforce confirmed-slot occupancy, pending offers and active waitlist uniqueness. This is a throughput limitation, not an in-memory substitute.
+- D04–D09: Seeded signed-cookie personas, Pacific-time US metro locations, USD, ten-minute exclusive offers, staff-first approval, FIFO eligibility ranking, one active request per service, and structured administrative eligibility adopted as documented defaults. Clinical urgency remains under human supervision.
+- Useful AI assistance is now an optional server-side explanation adapter. Deterministic eligibility/ranking always controls candidates; the model cannot mutate bookings or approve offers. Missing credentials, timeout, bad response or provider failure uses a labeled local explanation. Only anonymous candidate numbers and eligibility reasons are sent externally. No external AI credentials are configured during development.
+- Clinic detail and booking review are accessible dialogs inside Find care; other patient/staff pages use the documented workspace routes. Inline filtering runs over the server's current available-slot snapshot, refreshed every 12 seconds; server-side revalidation is authoritative for mutations.
+- Models consolidate PatientProfile/StaffMembership into seeded User records and service/insurance compatibility into Slot fields; no production credential/account enrollment is implied. Visits are 30 minutes and all seeded clinics use America/Los_Angeles.
+- D02/D03/D10 remain unresolved: actual deadline, hosting/budget/credentials, and student names/availability. Public deployment, real insurance/payment, EHR integrations and clinical triage remain out of scope.
+- Remaining acceptance coverage, fixture variants and release rehearsal must be reported honestly in VALIDATION.md; a working prototype does not establish production readiness or full release-gate completion.
