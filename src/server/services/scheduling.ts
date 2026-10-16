@@ -164,11 +164,16 @@ async function assertBookable(
 export async function performAction(
   userId: string,
   raw: unknown,
-  options: { now?: Date; failAfterReplacement?: boolean } = {},
+  options: {
+    now?: Date;
+    clock?: () => Date;
+    failAfterReplacement?: boolean;
+    failRefreshMatches?: boolean;
+  } = {},
 ) {
   const input = actionSchema.parse(raw);
-  const now = options.now ?? new Date();
-  return locked(async (tx) => {
+  const result = await locked(async (tx) => {
+    const now = options.clock?.() ?? options.now ?? new Date();
     const user = await tx.user.findUnique({ where: { id: userId } });
     if (!user) fail("Please select a demo persona.", 401);
     await expireOffers(tx, now);
@@ -409,6 +414,8 @@ export async function performAction(
         if (!o || o.patientId !== user.id) fail("Invitation not found.", 404);
         if (o.status === "ACCEPTED" && input.accept)
           return { message: "This appointment is already confirmed." };
+        if (o.status === "DECLINED" && !input.accept)
+          return { message: "This invitation was already declined." };
         if (o.status !== "PENDING" || o.expiresAt <= now)
           fail(
             "This invitation is no longer active. Your original appointment is unchanged.",
@@ -441,11 +448,14 @@ export async function performAction(
           true,
           now,
         );
+        const replacement = await tx.booking.create({
+          data: { patientId: user.id, slotId: o.slotId },
+        });
         if (o.waitlist.bookingId) {
           const old = o.waitlist.booking!;
           await tx.booking.update({
             where: { id: old.id },
-            data: { status: "RESCHEDULED" },
+            data: { status: "RESCHEDULED", replacementId: replacement.id },
           });
           await tx.slot.update({
             where: { id: old.slotId },
@@ -458,9 +468,6 @@ export async function performAction(
             "Original appointment rescheduled; slot released",
           );
         }
-        await tx.booking.create({
-          data: { patientId: user.id, slotId: o.slotId },
-        });
         if (options.failAfterReplacement)
           throw new Error("Injected replacement failure");
         await tx.offer.update({
@@ -548,9 +555,29 @@ export async function performAction(
         break;
       }
     }
-    await refreshMatches(tx, now);
+    if (input.type !== "cancel") {
+      if (options.failRefreshMatches)
+        throw new Error("Injected match refresh failure");
+      await refreshMatches(tx, now);
+    }
     return { message };
   });
+  if (input.type === "cancel") {
+    try {
+      await locked(async (tx) => {
+        const now = options.clock?.() ?? options.now ?? new Date();
+        if (options.failRefreshMatches)
+          throw new Error("Injected match refresh failure");
+        await refreshMatches(tx, now);
+      });
+    } catch {
+      return {
+        message:
+          "Appointment cancelled. Matching will retry on the next refresh.",
+      };
+    }
+  }
+  return result;
 }
 export async function getState(user: User | null) {
   return locked(async (tx) => {

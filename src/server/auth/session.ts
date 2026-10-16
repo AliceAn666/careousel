@@ -44,10 +44,19 @@ export async function currentUser() {
 }
 export function assertOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  if (
-    !origin ||
-    origin !==
-      `${new URL(request.url).protocol}//${request.headers.get("host")}`
-  )
+  const host = request.headers.get("host");
+  const codespaceHost = process.env.CODESPACE_NAME
+    ? `${process.env.CODESPACE_NAME}-3000.app.github.dev`
+    : null;
+  const trustedCodespaceProxy =
+    process.env.NODE_ENV === "development" &&
+    codespaceHost !== null &&
+    request.headers.get("x-forwarded-host") === codespaceHost &&
+    request.headers.get("x-forwarded-proto") === "https";
+  const proxyOrigins = trustedCodespaceProxy
+    ? [`https://${codespaceHost}`, ...(host ? [`http://${host}`] : [])]
+    : [];
+  const requestOrigin = `${new URL(request.url).protocol}//${host}`;
+  if (!origin || (origin !== requestOrigin && !proxyOrigins.includes(origin)))
     throw new DomainError("Cross-origin requests are not allowed.", 403);
 }

@@ -90,7 +90,7 @@ Depends on M1 contracts and M2 services. Leads: Members 2 and 3; backend support
 
 - [ ] Complete search queries and indexes and all service contracts used by portals.
 - [ ] Enforce patient overlap prevention, earlier-only replacement, idempotent requests and invalidation when preferences/bookings change.
-- [ ] Expand synthetic seed to PRD minimums and edge cases; use relative dates and example-domain contacts.
+- [x] Expand synthetic seed to PRD minimums and edge cases; use relative dates and example-domain contacts.
 - [ ] Add explicit privileged demo reset with confirmation, transactional baseline and demo-mode restriction; startup never resets.
 
 Deliverables: all P0 pages backed by persistence and full synthetic dataset.
@@ -163,9 +163,9 @@ The original milestones remain the target roadmap. This ledger distinguishes del
 - [x] Implement atomic cross-clinic replacement, rollback, retry protection, audit and release of original slot.
 - [x] Build original responsive patient and staff workspaces, combined search filters, slot details/review, schedules and activity.
 - [x] Provide local recommendation explanations plus optional AI adapter with timeout/error fallback.
-- [x] Seed 4 clinics, 3 specialties, 12 patients, 4 staff, 4 plans plus self-pay and 50 future slots.
+- [x] Seed 4 clinics, 3 specialties, 12 patients, 4 staff, 4 plans plus self-pay, 56 future slots and deterministic scheduling scenarios.
 - [x] Add explicit privileged demo reset and README walkthrough/run instructions.
-- [ ] Expand dedicated fixtures for ranking ties, pre-existing expired offers and all advanced edge cases in the original PRD.
+- [x] Expand dedicated fixtures for ranking ties, pending/expired offers, overlaps, incompatible preferences and no-match cancellation.
 
 ### Quality and release
 
