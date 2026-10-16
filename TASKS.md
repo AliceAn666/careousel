@@ -1,178 +1,92 @@
-# Careousel development roadmap
+# Careousel proposal-alignment roadmap
 
-Status: Application implementation explicitly approved on 2026-10-16. Work is on `feat/careousel-prototype`, based on latest main after the intentional frontend deletion. Public deployment still requires separate authorization. See the implementation ledger below and VALIDATION.md; unchecked original tasks remain release/handoff gates rather than a claim that no application exists.
+Status: documentation review, 2026-10-16. Product source and requirement/acceptance traceability: PRD.md sections 1, 3 and 9. This branch changes documentation only. A task below is not implemented merely because its design is documented. No application commit, database migration, merge or public deployment is part of this PR.
 
-## Suggested five-person responsibilities
+## Existing baseline and integration boundary
 
-| Member                   | Primary ownership                                                                          | Review partner / secondary work                         |
-| ------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| 1 — integration and data | App bootstrap, schema, migrations, domain contracts, CI and integration                    | Reviews Member 4; coordinates shared-file changes       |
-| 2 — patient experience   | Search, clinic details, direct booking, appointment and waitlist UI                        | Reviews Member 3; accessibility and mobile checks       |
-| 3 — clinic experience    | Schedule, cancellation, candidate review and activity UI                                   | Reviews Member 2; synthetic fixture design              |
-| 4 — scheduling engine    | Booking transactions, eligibility, ranking, offers, rescheduling, inbox services           | Reviews Member 1; database concurrency tests            |
-| 5 — quality and demo     | Session/authorization integration, seed/reset, browser tests, demo guide and visual review | Reviews critical flows with Member 4; release rehearsal |
+Remote `feat/careousel-prototype` at `27c5f83` already contains patient/staff portals, filtering, booking, linked/unlinked waitlists, deterministic matching, staff-approved exclusive offers, persistent inbox, atomic replacement, synthetic seeds, demo sessions, origin protections and test harnesses. `cd509fb` adds scheduling fixes and migration `0002_booking_history_patient_integrity`. Preserve them. Refer to VALIDATION.md for historical results, not new proposal acceptance.
 
-These are ownership areas for students, not instructions to spawn agents. Names, availability, deadline and experience are unresolved. No owner works in isolation: service contracts and a shared vertical slice come before broad parallel UI development. Member 1 integrates migrations; Member 5 coordinates demo evidence.
+The original local worktree contains different uncommitted SQL-clock/history/integrity fixes based on `e063f38`. Keep it intact. Its reverse history field and alternative 0002 migration cannot be copied over remote migrations blindly. T0 reconciles behavior and tests, not Git history. No user-approved commit/push of that local application work is implied by this docs PR.
 
-## Dependency path
+## Five-person responsibilities and review pairs
 
-`M0 approval -> M1 foundation/contracts -> M2 cancellation-to-confirmation vertical slice -> M3 full P0 portals -> M4 hardening/rehearsal -> M5 approved demo release`
+| Member                           | Primary deliverables                                                                                      | Review / coordination                                                                   |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 1 — data and integration         | T0 integration plan, T1 schema/backfills/constraints, shared typed contracts, migrations and CI           | Member 4 reviews database invariants; sole migration integrator                         |
+| 2 — patient experience           | T2 patient preference/eligibility inputs, T5 patient need dashboard/search/inbox/fee copy                 | Member 3 reviews patient usability; coordinate contracts before UI                      |
+| 3 — clinic experience and impact | T3 clinic policy/release/stage UI, T5 staff checklist, T7 impact UI and formulas                          | Member 2 reviews accessibility; Member 4 reviews scheduling semantics                   |
+| 4 — scheduling services          | T0 correctness reconciliation, T2 prescreen engine, T3–T4 audience/offer/acceptance transactions          | Member 1 reviews locks, ownership and migrations; no parallel conflicting service edits |
+| 5 — quality and demonstration    | T6 fixtures/integration/browser/claim checks, regression evidence, demo rehearsal; optional T8 validation | Pairs with every owner; reviews critical T0/T4 failure cases                            |
 
-After M1, Members 2 and 3 can develop UI against agreed typed contracts while Members 1, 4 and 5 complete persistent services and integration tests. Temporary fixture adapters must be explicitly marked and replaced before a task is accepted. No mock-only page counts as completed P0 functionality.
+These are student ownership suggestions, not instructions to spawn agents. Actual names, available hours and deadline remain open. One reviewer per feature; Members 1/4 jointly review changes to scheduling invariants. Member 1 owns `schema.prisma`, migrations and shared contracts; Member 4 owns scheduling.ts edits. Use small dependent PRs and coordinate shared files rather than overwriting them.
 
-## M0 — approve scope and decisions
+## Dependency path and milestone gates
 
-Owner: entire team. Dependencies: none. Deliverables: reviewed planning documents and agreed scope.
+`Docs review → M0 preserve/reconcile → M1 contract/schema → M2 internal-first qualified workflow → M3 authorized network safe replacement → M4 impact/hardening/rehearsal → optional assistance`
 
-- [ ] Review PRD assumptions D01–D10, especially stack, demo personas, approval ordering, ten-minute offer holds, geography and waitlist uniqueness.
-- [ ] Confirm hackathon deadline, actual owners and must-show scenario; choose a feature freeze time.
-- [x] Obtain user approval before application implementation or dependency installation.
-- [ ] Record hosting constraints and local demo fallback; do not deploy in this milestone.
+No calendar estimates are promised without deadline/availability. Implement one vertical slice before extending all services. Keep original functions available. If time is short, cut notes AI, deposits, new specialty breadth and richer visuals; never cut transaction safety, internal-release permission or honest labels.
 
-Gate: implementation authorization is explicit; unresolved nonblocking decisions have named owners and defaults.
+### M0 — protect the existing working application
 
-## M1 — foundation, contracts and persistent schema
+- [ ] **T0** (Members 1/4, tests Member 5): compare remote/local fixes, migration ledger and auth changes without overwriting either worktree. Adopt remote history direction or explicitly reviewed compatible alternative; no duplicate 0002 histories. Preserve successful Codespaces login origin behavior.
+- [ ] Upgrade post-lock authoritative execution time to PostgreSQL clock_timestamp; retain lock and add real lock-wait acceptance/direct-book/approval regression tests.
+- [ ] Fault-inject actual SQL matching failures after cancellation, retain durable cancellation and usable read snapshots, add explicit safe retry; preserve replacement's single transaction.
+- [ ] Review notification patient ownership, mixed booking/hold occupancy, history consistency and direct SQL risks with targeted tests; don't add broad infrastructure without demonstrated need.
 
-Lead: Member 1. Partners: Members 4 and 5. Depends on M0.
+Deliverable/gate: reconciled small correctness PR, no regressions in legacy AC01–AC15, AT-BP07/08 protection subset passes on isolated PostgreSQL. No migration applied to shared/demo DB without reviewed preflight and approval. This docs PR does not execute T0.
 
-- [ ] Bootstrap the approved framework and compatible stable dependency versions; commit npm lockfile; document runtime requirements.
-- [ ] Establish shared layout, theme tokens, accessible components, consistent statuses, timezone/money formatting and error conventions (Members 2/3).
-- [ ] Design Prisma schema and reviewed SQL constraints for slot occupancy, pending offers and active waitlist uniqueness; define patient/slot locking order (Members 1/4).
-- [ ] Define route/input/output contracts for search, bookings, cancellation, waitlists, matching, approval, offer response, inbox and demo reset. Specify authorization and conflict responses (Members 1/4/5).
-- [ ] Establish PostgreSQL development/test setup, migrations, explicit seed command, placeholder environment documentation and independent test database.
-- [ ] Implement signed-cookie seeded sessions, clinic memberships, same-origin mutation protection and demo-mode gates (Member 5, review Member 1).
-- [ ] Establish lint, typecheck, unit/integration/browser scripts and build; configure PR CI and branch protections where permissions permit.
-- [ ] Check licenses for adopted packages/assets and retain required notices.
+### M1 — contracts and additive data (depends on M0)
 
-Deliverables: bootable app, durable database, shared contracts, migration history, minimal seeded roles, test harness and setup instructions.
+- [ ] **T1** (Member 1; review 4): finalize PRD section 5 entities and section 7 Zod/response contracts with Members 2/3 before parallel UI work.
+- [ ] Add stable CareNeed/enrollment, service specification/duration and specific demo plan IDs; replace service-only active uniqueness with need/enrollment-level uniqueness safely.
+- [ ] Add simulated target-clinic EligibilityReview and attendance preferences; internal/network consent/membership, ClinicPolicy, OpeningRelease, clinician marker provenance, stage recipients and structured events.
+- [ ] Map legacy strings and history without invented approvals/consent. Unknowns fail closed; add dry-run preflight and deterministic conversion tests. Keep old request adapter until callers migrate.
+- [ ] Create new additive migration(s) using next unused names, preserve applied checksums and actual rows; validate clean install and upgrade fixtures on isolated DB. Document whether new generated client can run before target DB migration.
 
-Gate: fresh setup/migration works; server authorization is tested; constraints and locking strategy are reviewed; main builds. No feature team invents separate domain states or schemas.
+Deliverable/gate: reviewed schema/API diff, backfill plan and upgrade tests; application still builds with original workflow. No actual migration exists from this documentation milestone. Decide rollout separately before changing current demo DB.
 
-## M2 — one complete persistent vertical slice
+### M2 — one qualified internal-clinic workflow (depends on M1)
 
-Lead: Member 4. All members contribute. Depends on M1. Highest implementation priority.
+- [ ] **T2** (Member 4 engine, Member 2 forms): service variant/duration, plan, price, clinic-local dates/hours, arrival lead time, referral/auth states and expiry; missing-fields checklist and staff target-clinic administrative review. Required unknown flags block book/approve/accept.
+- [ ] **T3** (Member 4 services, Member 3 UI): cancellation creates internal release and policy snapshot; internal enrollment enforced in search, snapshots, direct booking and offer actions. Policy editor shows configurable window, interval and offer duration.
+- [ ] Add clinician-authorized marker permission/provenance, staff-selected cohort with stable FIFO/ID ties and staged deadlines. Default sequential exclusive actionable invitations, not broadcast slot races.
+- [ ] **T5 internal slice** (Members 2/3): multiple need cards, requirements badges/checklist, internal queue, stage preview and durable inbox. All buttons call services, including retry and error states.
+- [ ] **T6 internal slice** (Member 5): synthetic internal candidates, marker ties, missing/expired referral/auth, wrong duration/variant, unable-to-arrive and stage timing tests.
 
-- [ ] Seed Avery's later Harbor booking, Cedar's earlier occupied slot, one eligible request and explicit incompatible candidates (Members 3/5).
-- [ ] Implement waitlist creation linked to an existing booking without cancelling it (Member 4; Member 2 UI).
-- [ ] Implement cancellation transaction, released availability and deterministic eligibility suggestions (Member 4; Member 3 UI).
-- [ ] Implement staff review/approval, exclusive hold and persistent notification, with revalidation (Members 4/3).
-- [ ] Implement inbox and patient accept/decline endpoints and minimal usable UI (Members 4/2).
-- [ ] Implement atomic cross-clinic replacement, history and release of the original slot; verify clinic-scoped visibility (Members 4/1/5).
-- [ ] Enforce expiry on reads/mutations and expose a stale offer response; support retrying candidate generation (Member 4).
-- [ ] Add browser journey and PostgreSQL tests for the entire slice, including rollback and competing acceptance/approval (Member 5 with Member 4).
+Deliverable/gate: internal cancellation→prescreen→staff stage→patient response works through UI; AT-BP01/02/05/06 plus internal BP03/04/07 pass. New screens remain responsive/keyboard usable. No cross-clinic release bypass.
 
-Deliverable: PRD workflow B runs through real UI and services without manual database edits.
+### M3 — explicit network release and atomic earlier replacement (depends on M2)
 
-Gate: AC03–AC08, AC14 and AC15 pass for the slice; refresh and app restart preserve changes; original booking survives every failed replacement. Merge this before adding optional pages.
+- [ ] **T3 network slice**: expiry of internal window permits review only. Own-clinic staff explicitly authorizes release; require network membership, patient consent and no conflicting live hold. Revocations invalidate affected offers safely.
+- [ ] **T4** (Member 4, review 1): offer policy/version snapshots and bounded expiry; post-lock time, full prescreen/audience revalidation, atomic original→replacement chain/event writes. Fulfill only the accepted need; preserve unrelated nonconflicting offers/needs.
+- [ ] Keep accept/decline/release/stage retries idempotent, reject contradictory actions, serialize competing responses/approval/direct booking. Durable deadlines work after restart; lazy staff-driven stage progression is labeled honestly.
+- [ ] **T5 network slice** (Members 2/3): explicit opt-in and clinic source, external-release confirmation, internal/network status, authoritative offer expiry and clear replacement consequences; preserve legacy details/schedule/history.
+- [ ] **T6 network slice** (Member 5): negative direct-API bypass tests, stale requirement/consent changes, no-match, concurrent releases/responses, repeated rescheduling and independent-needs preservation.
 
-## M3 — complete the P0 patient and clinic portals
+Deliverable/gate: complete PRD section 8 Avery/Harbor/Cedar workflow and AT-BP01–08 pass without external APIs or manual DB edits. Original appointment survives every failed acceptance.
 
-Depends on M1 contracts and M2 services. Leads: Members 2 and 3; backend support Member 4.
+### M4 — impact, claims and release rehearsal (depends on M3)
 
-### Patient workstream — Member 2
+- [ ] **T7** (Member 3 UI/formulas, Member 1 event writes, Member 5 assertions): observed internal/network recovered openings, denominators, time-to-fill, earlier elapsed days and reversal handling from structured events.
+- [ ] Add clearly simulated baseline incremental recovery, admin minutes and financial scenarios. Separate assumed completed-visit value from confirmed-booking counts; no causal/actual profit claims. Label patient platform fee $0 and medical cost estimate separately.
+- [ ] **T6 final** (Member 5): stable named synthetic scenarios for internal decline→external release, missing requirements, concurrent actors, expired offers under real lock wait, no-match and matching failure, retaining legacy Avery fixture. Never reseed current demo DB without approval.
+- [ ] Run unit, real PostgreSQL integration/direct SQL, browser, lint, typecheck and build; persistence/restart and fresh/upgrade migration checks. Report results in validation evidence in a later implementation PR, not invented here.
+- [ ] Perform manual claim/accessibility review at 375px and keyboard navigation. Two team rehearsals use actual demo machine; short configurable windows are explicitly synthetic. Prepare local fallback.
 
-- [ ] Build search with combined specialty/service, city/area, plan, maximum estimated cost and date availability filters.
-- [ ] Build clinic/slot details and booking review with demo insurance/price labels.
-- [ ] Integrate direct booking and appointment cancellation with helpful concurrency conflicts.
-- [ ] Complete appointment history and waitlists, including unlinked requests, edit and withdraw.
-- [ ] Complete inbox with read/unread state, offer expiry, explicit acceptance consequences and result views.
-- [ ] Provide responsive navigation, keyboard operation, validation, loading, empty and failure states.
+Deliverable/gate: AT-BP01–08/10/11/13, legacy AC01–15 and all critical checks pass with honest limits. AT-BP09 fallback checklist passes even if optional LLM notes work is omitted. Review PRs only; no merge or deployment implied.
 
-### Clinic workstream — Member 3
+### Optional follow-up, deliberately outside core gate
 
-- [ ] Build date-filtered schedule and booking details, future-slot creation/release and cancellation confirmation.
-- [ ] Build clinic-scoped waitlist/candidate review with eligibility explanations and staff selection reason.
-- [ ] Show approved holds, no-match availability, expired/declined offers and next-candidate review.
-- [ ] Add scoped activity history and schedule updates after every committed action.
-- [ ] Ensure staff cannot view or modify unrelated clinic records via UI or direct requests.
+- [ ] **T8** (Members 4/5, after M4): extend existing optional recommendations into authorized synthetic administrative-note summary and missing-info assistance only if time remains. Access checks before retrieving/sending data; no clinical classification, treatment approval or scheduling mutation. Test no-key/timeout/provider/malformed output and note-injection/cross-clinic access. AT-BP09; core checklist remains rules-based.
+- [ ] **T9 deferred** (team/legal/fairness review after M4): optional refundable deposit with equivalent waiver access, refund/dispute states and reliability evidence. Do not add schema/provider/payment screens now. AT-BP12 is the no-deposit core gate; implementation requires a separate approved design.
+- [ ] Real clinic integrations, production identity/security/compliance, live insurance/payment/billing, background external messaging, maps and broad service expansion need separate scope and authorization. No production readiness is inferred from hackathon tests.
 
-### Shared services/data — Members 1, 4 and 5
+## Traceability coverage and definition of done
 
-- [ ] Complete search queries and indexes and all service contracts used by portals.
-- [ ] Enforce patient overlap prevention, earlier-only replacement, idempotent requests and invalidation when preferences/bookings change.
-- [x] Expand synthetic seed to PRD minimums and edge cases; use relative dates and example-domain contacts.
-- [ ] Add explicit privileged demo reset with confirmation, transactional baseline and demo-mode restriction; startup never resets.
+Canonical full table: PRD.md section 3. Coverage index: BP01→T1/T2/T5; BP02→T1/T2/T5; BP03→T1/T3/T5/T6; BP04→T1/T3/T5; BP05→T1/T3/T4/T5; BP06→T1/T2/T4/T5; BP07→T0/T3/T4/T5; BP08→T0/T4/T6; BP09→T2/T8; BP10→T1/T7/T6; BP11→T5/T7; BP12→T9; BP13→T5/T6/T7/T8. Each BPnn maps to AT-BPnn; all are specified in PRD section 9. No traceability row is a passed-test claim.
 
-Deliverables: all P0 pages backed by persistence and full synthetic dataset.
+Each feature PR states behavior, task/BP/acceptance IDs, schema/API changes, compatibility and migration rollout, tests actually run, screenshots for visible changes and remaining limitations. Done requires persistent UI behavior, server authorization, tested invariants, meaningful failure states and truthful synthetic labels. Schema owner reviews migration ordering and shared-file changes; review partner checks cross-workstream integration. Do not force-push, rewrite history or push directly to main. Do not merge PR #3/#4 or deploy without separate explicit approval.
 
-Gate: AC01–AC15 have implementation and meaningful verification; no required flow depends on a temporary mock adapter.
+## Decisions needed before implementation
 
-## M4 — harden and rehearse
-
-Lead: Member 5. Reviewers: all. Depends on M2/M3. Freeze P1/P2 until this gate passes.
-
-- [ ] Verify combined search filtering and all eligibility exclusions, stable tie ordering, boundary times and adjacent versus overlapping bookings.
-- [ ] Run PostgreSQL races for one slot, one patient across slots, two staff approvals, repeated acceptance, stale offers and duplicate notifications.
-- [ ] Test rollback injection, expiry without background worker, withdrawal/preference changes, linked-booking cancellation and no-match recovery.
-- [ ] Verify role/ownership isolation through direct server calls, not just hidden UI controls.
-- [ ] Verify refresh/restart persistence, explicit reset, future seed dates and demo tools disabled outside demo mode.
-- [ ] Run Playwright main journey, direct booking, decline and expiry; record outcomes against AC01–AC15.
-- [ ] Review keyboard access, contrast, 375px patient flow, status labels and demo insurance/payment wording.
-- [ ] Run full CI checks/build from clean setup; document exact run/migrate/seed/test commands and prerequisites.
-- [ ] Create a five-minute demo script with personas, expected state after each action, reset procedure, common conflict recovery and local fallback.
-- [ ] Rehearse twice from reset using the same code/database arrangement intended for judging.
-
-Deliverables: passing checks, acceptance matrix, setup and demo guide, known limitations, stable demo baseline.
-
-Gate: main journey succeeds twice, critical integrity/authorization issues are resolved, and all P0 acceptance criteria have evidence. If time is short, cut enhancements rather than transaction safety.
-
-## M5 — release preparation and optional deployment
-
-Lead: Members 1/5. Depends on M4. Hosting remains unresolved; no deployment is currently authorized.
-
-- [ ] Select hosting only after confirming persistent PostgreSQL, supported runtime, migrations, secrets and budget; retain tested local fallback.
-- [ ] Prepare a concrete release/deployment plan with demo-mode controls, reset policy and rollback procedure.
-- [ ] Obtain explicit deployment authorization before publishing or modifying hosting.
-- [ ] If authorized, deploy the tested build, apply reviewed migrations/seed to the intended demo database and smoke-test role switching and the main journey.
-- [ ] Tag a stable revision, stop risky changes before judging, and prepare local run instructions and screenshots as supporting material.
-
-Deliverable: approved, rehearsed demo environment; a local environment is sufficient if deployment is not selected.
-
-## Optional backlog — only after P0 acceptance
-
-- [ ] P1: richer calendar view and days-saved/utilization metrics from persisted events (Member 3).
-- [ ] P1: expanded candidate explanations and clinic filters (Members 3/4).
-- [ ] P1: richer visibly simulated insurance/payment experience without real credentials (Member 2).
-- [ ] P2: calendar export, maps, realtime push or external notification adapter, chosen only if time and authorization permit.
-
-## PR handoff and definition of done
-
-Every task PR states the behavior, related PRD acceptance IDs, database/API changes, relevant verification results and limitations. Include screenshots for material UI changes and migration notes for schema changes. Require a review partner and successful applicable checks before merge. Coordinate schema/lockfile/shared configuration edits with Member 1. Actual branch protections may depend on repository permissions; do not claim they exist until verified.
-
-Done means persisted behavior works through the interface, server authorization and domain invariants hold, meaningful tests pass, error/empty states exist, synthetic labeling is clear, and documentation reflects the result. Document-only completion for this initial task means the three documents are consistent and ready for user review; it does not imply any application capability is built.
-
-## Implementation ledger — initial prototype PR
-
-The original milestones remain the target roadmap. This ledger distinguishes delivered code from human review/release gates; actual test counts belong in VALIDATION.md.
-
-### Foundation
-
-- [x] Create a clean Next.js/React/TypeScript app on a dedicated branch without the old frontend.
-- [x] Install dependencies and commit a lockfile; pin Prisma packages together.
-- [x] Start real PostgreSQL with a durable local Docker volume; apply checksum-tracked SQL migrations and explicit synthetic seed.
-- [x] Implement server-issued signed demo sessions, patient ownership, clinic-scoped actions and same-origin checks.
-- [x] Add separate guarded test database, unit/integration/browser harnesses and a GitHub Actions workflow.
-- [ ] Have another team member review schema/API contracts and configure repository branch protection.
-
-### Functional slice and portals
-
-- [x] Implement direct booking, cancellation and confirmed-booking overlap protection.
-- [x] Implement linked/unlinked waitlists with date, time, weekday, location, clinic, budget and demo-plan preferences; edit/withdraw.
-- [x] Generate and persist eligibility suggestions; display FIFO ranking and reasons.
-- [x] Implement staff approval, exclusive offer hold, persistent inbox and accept/decline/expiry.
-- [x] Implement atomic cross-clinic replacement, rollback, retry protection, audit and release of original slot.
-- [x] Build original responsive patient and staff workspaces, combined search filters, slot details/review, schedules and activity.
-- [x] Provide local recommendation explanations plus optional AI adapter with timeout/error fallback.
-- [x] Seed 4 clinics, 3 specialties, 12 patients, 4 staff, 4 plans plus self-pay, 56 future slots and deterministic scheduling scenarios.
-- [x] Add explicit privileged demo reset and README walkthrough/run instructions.
-- [x] Expand dedicated fixtures for ranking ties, pending/expired offers, overlaps, incompatible preferences and no-match cancellation.
-
-### Quality and release
-
-- [x] Record final validation results and remaining gaps in VALIDATION.md.
-- [ ] Complete two team-led rehearsals and keyboard/screen-reader review across all pages.
-- [ ] Obtain reviewer approval and merge the implementation PR.
-- [ ] Confirm deadline, assign actual five-person owners and choose feature freeze.
-- [ ] Select hosting and obtain separate public-deployment approval if desired.
-
-Suggested next ownership remains: Member 1 data/CI; Member 2 patient UI; Member 3 clinic UI; Member 4 scheduling/AI adapter; Member 5 acceptance and rehearsal. This implementation does not invoke parallel agents.
+Review PRD D02/D06/D07/D08/D09 for pilot service, deadline, window/stage defaults, clinician authority and need/enrollment UX; D10 assigns real owners. D12 requires history/migration reconciliation and explicit shared-demo rollout approval. D11 prices/metrics remain assumptions, not real billing. D13 keeps deposits and notes AI out of the core slice. These decisions do not block publishing this documentation review PR.
