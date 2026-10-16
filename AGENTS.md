@@ -2,7 +2,7 @@
 
 ## Current authorization
 
-This repository is in planning only. The user authorized creation of `PRD.md`, `AGENTS.md`, and `TASKS.md` only. Do not implement application code, install dependencies, or deploy until the user approves implementation. Approval to implement does not by itself authorize deployment. Record accepted changes to proposed decisions in the planning documents as work proceeds.
+Application implementation and dependency installation are approved by the user's foundation milestone request on 2026-10-16. Public deployment still requires separate explicit authorization. This milestone covers bootstrap, shared UI/contracts/tooling/documentation only. Patient Portal, Clinic Dashboard and scheduling/matching services belong to other teammates. PR #2 owns Prisma schema and constraints: do not copy, overwrite, replace or merge that work without integration review.
 
 ## Read first
 
@@ -63,10 +63,20 @@ Establish and document scripts at bootstrap: `lint`, `typecheck`, `test`, `test:
 
 Use short-lived branches such as `feat/patient-search`, `feat/offer-service`, `fix/booking-conflict`, `docs/demo-guide`. Do not push directly to main. Prefer small PRs with one reviewer, a clear behavior change, linked task/acceptance criteria and validation evidence. Proposed branch protection/CI configuration requires repository permissions and is a later task.
 
-Assign one schema/migration integrator (Member 1 by default). Agree domain contracts before parallel feature work; coordinate edits to schema, lockfile, shared services and configuration. Merge foundational PRs first and regularly update feature branches. Never commit generated databases, credentials or build output. Review dependency licenses and record attribution requirements.
+Member 2 owns schema/migrations; Member 1 coordinates integration. Agree domain contracts before parallel feature work; coordinate edits to schema, lockfile, shared services and configuration. Merge foundational PRs first and regularly update feature branches. Never commit generated databases, credentials or build output. Review dependency licenses and record attribution requirements.
 
 Do not spawn agents just because the team has five members; use delegated agents only when explicitly authorized by the user or applicable instructions.
 
 ## Completion reporting
 
-Summarize behavior changed, relevant tests and remaining risks. Keep task statuses honest. If blocked, complete independent authorized work and identify the exact blocker. Stop at the current authorization boundary; for this initial task, return the three planning documents and await approval.
+Summarize behavior changed, relevant tests and remaining risks. Keep task statuses honest. If blocked, complete independent authorized work and identify the exact blocker. Stop at the authorization boundary: implementation is approved, public deployment is not. Read docs/architecture.md and docs/api-contracts.md before feature work.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
