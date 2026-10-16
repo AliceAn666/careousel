@@ -1,0 +1,128 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "client"
+  output = "../node_modules/.prisma/client"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+model User {
+  id String @id
+  name String
+  role String
+  plan String @default("Blue Horizon")
+  clinicId String?
+  clinic Clinic? @relation(fields: [clinicId], references: [id])
+  bookings Booking[]
+  waitlists Waitlist[]
+  offers Offer[]
+  notifications Notification[]
+}
+model Clinic {
+  id String @id
+  name String
+  city String
+  address String
+  description String
+  timezone String @default("America/Los_Angeles")
+  users User[]
+  slots Slot[]
+  audits Audit[]
+}
+model Slot {
+  id String @id @default(cuid())
+  clinicId String
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+  service String
+  provider String
+  start DateTime
+  end DateTime
+  price Int
+  plans String[]
+  status String @default("AVAILABLE")
+  bookings Booking[]
+  offers Offer[]
+  suggestions Suggestion[]
+  @@index([clinicId, start])
+}
+model Booking {
+  id String @id @default(cuid())
+  patientId String
+  patient User @relation(fields: [patientId], references: [id])
+  slotId String
+  slot Slot @relation(fields: [slotId], references: [id])
+  status String @default("CONFIRMED")
+  createdAt DateTime @default(now())
+  replacementId String?
+  replacement Booking? @relation("BookingReplacement", fields: [replacementId, patientId], references: [id, patientId], onDelete: Restrict, onUpdate: Cascade)
+  replaces Booking? @relation("BookingReplacement")
+  waitlists Waitlist[]
+  @@index([patientId, status])
+  @@unique([id, patientId])
+  @@unique([replacementId, patientId])
+}
+model Waitlist {
+  id String @id @default(cuid())
+  patientId String
+  patient User @relation(fields: [patientId], references: [id])
+  service String
+  plan String
+  city String @default("")
+  clinicIds String[]
+  maxPrice Int
+  earliest DateTime
+  latest DateTime
+  startHour Int @default(0)
+  endHour Int @default(24)
+  weekdays Int[]
+  bookingId String?
+  booking Booking? @relation(fields: [bookingId, patientId], references: [id, patientId], onDelete: Restrict, onUpdate: Cascade)
+  status String @default("ACTIVE")
+  createdAt DateTime @default(now())
+  offers Offer[]
+  suggestions Suggestion[]
+  @@unique([id, patientId])
+}
+model Suggestion {
+  id String @id @default(cuid())
+  slotId String
+  slot Slot @relation(fields: [slotId], references: [id])
+  waitlistId String
+  waitlist Waitlist @relation(fields: [waitlistId], references: [id])
+  reasons String[]
+  @@unique([slotId, waitlistId])
+}
+model Offer {
+  id String @id @default(cuid())
+  slotId String
+  slot Slot @relation(fields: [slotId], references: [id])
+  waitlistId String
+  patientId String
+  waitlist Waitlist @relation(fields: [waitlistId, patientId], references: [id, patientId], onDelete: Restrict, onUpdate: Cascade)
+  patient User @relation(fields: [patientId], references: [id])
+  status String @default("PENDING")
+  reason String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  notifications Notification[]
+}
+model Notification {
+  id String @id @default(cuid())
+  patientId String
+  patient User @relation(fields: [patientId], references: [id])
+  offerId String?
+  offer Offer? @relation(fields: [offerId], references: [id])
+  title String
+  body String
+  read Boolean @default(false)
+  createdAt DateTime @default(now())
+}
+model Audit {
+  id String @id @default(cuid())
+  clinicId String
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+  actor String
+  action String
+  createdAt DateTime @default(now())
+}

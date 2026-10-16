@@ -1,16 +1,16 @@
 # Careousel development roadmap
 
-Status: Planning only. No implementation tasks have started. All boxes remain unchecked until work and evidence exist. Implementation requires explicit user approval of the planning documents; dependency installation and application code are currently unauthorized. Deployment requires separate authorization.
+Status: Application implementation explicitly approved on 2026-10-16. Work is on `feat/careousel-prototype`, based on latest main after the intentional frontend deletion. Public deployment still requires separate authorization. See the implementation ledger below and VALIDATION.md; unchecked original tasks remain release/handoff gates rather than a claim that no application exists.
 
 ## Suggested five-person responsibilities
 
-| Member | Primary ownership | Review partner / secondary work |
-| --- | --- | --- |
-| 1 — integration and data | App bootstrap, schema, migrations, domain contracts, CI and integration | Reviews Member 4; coordinates shared-file changes |
-| 2 — patient experience | Search, clinic details, direct booking, appointment and waitlist UI | Reviews Member 3; accessibility and mobile checks |
-| 3 — clinic experience | Schedule, cancellation, candidate review and activity UI | Reviews Member 2; synthetic fixture design |
-| 4 — scheduling engine | Booking transactions, eligibility, ranking, offers, rescheduling, inbox services | Reviews Member 1; database concurrency tests |
-| 5 — quality and demo | Session/authorization integration, seed/reset, browser tests, demo guide and visual review | Reviews critical flows with Member 4; release rehearsal |
+| Member                   | Primary ownership                                                                          | Review partner / secondary work                         |
+| ------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| 1 — integration and data | App bootstrap, schema, migrations, domain contracts, CI and integration                    | Reviews Member 4; coordinates shared-file changes       |
+| 2 — patient experience   | Search, clinic details, direct booking, appointment and waitlist UI                        | Reviews Member 3; accessibility and mobile checks       |
+| 3 — clinic experience    | Schedule, cancellation, candidate review and activity UI                                   | Reviews Member 2; synthetic fixture design              |
+| 4 — scheduling engine    | Booking transactions, eligibility, ranking, offers, rescheduling, inbox services           | Reviews Member 1; database concurrency tests            |
+| 5 — quality and demo     | Session/authorization integration, seed/reset, browser tests, demo guide and visual review | Reviews critical flows with Member 4; release rehearsal |
 
 These are ownership areas for students, not instructions to spawn agents. Names, availability, deadline and experience are unresolved. No owner works in isolation: service contracts and a shared vertical slice come before broad parallel UI development. Member 1 integrates migrations; Member 5 coordinates demo evidence.
 
@@ -26,7 +26,7 @@ Owner: entire team. Dependencies: none. Deliverables: reviewed planning document
 
 - [ ] Review PRD assumptions D01–D10, especially stack, demo personas, approval ordering, ten-minute offer holds, geography and waitlist uniqueness.
 - [ ] Confirm hackathon deadline, actual owners and must-show scenario; choose a feature freeze time.
-- [ ] Obtain user approval before application implementation or dependency installation.
+- [x] Obtain user approval before application implementation or dependency installation.
 - [ ] Record hosting constraints and local demo fallback; do not deploy in this milestone.
 
 Gate: implementation authorization is explicit; unresolved nonblocking decisions have named owners and defaults.
@@ -90,7 +90,7 @@ Depends on M1 contracts and M2 services. Leads: Members 2 and 3; backend support
 
 - [ ] Complete search queries and indexes and all service contracts used by portals.
 - [ ] Enforce patient overlap prevention, earlier-only replacement, idempotent requests and invalidation when preferences/bookings change.
-- [ ] Expand synthetic seed to PRD minimums and edge cases; use relative dates and example-domain contacts.
+- [x] Expand synthetic seed to PRD minimums and edge cases; use relative dates and example-domain contacts.
 - [ ] Add explicit privileged demo reset with confirmation, transactional baseline and demo-mode restriction; startup never resets.
 
 Deliverables: all P0 pages backed by persistence and full synthetic dataset.
@@ -140,3 +140,39 @@ Deliverable: approved, rehearsed demo environment; a local environment is suffic
 Every task PR states the behavior, related PRD acceptance IDs, database/API changes, relevant verification results and limitations. Include screenshots for material UI changes and migration notes for schema changes. Require a review partner and successful applicable checks before merge. Coordinate schema/lockfile/shared configuration edits with Member 1. Actual branch protections may depend on repository permissions; do not claim they exist until verified.
 
 Done means persisted behavior works through the interface, server authorization and domain invariants hold, meaningful tests pass, error/empty states exist, synthetic labeling is clear, and documentation reflects the result. Document-only completion for this initial task means the three documents are consistent and ready for user review; it does not imply any application capability is built.
+
+## Implementation ledger — initial prototype PR
+
+The original milestones remain the target roadmap. This ledger distinguishes delivered code from human review/release gates; actual test counts belong in VALIDATION.md.
+
+### Foundation
+
+- [x] Create a clean Next.js/React/TypeScript app on a dedicated branch without the old frontend.
+- [x] Install dependencies and commit a lockfile; pin Prisma packages together.
+- [x] Start real PostgreSQL with a durable local Docker volume; apply checksum-tracked SQL migrations and explicit synthetic seed.
+- [x] Implement server-issued signed demo sessions, patient ownership, clinic-scoped actions and same-origin checks.
+- [x] Add separate guarded test database, unit/integration/browser harnesses and a GitHub Actions workflow.
+- [ ] Have another team member review schema/API contracts and configure repository branch protection.
+
+### Functional slice and portals
+
+- [x] Implement direct booking, cancellation and confirmed-booking overlap protection.
+- [x] Implement linked/unlinked waitlists with date, time, weekday, location, clinic, budget and demo-plan preferences; edit/withdraw.
+- [x] Generate and persist eligibility suggestions; display FIFO ranking and reasons.
+- [x] Implement staff approval, exclusive offer hold, persistent inbox and accept/decline/expiry.
+- [x] Implement atomic cross-clinic replacement, rollback, retry protection, audit and release of original slot.
+- [x] Build original responsive patient and staff workspaces, combined search filters, slot details/review, schedules and activity.
+- [x] Provide local recommendation explanations plus optional AI adapter with timeout/error fallback.
+- [x] Seed 4 clinics, 3 specialties, 12 patients, 4 staff, 4 plans plus self-pay, 56 future slots and deterministic scheduling scenarios.
+- [x] Add explicit privileged demo reset and README walkthrough/run instructions.
+- [x] Expand dedicated fixtures for ranking ties, pending/expired offers, overlaps, incompatible preferences and no-match cancellation.
+
+### Quality and release
+
+- [x] Record final validation results and remaining gaps in VALIDATION.md.
+- [ ] Complete two team-led rehearsals and keyboard/screen-reader review across all pages.
+- [ ] Obtain reviewer approval and merge the implementation PR.
+- [ ] Confirm deadline, assign actual five-person owners and choose feature freeze.
+- [ ] Select hosting and obtain separate public-deployment approval if desired.
+
+Suggested next ownership remains: Member 1 data/CI; Member 2 patient UI; Member 3 clinic UI; Member 4 scheduling/AI adapter; Member 5 acceptance and rehearsal. This implementation does not invoke parallel agents.
