@@ -88,3 +88,17 @@ Work is based on `e063f386e618a43b9606ffa70f4567a4d54c720e`. The uncommitted Cod
 - Database integrity: additive composite foreign keys bind waitlists and offers to the same patient as their linked records. Direct SQL tests verify cross-patient links fail and one-confirmed-booking/one-pending-hold per slot constraints remain enforced.
 - Migration `0002_booking_history_patient_integrity` was applied to both isolated `careousel_test` and the current `careousel` database. Before applying it to `careousel`, read-only preflight found zero cross-patient mismatches; the migration added schema only, without resetting or deleting demo rows.
 - Follow-up checks: `npm run db:generate`, `npm exec -- prisma validate`, 26 unit tests, 27 PostgreSQL integration tests, lint, typecheck, format check and production build passed. The browser E2E suite was not rerun for this server/domain-only follow-up; its previously recorded 5-test result is from the initial prototype validation.
+
+## Landing-page UX phase 1 — 2026-10-16
+
+Based on development branch `27c5f83`, implemented on `feat/landing-page-ux` in a separate worktree. Changes are limited to public landing presentation, its existing-session entry/navigation wiring, browser tests and this verification record. No backend/API/auth/schema/migration changes, demo reset, or public deployment. The original dirty worktree was preserved (tracked and untracked source-file hashes unchanged).
+
+- Added patient-first navigation, original calendar illustration, three-step explanation, clinic introduction and explicitly labeled synthetic demo entrances/persona selection. Root `/` stays public with an existing session; same-role entry retains that persona. Workspace logo now links home.
+- Reused installed dependencies in an independent dependency directory and generated the branch's Prisma client without changing the database. No packages or lockfile were changed.
+- Used a **new isolated PostgreSQL 17 container on port 5541**, with its own `careousel_test` database and existing migrations. Browser fixtures/reset actions ran only there; neither the existing demo nor the previous test database was reset/migrated.
+- Unit tests: **26 passed**. PostgreSQL integration tests: **27 passed**.
+- Browser suite: **8 passed** (3 new landing tests plus all 5 existing scheduling/search/security/decline/expiry journeys). New coverage includes both role entrances, root access/reload with active sessions, retaining a nondefault persona, section anchors, keyboard skip/entry, reduced-motion setting, state failure/retry and alternate persona selection.
+- Initial new browser checks exposed test synchronization and selector problems: focusing before the entrance finished loading, selecting Next.js's separate route-announcement alert, and navigating before persona switching completed. The tests were corrected and the full suite rerun.
+- Lint, TypeScript, modified-file Prettier checks, `git diff --check` and production build passed.
+- Visually inspected desktop, tablet and mobile captures; overflow checks passed at 375, 768 and 1280 pixels. Screenshot capture at 1440, 768 and 375 pixels reported no page errors.
+- Limits: Chromium only; no full screen-reader/WCAG audit, external clinic integration or real insurer/payment service tested. Public content renders during a state/API outage; demo entrances require an available demo backend. No interactive onboarding tour or internal-dashboard redesign was included.
