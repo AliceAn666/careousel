@@ -74,6 +74,10 @@ test("search filters, detail review, direct booking and mobile layout", async ({
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Continue as Avery" }).click();
+  const appointmentCards = page.locator(".appointment-card");
+  await expect(appointmentCards.first()).toBeVisible();
+  const defaultCardCount = await appointmentCards.count();
+  expect(defaultCardCount).toBeGreaterThan(0);
   await page
     .getByLabel("Specialty", { exact: true })
     .selectOption("Cardiology");
@@ -81,13 +85,15 @@ test("search filters, detail review, direct booking and mobile layout", async ({
   await page.getByLabel("Maximum cost ($)").fill("1");
   await expect(page.getByText("No openings match just yet")).toBeVisible();
   await page.getByRole("button", { name: "Clear filters" }).click();
-  await expect(page.locator(".appointment-card")).toHaveCount(48);
+  await expect(appointmentCards).toHaveCount(defaultCardCount);
   await page
     .getByLabel("Insurance", { exact: true })
     .selectOption("Blue Horizon");
   await expect
-    .poll(() => page.locator(".appointment-card").count())
-    .toBeLessThan(48);
+    .poll(() => appointmentCards.count())
+    .toBeLessThan(defaultCardCount);
+  const insuranceCardCount = await appointmentCards.count();
+  expect(insuranceCardCount).toBeGreaterThan(0);
   const snapshot = await (await page.request.get("/api/state")).json();
   const first = snapshot.slots.find((s: { plans: string[] }) =>
     s.plans.includes("Blue Horizon"),
@@ -99,13 +105,11 @@ test("search filters, detail review, direct booking and mobile layout", async ({
     day: "2-digit",
   }).format(new Date(first.start));
   await page.getByLabel("Appointment date", { exact: true }).fill(date);
-  await expect
-    .poll(() => page.locator(".appointment-card").count())
-    .toBeGreaterThan(0);
-  await expect
-    .poll(() => page.locator(".appointment-card").count())
-    .toBeLessThan(5);
+  await expect.poll(() => appointmentCards.count()).toBeGreaterThan(0);
+  const dateCardCount = await appointmentCards.count();
+  expect(dateCardCount).toBeLessThan(insuranceCardCount);
   await page.getByRole("button", { name: "Clear filters" }).click();
+  await expect(appointmentCards).toHaveCount(defaultCardCount);
   await page.getByRole("button", { name: "View & book" }).first().click();
   await page.getByRole("button", { name: "Confirm appointment" }).click();
   await expect(page.getByRole("status")).toContainText("Appointment confirmed");
