@@ -7,6 +7,14 @@ export const PLANS = [
   "Self-pay",
 ] as const;
 export const OFFER_MINUTES = 10;
+// Personas offered in the demo switcher; other seeded patients stay as background data.
+export const DEMO_PERSONAS = [
+  "avery",
+  "patient-1",
+  "staff-cedar",
+  "staff-harbor",
+] as const;
+export const VISIT_TYPES = { FIRST: "First visit", FOLLOW_UP: "Follow-up" };
 export function dateLabel(value: string | Date) {
   return new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Los_Angeles",
@@ -49,5 +57,12 @@ export function pacificDate(value: string | Date) {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+  }).format(new Date(value));
+}
+export function timeLabel(value: string | Date) {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    hour: "numeric",
+    minute: "2-digit",
   }).format(new Date(value));
 }

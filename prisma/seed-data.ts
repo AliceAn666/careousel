@@ -9,6 +9,8 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
   await tx.booking.deleteMany();
   await tx.audit.deleteMany();
   await tx.slot.deleteMany();
+  await tx.symptomTag.deleteMany();
+  await tx.intake.deleteMany();
   await tx.user.deleteMany();
   await tx.clinic.deleteMany();
   const clinics = [
@@ -64,6 +66,9 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
         name: names[i],
         role: "PATIENT",
         plan: PLANS[i % 4],
+        // Avery is a new patient who must complete the intake questionnaire;
+        // everyone else is a returning patient with clinic-entered priorities.
+        visitType: i === 0 ? "FIRST" : "FOLLOW_UP",
       },
     });
   for (const [id, name] of clinics)
@@ -312,4 +317,18 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
       body: "This synthetic demo invitation illustrates offer status.",
     })),
   });
+  // Clinic-entered priorities for returning patients. One patient can carry
+  // several tags, each with its own severity score (1–10).
+  const clinicTags: [string, string, string, number][] = [
+    ["patient-1", "cedar", "Chest pain", 7],
+    ["patient-1", "cedar", "Foot abrasion", 2],
+    ["patient-2", "cedar", "Eczema flare", 5],
+    ["patient-4", "harbor", "Skin rash", 3],
+    ["patient-8", "harbor", "Mole check", 3],
+    ["patient-8", "harbor", "Back pain", 6],
+  ];
+  for (const [patientId, clinicId, label, score] of clinicTags)
+    await tx.symptomTag.create({
+      data: { patientId, clinicId, label, score, source: "CLINIC" },
+    });
 }

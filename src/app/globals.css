@@ -1616,3 +1616,448 @@ dialog p {
     gap: 3px;
   }
 }
+/* ---------- Priority scoring ---------- */
+.severity-tags {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.severity-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 20px;
+  padding: 4px 6px 4px 12px;
+  font-size: 11px;
+  border: 1px solid transparent;
+}
+.severity-tag strong {
+  font-size: 10px;
+  border-radius: 14px;
+  padding: 2px 8px;
+  background: white;
+  text-transform: capitalize;
+}
+.severity-tag.low {
+  background: #edf4eb;
+  color: #4f7448;
+  border-color: #dce9d7;
+}
+.severity-tag.moderate {
+  background: #fbf1d9;
+  color: #85662a;
+  border-color: #f1e1b8;
+}
+.severity-tag.high {
+  background: #f9e5dd;
+  color: #9a4a2f;
+  border-color: #f0cbbd;
+}
+.tag-empty {
+  font-size: 11px;
+  margin-top: 6px;
+}
+.priority-hint {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fafbf8;
+  border: 1px dashed var(--line);
+}
+.priority-hint .eyebrow {
+  font-size: 9px;
+}
+.priority-card .tag-rows {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0 0;
+  display: grid;
+  gap: 10px;
+}
+.tag-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px auto auto;
+  gap: 10px;
+  align-items: center;
+}
+.tag-row.readonly {
+  grid-template-columns: minmax(0, 1fr) 150px auto;
+  font-size: 12px;
+  padding: 8px 12px;
+  background: #fafbf8;
+  border-radius: 8px;
+}
+.tag-row.readonly small {
+  color: var(--muted);
+}
+.tag-row.new {
+  grid-template-columns: minmax(0, 1fr) 150px auto;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.summary-score {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 18px 0 6px;
+  font-size: 12px;
+}
+.summary-score strong {
+  font-size: 26px;
+  font-family: Manrope, system-ui, sans-serif;
+}
+/* ---------- Intake questionnaire ---------- */
+.intake {
+  max-width: 760px;
+}
+.intake-heading {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.intake-heading p {
+  margin-top: 6px;
+  font-size: 12px;
+}
+.demo-note.emergency {
+  color: #9a4a2f;
+  background: #fbf1ec;
+}
+.intake legend {
+  margin-bottom: 10px;
+}
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.choice {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.choice.on {
+  border-color: var(--teal);
+  background: var(--mint);
+}
+.choice input,
+.inline-check input {
+  width: auto;
+  margin: 0;
+}
+.symptom-detail {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.symptom-detail > strong {
+  grid-column: 1 / -1;
+}
+.symptom-detail input[type="range"] {
+  padding: 0;
+  accent-color: var(--teal);
+}
+.range-ends {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.inline-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+.check-column {
+  display: grid;
+  gap: 8px;
+}
+/* ---------- Care calendar ---------- */
+.care-calendar {
+  padding: 20px;
+}
+.calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.clinic-legend {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-size: 11px;
+}
+.clinic-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+.calendar-weekday {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: center;
+  padding-bottom: 4px;
+}
+.calendar-day {
+  min-height: 92px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.calendar-day.blank {
+  border-color: transparent;
+  background: transparent;
+}
+.calendar-day.past {
+  background: #fafbf8;
+}
+.calendar-day.past .day-number,
+.calendar-day.dim .day-number {
+  color: #b4bfbb;
+}
+.calendar-day.today .day-number {
+  background: var(--teal);
+  color: white;
+}
+.calendar-day.selected {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px var(--mint);
+}
+.day-number {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 22px;
+  height: 22px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.day-clinics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.cal-clinic {
+  position: relative;
+}
+.cal-icon {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #eaf3ec;
+  color: #4c8969;
+  transition:
+    filter 0.15s,
+    opacity 0.15s;
+}
+span.cal-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+}
+.cal-icon.cedar {
+  background: #f0edf6;
+  color: #7f6d93;
+}
+.cal-icon.summit {
+  background: #f9eee2;
+  color: #a77c50;
+}
+.cal-icon.willow {
+  background: #e9f1f5;
+  color: #557f8b;
+}
+.cal-icon i {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 15px;
+  height: 15px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: white;
+  font-size: 9px;
+  font-style: normal;
+  line-height: 15px;
+  text-align: center;
+  padding: 0 3px;
+}
+/* Anti-highlight: openings outside the filters fade to gray. */
+.cal-icon.dim,
+.cal-pop button.dim {
+  filter: grayscale(1);
+  opacity: 0.35;
+}
+.cal-pop {
+  display: none;
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  width: min(250px, 78vw);
+  padding: 12px;
+  margin-top: 6px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgb(25 58 57 / 14%);
+}
+/* Invisible bridge so the pointer can travel from icon to popover. */
+.cal-pop::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -8px;
+  height: 8px;
+}
+.cal-clinic:hover .cal-pop,
+.cal-clinic:focus-within .cal-pop {
+  display: block;
+}
+.cal-clinic.middle .cal-pop {
+  left: 50%;
+  transform: translateX(-50%);
+}
+.cal-clinic.end .cal-pop {
+  left: auto;
+  right: 0;
+}
+.cal-pop > strong {
+  display: block;
+  font-size: 13px;
+}
+.cal-pop > small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-bottom: 8px;
+}
+.cal-pop ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.cal-pop li button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: #fcfdfb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--ink);
+}
+.cal-pop li button:hover:not(:disabled),
+.cal-pop li button:focus-visible {
+  border-color: var(--teal);
+  background: var(--mint);
+}
+.cal-pop li button span:nth-child(2) {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.calendar-note {
+  margin-top: 14px;
+  font-size: 12px;
+  text-align: center;
+}
+@media (max-width: 850px) {
+  .choice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tag-row,
+  .tag-row.readonly,
+  .tag-row.new {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .care-calendar {
+    padding: 12px 8px;
+  }
+  .calendar-grid {
+    gap: 3px;
+  }
+  .calendar-day {
+    min-height: 64px;
+    padding: 3px;
+    border-radius: 7px;
+    gap: 3px;
+  }
+  .day-clinics {
+    gap: 3px;
+  }
+  .cal-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+  }
+  .cal-icon svg {
+    width: 12px;
+    height: 12px;
+  }
+  .cal-icon i {
+    display: none;
+  }
+  .symptom-detail,
+  .choice-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* ---------- Home navigation ---------- */
+.brand-button {
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+}
+.home-button {
+  width: 100%;
+  margin-bottom: 14px;
+}

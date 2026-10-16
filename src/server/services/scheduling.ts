@@ -2,7 +2,20 @@ import { Prisma, type User } from "@prisma/client";
 import { z } from "zod";
 import { db } from "../db";
 import { eligibility, overlaps } from "./matching";
-import { OFFER_MINUTES, PLANS, SERVICES } from "../../lib/config";
+import {
+  DEMO_PERSONAS,
+  OFFER_MINUTES,
+  PLANS,
+  SERVICES,
+} from "../../lib/config";
+import {
+  DURATIONS,
+  SYMPTOM_AREAS,
+  WARNING_SIGNS,
+  MAX_SCORE,
+  MIN_SCORE,
+  scoreIntake,
+} from "../../lib/priority";
 import { seedData } from "../../../prisma/seed-data";
 export class DomainError extends Error {
   constructor(
@@ -53,7 +66,53 @@ export const actionSchema = z.discriminatedUnion("type", [
     price: z.number().int().min(0).max(1000000),
   }),
   z.object({ type: z.literal("reset"), confirmation: z.literal("RESET") }),
+  z.object({
+    type: z.literal("intake"),
+    symptoms: z
+      .array(
+        z.object({
+          area: z.enum(SYMPTOM_AREAS.map((a) => a.id) as [AreaId, ...AreaId[]]),
+          pain: z.number().int().min(0).max(10),
+          duration: z.enum(
+            DURATIONS.map((d) => d.id) as [DurationId, ...DurationId[]],
+          ),
+          worsening: z.boolean(),
+        }),
+      )
+      .min(1)
+      .max(SYMPTOM_AREAS.length)
+      .refine(
+        (list) => new Set(list.map((s) => s.area)).size === list.length,
+        "Each symptom area can be reported once.",
+      ),
+    warningSigns: z
+      .array(z.enum(WARNING_SIGNS.map((w) => w.id) as [SignId, ...SignId[]]))
+      .max(WARNING_SIGNS.length)
+      .default([]),
+  }),
+  z.object({
+    type: z.literal("setTag"),
+    patientId: id,
+    tagId: id.optional(),
+    label: z.string().trim().min(1).max(40),
+    score: z.number().int().min(MIN_SCORE).max(MAX_SCORE),
+  }),
+  z.object({ type: z.literal("deleteTag"), tagId: id }),
 ]);
+type AreaId = (typeof SYMPTOM_AREAS)[number]["id"];
+type DurationId = (typeof DURATIONS)[number]["id"];
+type SignId = (typeof WARNING_SIGNS)[number]["id"];
+// Returning patients a clinic may prioritize: those it has booked or already tagged.
+function clinicPatientsWhere(clinicId: string): Prisma.UserWhereInput {
+  return {
+    role: "PATIENT",
+    visitType: "FOLLOW_UP",
+    OR: [
+      { bookings: { some: { slot: { clinicId } } } },
+      { tags: { some: { clinicId } } },
+    ],
+  };
+}
 export type Action = z.input<typeof actionSchema>;
 async function audit(
   tx: Prisma.TransactionClient,
@@ -189,10 +248,20 @@ export async function performAction(
       if (user.role !== "PATIENT")
         fail("Select a patient persona for this action.", 403);
     };
+    // First-visit patients must finish the intake questionnaire before
+    // booking, joining a waitlist or accepting an offer.
+    const intakeDone = async () => {
+      patient();
+      if (
+        user.visitType === "FIRST" &&
+        !(await tx.intake.findUnique({ where: { patientId: user.id } }))
+      )
+        fail("Please complete your intake questionnaire first.", 403);
+    };
     let message = "Changes saved.";
     switch (input.type) {
       case "book": {
-        patient();
+        await intakeDone();
         const existing = await tx.booking.findFirst({
           where: {
             patientId: user.id,
@@ -263,7 +332,7 @@ export async function performAction(
         break;
       }
       case "waitlist": {
-        patient();
+        await intakeDone();
         if (
           input.earliest >= input.latest ||
           input.endHour <= input.startHour ||
@@ -403,7 +472,8 @@ export async function performAction(
         break;
       }
       case "respond": {
-        patient();
+        if (input.accept) await intakeDone();
+        else patient();
         const o = await tx.offer.findUnique({
           where: { id: input.offerId },
           include: {
@@ -545,6 +615,93 @@ export async function performAction(
         message = "New appointment opening created.";
         break;
       }
+      case "intake": {
+        patient();
+        if (user.visitType !== "FIRST")
+          fail("Only first-visit patients complete the intake form.", 403);
+        if (await tx.intake.findUnique({ where: { patientId: user.id } }))
+          return { message: "Your intake questionnaire is already complete." };
+        const answers = {
+          symptoms: input.symptoms,
+          warningSigns: input.warningSigns,
+        };
+        await tx.intake.create({ data: { patientId: user.id, answers } });
+        await tx.symptomTag.createMany({
+          data: scoreIntake(answers).map((t) => ({
+            patientId: user.id,
+            label: t.label,
+            score: t.score,
+            source: "QUESTIONNAIRE",
+          })),
+        });
+        message =
+          "Thanks — your questionnaire is saved. Clinics will see your symptom summary when reviewing waitlist matches.";
+        break;
+      }
+      case "setTag": {
+        staff();
+        const clinicId = user.clinicId!;
+        const target = await tx.user.findFirst({
+          where: { id: input.patientId, ...clinicPatientsWhere(clinicId) },
+        });
+        if (!target)
+          fail("This patient is not a returning patient of your clinic.", 403);
+        const duplicate = await tx.symptomTag.findFirst({
+          where: {
+            patientId: target.id,
+            source: "CLINIC",
+            clinicId,
+            label: { equals: input.label, mode: "insensitive" },
+            ...(input.tagId ? { id: { not: input.tagId } } : {}),
+          },
+        });
+        if (duplicate) fail("This patient already has a tag with that name.");
+        if (input.tagId) {
+          const tag = await tx.symptomTag.findUnique({
+            where: { id: input.tagId },
+          });
+          if (
+            !tag ||
+            tag.patientId !== target.id ||
+            tag.source !== "CLINIC" ||
+            tag.clinicId !== clinicId
+          )
+            fail("Only tags created by your clinic can be edited.", 403);
+          await tx.symptomTag.update({
+            where: { id: tag.id },
+            data: { label: input.label, score: input.score },
+          });
+        } else
+          await tx.symptomTag.create({
+            data: {
+              patientId: target.id,
+              clinicId,
+              label: input.label,
+              score: input.score,
+              source: "CLINIC",
+            },
+          });
+        await audit(
+          tx,
+          clinicId,
+          user.name,
+          `Updated priority for ${target.name}: ${input.label} ${input.score}/10`,
+        );
+        message = "Priority saved.";
+        break;
+      }
+      case "deleteTag": {
+        staff();
+        const tag = await tx.symptomTag.findUnique({
+          where: { id: input.tagId },
+        });
+        if (!tag || tag.source !== "CLINIC" || tag.clinicId !== user.clinicId)
+          fail("Only tags created by your clinic can be removed.", 403);
+        await tx.symptomTag.delete({ where: { id: tag.id } });
+        await audit(tx, user.clinicId!, user.name, `Removed tag ${tag.label}`);
+        message = "Tag removed.";
+        break;
+      }
       case "reset": {
         staff();
         if (process.env.DEMO_MODE !== "true")
@@ -579,6 +736,12 @@ export async function performAction(
   }
   return result;
 }
+// Entering the demo from the home page restores the synthetic baseline, so
+// questionnaires, bookings and priorities can be tested again from scratch.
+export async function restartDemo(now = new Date()) {
+  if (process.env.DEMO_MODE !== "true") fail("Demo reset is disabled.", 403);
+  await locked((tx) => seedData(tx, now));
+}
 export async function getState(user: User | null) {
   return locked(async (tx) => {
     const now = new Date();
@@ -592,10 +755,22 @@ export async function getState(user: User | null) {
     });
     const personas =
       process.env.DEMO_MODE === "true"
-        ? await tx.user.findMany({
-            select: { id: true, name: true, role: true, clinicId: true },
-            orderBy: { id: "asc" },
-          })
+        ? (
+            await tx.user.findMany({
+              where: { id: { in: [...DEMO_PERSONAS] } },
+              select: {
+                id: true,
+                name: true,
+                role: true,
+                clinicId: true,
+                visitType: true,
+              },
+            })
+          ).sort(
+            (a, b) =>
+              DEMO_PERSONAS.indexOf(a.id as (typeof DEMO_PERSONAS)[number]) -
+              DEMO_PERSONAS.indexOf(b.id as (typeof DEMO_PERSONAS)[number]),
+          )
         : [];
     if (!user)
       return {
@@ -609,6 +784,8 @@ export async function getState(user: User | null) {
         notifications: [],
         candidates: [],
         activity: [],
+        myTags: [],
+        priorityPatients: [],
       };
     const staff = user.role === "STAFF";
     const [bookings, waitlists, offers, notifications, suggestions, activity] =
@@ -646,7 +823,11 @@ export async function getState(user: User | null) {
           ? tx.suggestion.findMany({
               where: { slot: { clinicId: user.clinicId! } },
               include: {
-                waitlist: { include: { patient: { select: { name: true } } } },
+                waitlist: {
+                  include: {
+                    patient: { select: { name: true, visitType: true } },
+                  },
+                },
               },
               orderBy: [
                 { waitlist: { createdAt: "asc" } },
@@ -669,6 +850,26 @@ export async function getState(user: User | null) {
       },
       select: { slotId: true, waitlistId: true },
     });
+    // Severity tags are display-only hints; candidate order stays FIFO.
+    const tagFields = {
+      id: true,
+      label: true,
+      score: true,
+      source: true,
+      clinicId: true,
+      updatedAt: true,
+      clinic: { select: { name: true } },
+    } as const;
+    const tagOrder = [{ score: "desc" }, { label: "asc" }] as const;
+    const candidateTags = staff
+      ? await tx.symptomTag.findMany({
+          where: {
+            patientId: { in: suggestions.map((s) => s.waitlist.patientId) },
+          },
+          select: { ...tagFields, patientId: true },
+          orderBy: [...tagOrder],
+        })
+      : [];
     const candidates = suggestions
       .filter(
         (s) =>
@@ -681,9 +882,34 @@ export async function getState(user: User | null) {
         slotId: s.slotId,
         waitlistId: s.waitlistId,
         name: s.waitlist.patient.name,
+        visitType: s.waitlist.patient.visitType,
         reasons: s.reasons,
         createdAt: s.waitlist.createdAt,
+        tags: candidateTags.filter((t) => t.patientId === s.waitlist.patientId),
       }));
+    const [myTags, intake, priorityPatients] = await Promise.all([
+      staff
+        ? Promise.resolve([])
+        : tx.symptomTag.findMany({
+            where: { patientId: user.id },
+            select: tagFields,
+            orderBy: [...tagOrder],
+          }),
+      staff
+        ? Promise.resolve(null)
+        : tx.intake.findUnique({ where: { patientId: user.id } }),
+      staff
+        ? tx.user.findMany({
+            where: clinicPatientsWhere(user.clinicId!),
+            select: {
+              id: true,
+              name: true,
+              tags: { select: tagFields, orderBy: [...tagOrder] },
+            },
+            orderBy: { name: "asc" },
+          })
+        : Promise.resolve([]),
+    ]);
     return {
       user: {
         id: user.id,
@@ -691,7 +917,11 @@ export async function getState(user: User | null) {
         role: user.role,
         plan: user.plan,
         clinicId: user.clinicId,
+        visitType: user.visitType,
+        intakeCompleted: !!intake,
       },
+      myTags,
+      priorityPatients,
       clinics,
       slots: slots.filter((s) =>
         staff ? s.clinicId === user.clinicId : s.status === "AVAILABLE",

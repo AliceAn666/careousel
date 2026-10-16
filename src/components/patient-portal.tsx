@@ -1,17 +1,24 @@
 "use client";
 import { useState } from "react";
 import {
+  Anchor,
   ArrowRight,
   ArrowUpRight,
   Bell,
   CalendarDays,
   Check,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   Clock3,
   Heart,
+  Leaf,
   MapPin,
+  Mountain,
+  Plus,
   ShieldCheck,
+  Trees,
+  type LucideIcon,
 } from "lucide-react";
 import type {
   Action,
@@ -27,8 +34,48 @@ import {
   SERVICES,
   pacificDateBoundary,
   pacificDate,
+  timeLabel,
 } from "@/lib/config";
 import { Status, Empty, Modal } from "./ui";
+const CLINIC_ICONS: Record<string, LucideIcon> = {
+  harbor: Anchor,
+  cedar: Trees,
+  summit: Mountain,
+  willow: Leaf,
+};
+export function ClinicIcon({
+  clinicId,
+  size = 16,
+}: {
+  clinicId: string;
+  size?: number;
+}) {
+  const Icon = CLINIC_ICONS[clinicId] ?? Heart;
+  return <Icon size={size} aria-hidden="true" />;
+}
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const monthKey = (key: string) => key.slice(0, 7);
+function shiftMonth(month: string, delta: number) {
+  const [y, m] = month.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+function monthDays(month: string) {
+  const [y, m] = month.split("-").map(Number);
+  const first = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+  const count = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return {
+    lead: first,
+    days: Array.from({ length: count }, (_, i) => {
+      const day = i + 1;
+      return {
+        day,
+        weekday: (first + i) % 7,
+        key: `${month}-${String(day).padStart(2, "0")}`,
+      };
+    }),
+  };
+}
 export function SearchCare({
   state,
   onDetail,
@@ -43,20 +90,41 @@ export function SearchCare({
     [plan, setPlan] = useState(""),
     [price, setPrice] = useState(""),
     [date, setDate] = useState("");
-  const results = state.slots.filter(
-    (s) =>
-      (!service || s.service === service) &&
-      (!city || s.clinic.city === city) &&
-      (!plan || s.plans.includes(plan)) &&
-      (!price || s.price <= Number(price) * 100) &&
-      (!date ||
-        new Intl.DateTimeFormat("en-CA", {
-          timeZone: s.clinic.timezone,
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        }).format(new Date(s.start)) === date),
-  );
+  const today = pacificDate(new Date());
+  const firstSlot = state.slots[0] ? pacificDate(state.slots[0].start) : today;
+  const lastSlot = state.slots.length
+    ? pacificDate(state.slots[state.slots.length - 1].start)
+    : today;
+  const [month, setMonth] = useState(monthKey(firstSlot));
+  const filtering = !!(service || city || plan || price || date);
+  const matches = (s: SlotView) =>
+    (!service || s.service === service) &&
+    (!city || s.clinic.city === city) &&
+    (!plan || s.plans.includes(plan)) &&
+    (!price || s.price <= Number(price) * 100) &&
+    (!date || pacificDate(s.start) === date);
+  const matchCount = state.slots.filter(matches).length;
+  // Group each day's openings by clinic so one icon represents one clinic.
+  const byDay = new Map<string, Map<string, SlotView[]>>();
+  for (const s of state.slots) {
+    const key = pacificDate(s.start);
+    const clinics = byDay.get(key) ?? new Map<string, SlotView[]>();
+    clinics.set(s.clinicId, [...(clinics.get(s.clinicId) ?? []), s]);
+    byDay.set(key, clinics);
+  }
+  const { lead, days } = monthDays(month);
+  const monthTitle = new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${month}-01T12:00:00Z`));
+  const clear = () => {
+    setService("");
+    setCity("");
+    setPlan("");
+    setPrice("");
+    setDate("");
+  };
   return (
     <>
       <section className="hero">
@@ -150,7 +218,10 @@ export function SearchCare({
           <input
             type="date"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => {
+              setDate(e.target.value);
+              if (e.target.value) setMonth(monthKey(e.target.value));
+            }}
           />
         </label>
       </section>
@@ -158,91 +229,162 @@ export function SearchCare({
         <div>
           <h2>
             Available appointments{" "}
-            <span className="result-count">{results.length}</span>
+            <span className="result-count">
+              {filtering
+                ? `${matchCount} of ${state.slots.length} match`
+                : state.slots.length}
+            </span>
           </h2>
-          <p>Real-time openings. A fresh start for your schedule.</p>
-        </div>
-        <button
-          className="text-button"
-          onClick={() => {
-            setService("");
-            setCity("");
-            setPlan("");
-            setPrice("");
-            setDate("");
-          }}
-        >
-          Clear filters
-        </button>
-      </div>
-      {!results.length ? (
-        <Empty
-          title="No openings match just yet"
-          body="Try adjusting your filters, or join the waitlist for a suitable opening."
-        />
-      ) : (
-        <div className="appointment-grid">
-          {results.map((s) => (
-            <article key={s.id} className="card appointment-card">
-              <div className="clinic-card-top">
-                <span className={`clinic-symbol ${s.clinicId}`}>
-                  <Heart size={22} />
-                </span>
-                <span className="availability">
-                  <span className="live-dot" />
-                  Available
-                </span>
-              </div>
-              <span className="eyebrow">{s.service}</span>
-              <h3>{s.clinic.name}</h3>
-              <p className="muted">
-                <MapPin size={14} />
-                {s.clinic.city} · {s.clinic.address}
-              </p>
-              <div className="slot-time">
-                <CalendarDays size={17} />
-                <strong>{dateLabel(s.start)}</strong>
-              </div>
-              <p>{s.provider} · 30-minute visit</p>
-              <div className="card-bottom">
-                <div>
-                  <strong className="price">{money(s.price)}</strong>
-                  <span className="tiny"> estimated · demo insurance</span>
-                </div>
-                <button className="secondary" onClick={() => onDetail(s)}>
-                  View & book <ChevronRight size={16} />
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-      <div className="waitlist-banner">
-        <span className="avatar mint">
-          <Clock3 />
-        </span>
-        <div>
-          <h3>A sooner appointment could be around the corner.</h3>
           <p>
-            Keep your booking. We’ll watch for openings that fit your
-            preferences.
+            Hover or tap a clinic icon to see its open times, then choose a time
+            to book.
           </p>
         </div>
-        <button className="primary" onClick={onWaitlist}>
-          Join the waitlist <ArrowRight size={16} />
-        </button>
+        <div className="button-row">
+          {filtering && (
+            <button className="text-button" onClick={clear}>
+              Clear filters
+            </button>
+          )}
+          <button className="primary" onClick={onWaitlist}>
+            <Plus size={16} />
+            Join a waitlist
+          </button>
+        </div>
       </div>
+      <section className="card care-calendar" aria-label="Appointment calendar">
+        <div className="calendar-toolbar">
+          <button
+            className="icon-button"
+            aria-label="Previous month"
+            disabled={month <= monthKey(today)}
+            onClick={() => setMonth(shiftMonth(month, -1))}
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <h3>{monthTitle}</h3>
+          <button
+            className="icon-button"
+            aria-label="Next month"
+            disabled={month >= monthKey(lastSlot)}
+            onClick={() => setMonth(shiftMonth(month, 1))}
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+        <ul className="clinic-legend" aria-label="Clinic icons">
+          {state.clinics.map((c) => (
+            <li key={c.id}>
+              <span className={`cal-icon ${c.id}`}>
+                <ClinicIcon clinicId={c.id} size={14} />
+              </span>
+              {c.name}
+            </li>
+          ))}
+        </ul>
+        <div className="calendar-grid">
+          {WEEKDAYS.map((d) => (
+            <div className="calendar-weekday" key={d}>
+              {d}
+            </div>
+          ))}
+          {Array.from({ length: lead }, (_, i) => (
+            <div className="calendar-day blank" key={`lead-${i}`} />
+          ))}
+          {days.map(({ day, weekday, key }) => {
+            const clinics = byDay.get(key);
+            const dayMatches =
+              !!clinics && [...clinics.values()].flat().some(matches);
+            const classes = [
+              "calendar-day",
+              key < today ? "past" : "",
+              key === today ? "today" : "",
+              date === key ? "selected" : "",
+              filtering && clinics && !dayMatches ? "dim" : "",
+            ];
+            return (
+              <div className={classes.join(" ")} key={key}>
+                <span className="day-number">{day}</span>
+                {clinics && (
+                  <div className="day-clinics">
+                    {[...clinics.entries()].map(([clinicId, slots]) => {
+                      const clinic = slots[0].clinic;
+                      const hits = slots.filter(matches);
+                      const dim = filtering && hits.length === 0;
+                      const side =
+                        weekday >= 4 ? "end" : weekday === 3 ? "middle" : "";
+                      return (
+                        <div className={`cal-clinic ${side}`} key={clinicId}>
+                          <button
+                            className={`cal-icon ${clinicId} ${dim ? "dim" : ""}`}
+                            aria-label={`${clinic.name}: ${slots.length} opening${slots.length > 1 ? "s" : ""} on ${dateLabel(slots[0].start).split(",")[0]}${dim ? ", does not match filters" : ""}`}
+                          >
+                            <ClinicIcon clinicId={clinicId} />
+                            {slots.length > 1 && <i>{slots.length}</i>}
+                          </button>
+                          <div
+                            className="cal-pop"
+                            role="group"
+                            aria-label={`${clinic.name} openings`}
+                          >
+                            <strong>{clinic.name}</strong>
+                            <small>
+                              {clinic.city} · {clinic.address}
+                            </small>
+                            <ul>
+                              {slots.map((s) => (
+                                <li key={s.id}>
+                                  <button
+                                    className={
+                                      matches(s) || !filtering ? "" : "dim"
+                                    }
+                                    onClick={() => onDetail(s)}
+                                  >
+                                    <b>{timeLabel(s.start)}</b>
+                                    <span>
+                                      {s.service} · {s.provider}
+                                    </span>
+                                    <span>{money(s.price)}</span>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {firstSlot > lastSlot || !state.slots.length ? (
+          <Empty
+            title="No openings just yet"
+            body="Join the waitlist and we’ll watch for a suitable opening."
+          />
+        ) : (
+          filtering &&
+          matchCount === 0 && (
+            <p className="calendar-note">
+              No openings match these filters. Try adjusting them, or join the
+              waitlist.
+            </p>
+          )
+        )}
+      </section>
     </>
   );
 }
 export function Appointments({
   state,
   act,
-  join,
+  onWaitlist,
 }: {
   state: AppState;
   act: Action;
-  join: (b?: Booking) => void;
+  onWaitlist: (w?: Waitlist) => void;
 }) {
   return (
     <>
@@ -257,10 +399,12 @@ export function Appointments({
           </div>
         </div>
         <div className="card insight">
-          <ShieldCheck />
+          <Clock3 />
           <div>
-            <span>Your booking stays safe</span>
-            <strong className="small">Until you accept an earlier offer</strong>
+            <span>Active waitlist requests</span>
+            <strong>
+              {state.waitlists.filter((w) => w.status === "ACTIVE").length}
+            </strong>
           </div>
         </div>
       </div>
@@ -277,8 +421,8 @@ export function Appointments({
         <div className="stack">
           {state.bookings.map((b) => (
             <article key={b.id} className="card booking-card">
-              <span className="clinic-symbol">
-                <CalendarDays />
+              <span className={`clinic-symbol ${b.slot.clinicId}`}>
+                <ClinicIcon clinicId={b.slot.clinicId} size={22} />
               </span>
               <div className="grow">
                 <span className="eyebrow">{b.slot.service}</span>
@@ -294,23 +438,77 @@ export function Appointments({
               <div className="card-actions">
                 <Status value={b.status} />
                 {b.status === "CONFIRMED" && (
+                  <button
+                    className="text-button"
+                    onClick={() => {
+                      if (
+                        confirm(
+                          "Cancel this appointment? Any linked waitlist will be withdrawn.",
+                        )
+                      )
+                        void act({ type: "cancel", bookingId: b.id });
+                    }}
+                  >
+                    Cancel appointment
+                  </button>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+      <div className="section-title">
+        <h2>Your requests</h2>
+        <button className="primary" onClick={() => onWaitlist()}>
+          <Plus size={17} />
+          Join a waitlist
+        </button>
+      </div>
+      {state.waitlists.length === 0 ? (
+        <Empty
+          title="Your next opportunity starts here"
+          body="Join a waitlist to hear about appointments that fit your preferences."
+        />
+      ) : (
+        <div className="stack">
+          {state.waitlists.map((w) => (
+            <article className="card request-card" key={w.id}>
+              <div>
+                <span className="eyebrow">EARLIER CARE REQUEST</span>
+                <h3>{w.service}</h3>
+                <p>
+                  {w.city || "All participating locations"} · Up to{" "}
+                  {money(w.maxPrice)} · {w.plan}
+                </p>
+                <p>
+                  {dateLabel(w.earliest)} — {dateLabel(w.latest)}
+                </p>
+                <p>
+                  {w.startHour}:00–{w.endHour}:00 Pacific ·{" "}
+                  {w.bookingId
+                    ? "Original booking protected"
+                    : "No linked appointment"}
+                </p>
+              </div>
+              <div className="card-actions">
+                <Status value={w.status} />
+                {w.status === "ACTIVE" && (
                   <>
-                    <button className="secondary" onClick={() => join(b)}>
-                      <Clock3 size={16} />
-                      Find an earlier time
+                    <button className="secondary" onClick={() => onWaitlist(w)}>
+                      Edit preferences
                     </button>
                     <button
                       className="text-button"
                       onClick={() => {
                         if (
                           confirm(
-                            "Cancel this appointment? Any linked waitlist will be withdrawn.",
+                            "Withdraw this waitlist request? Your original booking will remain.",
                           )
                         )
-                          void act({ type: "cancel", bookingId: b.id });
+                          void act({ type: "withdraw", waitlistId: w.id });
                       }}
                     >
-                      Cancel appointment
+                      Withdraw
                     </button>
                   </>
                 )}
