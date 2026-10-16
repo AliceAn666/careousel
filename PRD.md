@@ -1,6 +1,6 @@
 # Careousel Product Requirements
 
-Status: Proposed; awaiting team approval before implementation.
+Status: Application implementation and shared stack approved on 2026-10-16. Foundation in progress; public deployment requires separate authorization. Product policy defaults remain documented below.
 
 ## 1. Purpose and success
 
@@ -204,4 +204,4 @@ These are proposed defaults, not approved implementation choices.
 | D09 | Eligibility | Structured service, time, location, budget and demo insurance; specialized clinical eligibility excluded from fixture services |
 | D10 | Staffing | Five suggested owners in TASKS.md; actual names and strengths unresolved |
 
-Approval of planning should resolve or accept the proposed defaults; implementation must not begin before the user's approval.
+Implementation is now approved. The coordinator resolves remaining policy decisions with the team; deployment still requires separate authorization.
