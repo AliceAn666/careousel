@@ -1,62 +1,66 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Activity,
   ArrowRight,
   Bell,
   CalendarDays,
   CheckCircle2,
-  Clock3,
+  Gauge,
   Heart,
+  Home,
   LayoutDashboard,
-  Plus,
   Search,
   ShieldCheck,
   Sparkles,
   Users,
   X,
 } from "lucide-react";
-import type {
-  Action,
-  AppState,
-  Booking,
-  Waitlist,
-  SlotView,
-} from "@/lib/types";
-import { dateLabel, money } from "@/lib/config";
+import type { Action, AppState, Waitlist, SlotView } from "@/lib/types";
+import { dateLabel, money, VISIT_TYPES } from "@/lib/config";
 import { request } from "@/lib/api";
-import { FeedbackContext, Status, Empty, Modal } from "./ui";
+import { FeedbackContext, Modal, SeverityTags } from "./ui";
 import {
   SearchCare,
   Appointments,
   WaitlistForm,
   Inbox,
+  ClinicIcon,
 } from "./patient-portal";
+import { IntakeQuestionnaire } from "./patient-intake";
 import { ClinicSchedule, Matches, ActivityFeed } from "./clinic-portal";
+import { Priorities } from "./clinic-priorities";
 import { DemoGuide } from "./demo-guide";
+// Demo guide and Activity stay reachable by URL but are hidden from navigation.
 const navPatient = [
   ["/search", "Find care", Search],
   ["/appointments", "My appointments", CalendarDays],
-  ["/waitlists", "My waitlist", Clock3],
   ["/notifications", "Notifications", Bell],
-  ["/demo", "Demo guide", Sparkles],
 ] as const;
 const navClinic = [
   ["/clinic/schedule", "Schedule", LayoutDashboard],
   ["/clinic/waitlists", "Waitlist matches", Users],
-  ["/clinic/activity", "Activity", Activity],
-  ["/demo", "Demo guide", Sparkles],
+  ["/clinic/priorities", "Priorities", Gauge],
 ] as const;
+const initials = (name: string) =>
+  name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2);
+const visitLabel = (visitType: string | null | undefined) =>
+  visitType ? VISIT_TYPES[visitType as keyof typeof VISIT_TYPES] : null;
+const personaLabel = (p: { name: string; visitType: string | null }) =>
+  visitLabel(p.visitType) ? `${p.name} · ${visitLabel(p.visitType)}` : p.name;
 export function CareouselApp() {
   const [state, setState] = useState<AppState | null>(null),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false);
-  const [booking, setBooking] = useState<Booking | null>(null),
-    [waitlist, setWaitlist] = useState<Waitlist | null>(null),
+  const [waitlist, setWaitlist] = useState<Waitlist | null>(null),
     [showWaitlist, setShowWaitlist] = useState(false),
-    [detail, setDetail] = useState<SlotView | null>(null);
+    [detail, setDetail] = useState<SlotView | null>(null),
+    [showSummary, setShowSummary] = useState(false);
   const path = usePathname(),
     router = useRouter();
   const load = useCallback(async () => {
@@ -78,11 +82,23 @@ export function CareouselApp() {
       clearInterval(timer);
     };
   }, [load]);
-  async function selectPersona(id: string) {
+  // Every visit (first load or browser refresh) starts on the home page.
+  // The ref keeps this to the initial load, not later in-app navigation.
+  const entryChecked = useRef(false);
+  useEffect(() => {
+    if (entryChecked.current) return;
+    entryChecked.current = true;
+    if (window.location.pathname !== "/") router.replace("/");
+  }, [router]);
+  // Choosing a persona on the home page restores the demo baseline first, so
+  // questionnaires, bookings and priorities can be tested again from scratch.
+  // Switching personas from the sidebar keeps data for cross-role flows.
+  async function selectPersona(id: string, fresh = false) {
     setNotice("");
     setBusy(true);
     setError("");
     try {
+      if (fresh) await request("/api/demo/restart");
       await request("/api/session", { id });
       await load();
       router.push(id.startsWith("staff-") ? "/clinic/schedule" : "/search");
@@ -109,8 +125,12 @@ export function CareouselApp() {
       setBusy(false);
     }
   };
-  function join(b?: Booking, w?: Waitlist) {
-    setBooking(b ?? null);
+  const submitIntake: Action = async (data) => {
+    const ok = await act(data);
+    if (ok) setShowSummary(true);
+    return ok;
+  };
+  function join(w?: Waitlist) {
     setWaitlist(w ?? null);
     setShowWaitlist(true);
   }
@@ -129,7 +149,15 @@ export function CareouselApp() {
         )}
       </main>
     );
-  const user = state.user,
+  function goHome() {
+    if (
+      confirm(
+        "Return to the home page? Choosing a persona there resets all demo data, including questionnaires.",
+      )
+    )
+      router.push("/");
+  }
+  const user = path === "/" ? null : state.user,
     staff = user?.role === "STAFF",
     unread = state.notifications.filter((n) => !n.read).length;
   if (!user)
@@ -170,23 +198,27 @@ export function CareouselApp() {
           <div className="entry-card">
             <span className="eyebrow">EXPLORE CAREOUSEL</span>
             <h2>Choose your demo workspace</h2>
-            <p>All people and clinics here are fictional.</p>
+            <p>
+              All people and clinics here are fictional. Choosing a persona here
+              starts a fresh demo: questionnaires, bookings and priorities are
+              reset.
+            </p>
             <button
               disabled={busy}
               className="entry-option"
-              onClick={() => void selectPersona("avery")}
+              onClick={() => void selectPersona("avery", true)}
             >
               <span className="avatar mint">AM</span>
               <span>
                 <strong>Continue as Avery</strong>
-                <small>Patient · Find an earlier appointment</small>
+                <small>Patient · First visit</small>
               </span>
               <ArrowRight />
             </button>
             <button
               disabled={busy}
               className="entry-option"
-              onClick={() => void selectPersona("staff-cedar")}
+              onClick={() => void selectPersona("staff-cedar", true)}
             >
               <span className="avatar lavender">
                 <Heart size={20} />
@@ -202,14 +234,14 @@ export function CareouselApp() {
               <select
                 defaultValue=""
                 onChange={(e) =>
-                  e.target.value && void selectPersona(e.target.value)
+                  e.target.value && void selectPersona(e.target.value, true)
                 }
                 disabled={busy}
               >
                 <option value="">Choose a persona…</option>
                 {state.personas.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {personaLabel(p)}
                   </option>
                 ))}
               </select>
@@ -227,31 +259,44 @@ export function CareouselApp() {
         </section>
       </main>
     );
+  // First-visit patients see only the intake questionnaire until it is done.
+  const needsIntake =
+    !staff && user.visitType === "FIRST" && !user.intakeCompleted;
   const nav = staff ? navClinic : navPatient;
-  const heading =
-    path === "/appointments"
+  const heading = needsIntake
+    ? "Welcome to Careousel"
+    : path === "/appointments" || path === "/waitlists"
       ? "My appointments"
-      : path === "/waitlists"
-        ? "My waitlist"
-        : path === "/notifications"
-          ? "Your inbox"
-          : path === "/clinic/schedule"
-            ? "Clinic overview"
-            : path === "/clinic/waitlists"
-              ? "Waitlist matches"
+      : path === "/notifications"
+        ? "Your inbox"
+        : path === "/clinic/schedule"
+          ? "Clinic overview"
+          : path === "/clinic/waitlists"
+            ? "Waitlist matches"
+            : path === "/clinic/priorities"
+              ? "Patient priorities"
               : path === "/clinic/activity"
                 ? "Clinic activity"
                 : path === "/demo"
                   ? "A better-care walkthrough"
                   : "Find your next appointment";
+  const personaOptions = state.personas.map((p) => (
+    <option key={p.id} value={p.id}>
+      {personaLabel(p)}
+    </option>
+  ));
   return (
     <FeedbackContext.Provider value={error}>
       <div className="app-shell">
         <aside className="sidebar">
-          <a className="brand" href={staff ? "/clinic/schedule" : "/search"}>
+          <button
+            className="brand brand-button"
+            aria-label="Careousel home page"
+            onClick={goHome}
+          >
             <Heart />
             careousel<span>✳</span>
-          </a>
+          </button>
           <div className="workspace-label">
             {staff ? "CLINIC WORKSPACE" : "PATIENT WORKSPACE"}
           </div>
@@ -259,7 +304,13 @@ export function CareouselApp() {
             {nav.map(([href, label, Icon]) => (
               <button
                 key={href}
-                className={path === href ? "nav-item active" : "nav-item"}
+                disabled={needsIntake}
+                className={
+                  path === href ||
+                  (href === "/appointments" && path === "/waitlists")
+                    ? "nav-item active"
+                    : "nav-item"
+                }
                 onClick={() => router.push(href)}
               >
                 <Icon size={19} />
@@ -271,16 +322,26 @@ export function CareouselApp() {
             ))}
           </nav>
           <div className="sidebar-bottom">
+            <button className="secondary home-button" onClick={goHome}>
+              <Home size={16} />
+              Back to home page
+            </button>
             <div className="help-card">
               <Sparkles size={22} />
               <strong>Good things come sooner.</strong>
               <p>Openings become opportunities with Careousel.</p>
             </div>
             <div className="persona">
-              <span className="avatar mint">{staff ? "CH" : "AM"}</span>
+              <span className="avatar mint">
+                {staff ? "CH" : initials(user.name)}
+              </span>
               <div>
                 <strong>{user.name}</strong>
-                <small>{staff ? "Clinic staff" : "Demo patient"}</small>
+                <small>
+                  {staff
+                    ? "Clinic staff"
+                    : `Demo patient · ${visitLabel(user.visitType) ?? "Patient"}`}
+                </small>
               </div>
             </div>
             <label className="persona-switch">
@@ -290,11 +351,7 @@ export function CareouselApp() {
                 disabled={busy}
                 onChange={(e) => void selectPersona(e.target.value)}
               >
-                {state.personas.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
+                {personaOptions}
               </select>
             </label>
           </div>
@@ -313,19 +370,18 @@ export function CareouselApp() {
                   disabled={busy}
                   onChange={(e) => void selectPersona(e.target.value)}
                 >
-                  {state.personas.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
+                  {personaOptions}
                 </select>
               </label>
               <span className="timezone">Pacific time</span>
               <button
                 className="icon-button"
-                aria-label="Open notifications"
+                aria-label={
+                  staff ? "Open waitlist matches" : "Open notifications"
+                }
+                disabled={needsIntake}
                 onClick={() =>
-                  router.push(staff ? "/clinic/activity" : "/notifications")
+                  router.push(staff ? "/clinic/waitlists" : "/notifications")
                 }
               >
                 <Bell size={20} />
@@ -379,89 +435,22 @@ export function CareouselApp() {
               </div>
             )}
             <div aria-busy={busy} className={busy ? "content busy" : "content"}>
-              {path === "/demo" ? (
+              {needsIntake ? (
+                <IntakeQuestionnaire act={submitIntake} />
+              ) : path === "/demo" ? (
                 <DemoGuide staff={staff} act={act} />
               ) : staff ? (
                 path === "/clinic/waitlists" ? (
                   <Matches state={state} act={act} />
+                ) : path === "/clinic/priorities" ? (
+                  <Priorities state={state} act={act} />
                 ) : path === "/clinic/activity" ? (
                   <ActivityFeed state={state} />
                 ) : (
                   <ClinicSchedule state={state} act={act} />
                 )
-              ) : path === "/appointments" ? (
-                <Appointments state={state} act={act} join={join} />
-              ) : path === "/waitlists" ? (
-                <>
-                  <div className="section-title">
-                    <h2>Your requests</h2>
-                    <button className="primary" onClick={() => join()}>
-                      <Plus size={17} />
-                      Join a waitlist
-                    </button>
-                  </div>
-                  {state.waitlists.length === 0 ? (
-                    <Empty
-                      title="Your next opportunity starts here"
-                      body="Join a waitlist to hear about appointments that fit your preferences."
-                    />
-                  ) : (
-                    <div className="stack">
-                      {state.waitlists.map((w) => (
-                        <article className="card request-card" key={w.id}>
-                          <div>
-                            <span className="eyebrow">
-                              EARLIER CARE REQUEST
-                            </span>
-                            <h3>{w.service}</h3>
-                            <p>
-                              {w.city || "All participating locations"} · Up to{" "}
-                              {money(w.maxPrice)} · {w.plan}
-                            </p>
-                            <p>
-                              {dateLabel(w.earliest)} — {dateLabel(w.latest)}
-                            </p>
-                            <p>
-                              {w.startHour}:00–{w.endHour}:00 Pacific ·{" "}
-                              {w.bookingId
-                                ? "Original booking protected"
-                                : "No linked appointment"}
-                            </p>
-                          </div>
-                          <div className="card-actions">
-                            <Status value={w.status} />
-                            {w.status === "ACTIVE" && (
-                              <>
-                                <button
-                                  className="secondary"
-                                  onClick={() => join(undefined, w)}
-                                >
-                                  Edit preferences
-                                </button>
-                                <button
-                                  className="text-button"
-                                  onClick={() => {
-                                    if (
-                                      confirm(
-                                        "Withdraw this waitlist request? Your original booking will remain.",
-                                      )
-                                    )
-                                      void act({
-                                        type: "withdraw",
-                                        waitlistId: w.id,
-                                      });
-                                  }}
-                                >
-                                  Withdraw
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  )}
-                </>
+              ) : path === "/appointments" || path === "/waitlists" ? (
+                <Appointments state={state} act={act} onWaitlist={join} />
               ) : path === "/notifications" ? (
                 <Inbox state={state} act={act} />
               ) : (
@@ -481,8 +470,8 @@ export function CareouselApp() {
         {detail && (
           <Modal title="Appointment details" onClose={() => setDetail(null)}>
             <div className="detail-banner">
-              <span className="clinic-symbol">
-                <Heart />
+              <span className={`clinic-symbol ${detail.clinicId}`}>
+                <ClinicIcon clinicId={detail.clinicId} size={22} />
               </span>
               <div>
                 <span className="eyebrow">{detail.clinic.city}</span>
@@ -533,15 +522,42 @@ export function CareouselApp() {
         {showWaitlist && (
           <WaitlistForm
             state={state}
-            booking={booking}
+            booking={null}
             existing={waitlist}
             act={act}
             onClose={() => setShowWaitlist(false)}
             onSaved={() => {
               setShowWaitlist(false);
-              router.push("/waitlists");
+              router.push("/appointments");
             }}
           />
+        )}
+        {showSummary && (
+          <Modal
+            title="Your symptom summary"
+            onClose={() => setShowSummary(false)}
+          >
+            <p className="muted">
+              Based on your answers. Clinics see these tags and scores as a hint
+              when reviewing waitlist matches; staff make every decision.
+            </p>
+            <div className="summary-score">
+              <span>Overall severity</span>
+              <strong>
+                {Math.max(0, ...state.myTags.map((t) => t.score))}/10
+              </strong>
+            </div>
+            <SeverityTags tags={state.myTags} />
+            <button
+              className="primary full"
+              onClick={() => {
+                setShowSummary(false);
+                router.push("/search");
+              }}
+            >
+              Continue to find care <ArrowRight size={17} />
+            </button>
+          </Modal>
         )}
       </div>
     </FeedbackContext.Provider>

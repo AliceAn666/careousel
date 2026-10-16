@@ -12,7 +12,7 @@ import {
 import type { Action, AppState } from "@/lib/types";
 import { dateLabel, money, SERVICES } from "@/lib/config";
 import { request } from "@/lib/api";
-import { Status, Empty, Modal } from "./ui";
+import { Status, Empty, Modal, SeverityTags } from "./ui";
 export function ClinicSchedule({
   state,
   act,
@@ -224,8 +224,9 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
           <strong>Intelligent matching. Human decisions.</strong>
           <p>
             Eligibility is checked automatically. Candidates are ordered by
-            waitlist join time. Clinic staff make every final offer; clinical
-            urgency is never inferred.
+            waitlist join time. Severity scores are hints from patient
+            questionnaires or your clinic&apos;s priorities; they do not change
+            the order. Clinic staff make every final offer.
           </p>
         </div>
       </div>
@@ -330,6 +331,18 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
                           <p>Waitlist priority #{i + 1}</p>
                         </div>
                         <span className="status active">Eligible</span>
+                      </div>
+                      <div className="priority-hint">
+                        <span className="eyebrow">
+                          PRIORITY HINT ·{" "}
+                          {c.visitType === "FIRST"
+                            ? "SELF-REPORTED, FIRST VISIT"
+                            : "CLINIC-ASSESSED, FOLLOW-UP"}
+                        </span>
+                        <SeverityTags
+                          tags={c.tags}
+                          empty="No severity information recorded"
+                        />
                       </div>
                       <div className="reason-list">
                         {c.reasons.map((r) => (
