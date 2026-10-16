@@ -176,3 +176,10 @@ The original milestones remain the target roadmap. This ledger distinguishes del
 - [ ] Select hosting and obtain separate public-deployment approval if desired.
 
 Suggested next ownership remains: Member 1 data/CI; Member 2 patient UI; Member 3 clinic UI; Member 4 scheduling/AI adapter; Member 5 acceptance and rehearsal. This implementation does not invoke parallel agents.
+
+## Guided search follow-up
+
+- [x] Add replayable patient/staff bubble tours with Next/Back, Skip/Finish and Escape support.
+- [x] Add fictional plan-type network/service comparisons and illustrative patient costs in search and booking review.
+- [x] Add benefit-calculation unit tests and browser coverage for tours and insurance exploration.
+- [ ] Review and merge the guided-search feature branch after validation.

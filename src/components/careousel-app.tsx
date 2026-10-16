@@ -34,6 +34,9 @@ import {
   Inbox,
 } from "./patient-portal";
 import { ClinicSchedule, Matches, ActivityFeed } from "./clinic-portal";
+import { GuidedTour } from "./guided-tour";
+import { CoverageSummary } from "./coverage-summary";
+import type { PlanType } from "@/lib/demo-coverage";
 import { DemoGuide } from "./demo-guide";
 const navPatient = [
   ["/search", "Find care", Search],
@@ -57,6 +60,11 @@ export function CareouselApp() {
     [waitlist, setWaitlist] = useState<Waitlist | null>(null),
     [showWaitlist, setShowWaitlist] = useState(false),
     [detail, setDetail] = useState<SlotView | null>(null);
+  const [tour, setTour] = useState(false);
+  const [coverage, setCoverage] = useState<{
+    provider: string;
+    planType: PlanType;
+  }>({ provider: "", planType: "PPO" });
   const path = usePathname(),
     router = useRouter();
   const load = useCallback(async () => {
@@ -79,6 +87,7 @@ export function CareouselApp() {
     };
   }, [load]);
   async function selectPersona(id: string) {
+    setTour(false);
     setNotice("");
     setBusy(true);
     setError("");
@@ -258,6 +267,7 @@ export function CareouselApp() {
           <nav>
             {nav.map(([href, label, Icon]) => (
               <button
+                data-tour={`nav-${href}`}
                 key={href}
                 className={path === href ? "nav-item active" : "nav-item"}
                 onClick={() => router.push(href)}
@@ -320,6 +330,12 @@ export function CareouselApp() {
                   ))}
                 </select>
               </label>
+              <button
+                className="secondary tour-launch"
+                onClick={() => setTour(true)}
+              >
+                Quick tour
+              </button>
               <span className="timezone">Pacific time</span>
               <button
                 className="icon-button"
@@ -467,7 +483,10 @@ export function CareouselApp() {
               ) : (
                 <SearchCare
                   state={state}
-                  onDetail={setDetail}
+                  onDetail={(slot, selection) => {
+                    setDetail(slot);
+                    setCoverage(selection ?? { provider: "", planType: "PPO" });
+                  }}
                   onWaitlist={() => join()}
                 />
               )}
@@ -478,6 +497,14 @@ export function CareouselApp() {
             </footer>
           </main>
         </div>
+        {tour && (
+          <GuidedTour
+            key={user.id}
+            staff={staff}
+            navigate={(route) => router.push(route)}
+            onClose={() => setTour(false)}
+          />
+        )}
         {detail && (
           <Modal title="Appointment details" onClose={() => setDetail(null)}>
             <div className="detail-banner">
@@ -509,8 +536,14 @@ export function CareouselApp() {
                 <dd>{money(detail.price)}</dd>
               </div>
             </dl>
+            <CoverageSummary
+              slot={detail}
+              provider={coverage.provider}
+              planType={coverage.planType}
+            />
             <p className="demo-note">
-              Demo insurance compatibility:{" "}
+              Booking uses your saved persona plan, {user.plan}. Search benefit
+              scenarios do not change it. Demo insurance compatibility:{" "}
               {detail.plans.includes(user.plan)
                 ? `${user.plan} accepted`
                 : "Plan not accepted"}

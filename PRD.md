@@ -218,3 +218,7 @@ Approval of planning should resolve or accept the proposed defaults; implementat
 - Models consolidate PatientProfile/StaffMembership into seeded User records and service/insurance compatibility into Slot fields; no production credential/account enrollment is implied. Visits are 30 minutes and all seeded clinics use America/Los_Angeles.
 - D02/D03/D10 remain unresolved: actual deadline, hosting/budget/credentials, and student names/availability. Public deployment, real insurance/payment, EHR integrations and clinical triage remain out of scope.
 - Remaining acceptance coverage, fixture variants and release rehearsal must be reported honestly in VALIDATION.md; a working prototype does not establish production readiness or full release-gate completion.
+
+## Hackathon guided search — 2026-10-16
+
+The user requested a button-triggered bubble walkthrough and expanded insurance search. Patient and clinic tours navigate role-specific pages without performing scheduling mutations. Search now supports fictional PPO/HMO benefit scenarios with plan-specific network/service outcomes, referral notes and transparent illustrative patient-cost calculations. These scenarios are exploratory; they do not change the saved persona plan or authoritative booking eligibility. Existing scheduling and waitlist behavior remains unchanged. Real insurer data, benefit verification and payment remain outside the hackathon scope.

@@ -88,3 +88,17 @@ Work is based on `e063f386e618a43b9606ffa70f4567a4d54c720e`. The uncommitted Cod
 - Database integrity: additive composite foreign keys bind waitlists and offers to the same patient as their linked records. Direct SQL tests verify cross-patient links fail and one-confirmed-booking/one-pending-hold per slot constraints remain enforced.
 - Migration `0002_booking_history_patient_integrity` was applied to both isolated `careousel_test` and the current `careousel` database. Before applying it to `careousel`, read-only preflight found zero cross-patient mismatches; the migration added schema only, without resetting or deleting demo rows.
 - Follow-up checks: `npm run db:generate`, `npm exec -- prisma validate`, 26 unit tests, 27 PostgreSQL integration tests, lint, typecheck, format check and production build passed. The browser E2E suite was not rerun for this server/domain-only follow-up; its previously recorded 5-test result is from the initial prototype validation.
+
+## Guided search follow-up — 2026-10-16
+
+Based on merged main `f4ff1a85ff70a748d01802f410fb41d409f3e283`.
+
+- Added replayable patient/staff tours and fictional PPO/HMO network/service/cost scenarios. No new database schema, real insurer calls, payment or public deployment.
+- `npm ci --ignore-scripts --cache /tmp/careousel-npm-cache` and `npm run db:generate` passed. A writable npm cache resolved the initial default-cache filesystem failure; integrity and TLS verification stayed enabled.
+- `npm run lint`, `npm run typecheck`, `npm run format:check`: passed.
+- `npm test`: 30 passed, including deductible/coinsurance calculations, network differences, service exclusions and unknown/self-pay cases.
+- `npm run test:integration`: 27 passed against isolated `careousel_test` PostgreSQL.
+- `npm run test:e2e`: 8 passed, including all five existing journeys and three new tour/benefit scenarios. Browser tests found and verified fixes for focus restoration and mobile bubble clipping. Coverage includes replay, Back, Escape, Finish, patient/staff navigation, 375px bubble bounds, HMO exclusions, covered-only filtering and booking-detail identity messaging.
+- Final `npm run build`: passed after the mobile and focus fixes.
+- Desktop and 375px mobile tour screenshots were visually inspected. The tour never performs scheduling mutations; benefit exploration never changes the stored persona plan or server eligibility checks.
+- Remaining limits: benefit amounts and networks are explicitly fictional scenarios; no real patient-specific deductible, authorization or insurer verification. Tour text and benefits currently use English. No external AI availability was required.

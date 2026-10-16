@@ -28,6 +28,8 @@ import {
   pacificDateBoundary,
   pacificDate,
 } from "@/lib/config";
+import { CoverageSummary } from "./coverage-summary";
+import { demoCoverage, type PlanType } from "@/lib/demo-coverage";
 import { Status, Empty, Modal } from "./ui";
 export function SearchCare({
   state,
@@ -35,7 +37,10 @@ export function SearchCare({
   onWaitlist,
 }: {
   state: AppState;
-  onDetail: (s: SlotView) => void;
+  onDetail: (
+    s: SlotView,
+    coverage?: { provider: string; planType: PlanType },
+  ) => void;
   onWaitlist: () => void;
 }) {
   const [service, setService] = useState(""),
@@ -43,11 +48,17 @@ export function SearchCare({
     [plan, setPlan] = useState(""),
     [price, setPrice] = useState(""),
     [date, setDate] = useState("");
+  const [planType, setPlanType] = useState<PlanType>("PPO");
+  const [coveredOnly, setCoveredOnly] = useState(false);
   const results = state.slots.filter(
     (s) =>
       (!service || s.service === service) &&
       (!city || s.clinic.city === city) &&
       (!plan || s.plans.includes(plan)) &&
+      (!coveredOnly ||
+        (plan !== "" &&
+          plan !== "Self-pay" &&
+          demoCoverage(s, plan, planType).estimate !== null)) &&
       (!price || s.price <= Number(price) * 100) &&
       (!date ||
         new Intl.DateTimeFormat("en-CA", {
@@ -95,7 +106,7 @@ export function SearchCare({
           <span className="art-star">✳</span>
         </div>
       </section>
-      <section className="filter-card">
+      <section className="filter-card" data-tour="filters">
         <label>
           Specialty
           <select
@@ -154,6 +165,40 @@ export function SearchCare({
           />
         </label>
       </section>
+      <section className="coverage-controls" data-tour="benefits">
+        <div>
+          <h3>Find care covered by your plan</h3>
+          <p>
+            Explore fictional plan-specific benefits. Search does not change
+            your saved demo insurance or booking eligibility.
+          </p>
+        </div>
+        <label>
+          Plan type
+          <select
+            aria-label="Plan type"
+            value={planType}
+            disabled={plan === "Self-pay"}
+            onChange={(e) => setPlanType(e.target.value as PlanType)}
+          >
+            <option>PPO</option>
+            <option>HMO</option>
+          </select>
+        </label>
+        <label className="coverage-toggle">
+          <input
+            type="checkbox"
+            checked={coveredOnly}
+            onChange={(e) => setCoveredOnly(e.target.checked)}
+          />{" "}
+          Only show covered demo scenarios
+        </label>
+        <small>
+          All insurers, networks and benefit amounts are fictional. Maximum cost
+          filters the full listed visit price, not estimated patient cost.
+          Results are sorted by earliest appointment.
+        </small>
+      </section>
       <div className="section-title">
         <div>
           <h2>
@@ -170,6 +215,8 @@ export function SearchCare({
             setPlan("");
             setPrice("");
             setDate("");
+            setPlanType("PPO");
+            setCoveredOnly(false);
           }}
         >
           Clear filters
@@ -182,39 +229,45 @@ export function SearchCare({
         />
       ) : (
         <div className="appointment-grid">
-          {results.map((s) => (
-            <article key={s.id} className="card appointment-card">
-              <div className="clinic-card-top">
-                <span className={`clinic-symbol ${s.clinicId}`}>
-                  <Heart size={22} />
-                </span>
-                <span className="availability">
-                  <span className="live-dot" />
-                  Available
-                </span>
-              </div>
-              <span className="eyebrow">{s.service}</span>
-              <h3>{s.clinic.name}</h3>
-              <p className="muted">
-                <MapPin size={14} />
-                {s.clinic.city} · {s.clinic.address}
-              </p>
-              <div className="slot-time">
-                <CalendarDays size={17} />
-                <strong>{dateLabel(s.start)}</strong>
-              </div>
-              <p>{s.provider} · 30-minute visit</p>
-              <div className="card-bottom">
-                <div>
-                  <strong className="price">{money(s.price)}</strong>
-                  <span className="tiny"> estimated · demo insurance</span>
+          {[...results]
+            .sort((a, b) => Date.parse(a.start) - Date.parse(b.start))
+            .map((s) => (
+              <article key={s.id} className="card appointment-card">
+                <div className="clinic-card-top">
+                  <span className={`clinic-symbol ${s.clinicId}`}>
+                    <Heart size={22} />
+                  </span>
+                  <span className="availability">
+                    <span className="live-dot" />
+                    Available
+                  </span>
                 </div>
-                <button className="secondary" onClick={() => onDetail(s)}>
-                  View & book <ChevronRight size={16} />
-                </button>
-              </div>
-            </article>
-          ))}
+                <span className="eyebrow">{s.service}</span>
+                <h3>{s.clinic.name}</h3>
+                <p className="muted">
+                  <MapPin size={14} />
+                  {s.clinic.city} · {s.clinic.address}
+                </p>
+                <div className="slot-time">
+                  <CalendarDays size={17} />
+                  <strong>{dateLabel(s.start)}</strong>
+                </div>
+                <p>{s.provider} · 30-minute visit</p>
+                <CoverageSummary slot={s} provider={plan} planType={planType} />
+                <div className="card-bottom">
+                  <div>
+                    <strong className="price">{money(s.price)}</strong>
+                    <span className="tiny"> estimated · demo insurance</span>
+                  </div>
+                  <button
+                    className="secondary"
+                    onClick={() => onDetail(s, { provider: plan, planType })}
+                  >
+                    View & book <ChevronRight size={16} />
+                  </button>
+                </div>
+              </article>
+            ))}
         </div>
       )}
       <div className="waitlist-banner">
