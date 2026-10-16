@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Activity,
   ArrowRight,
@@ -35,6 +36,7 @@ import {
 } from "./patient-portal";
 import { ClinicSchedule, Matches, ActivityFeed } from "./clinic-portal";
 import { DemoGuide } from "./demo-guide";
+import { LandingPage } from "./landing-page";
 const navPatient = [
   ["/search", "Find care", Search],
   ["/appointments", "My appointments", CalendarDays],
@@ -114,6 +116,27 @@ export function CareouselApp() {
     setWaitlist(w ?? null);
     setShowWaitlist(true);
   }
+  if (path === "/" || (state && !state.user))
+    return (
+      <LandingPage
+        personas={state?.personas ?? []}
+        loading={!state && !error}
+        busy={busy}
+        error={error}
+        onRetry={() => {
+          setError("");
+          void load().catch((e) => setError(e.message));
+        }}
+        onSelectPersona={(id) => void selectPersona(id)}
+        onEnter={(role) => {
+          if (state?.user?.role === role) {
+            router.push(role === "STAFF" ? "/clinic/schedule" : "/search");
+          } else {
+            void selectPersona(role === "STAFF" ? "staff-cedar" : "avery");
+          }
+        }}
+      />
+    );
   if (!state)
     return (
       <main className="boot">
@@ -132,101 +155,6 @@ export function CareouselApp() {
   const user = state.user,
     staff = user?.role === "STAFF",
     unread = state.notifications.filter((n) => !n.read).length;
-  if (!user)
-    return (
-      <main className="landing">
-        <header>
-          <div className="brand">
-            <Heart />
-            careousel<span>✳</span>
-          </div>
-          <span className="eyebrow">HACKATHON DEMO · SYNTHETIC DATA</span>
-        </header>
-        <section className="landing-grid">
-          <div>
-            <span className="pill">
-              <Sparkles size={15} /> A little less waiting. A lot more living.
-            </span>
-            <h1>
-              Better care.
-              <br />
-              <em>Sooner.</em>
-            </h1>
-            <p>
-              Find the right appointment across local clinics. When an earlier
-              opening appears, we’ll help you move forward.
-            </p>
-            <div className="landing-points">
-              <span>
-                <ShieldCheck />
-                Your original booking stays safe
-              </span>
-              <span>
-                <Users />
-                Every match reviewed by clinic staff
-              </span>
-            </div>
-          </div>
-          <div className="entry-card">
-            <span className="eyebrow">EXPLORE CAREOUSEL</span>
-            <h2>Choose your demo workspace</h2>
-            <p>All people and clinics here are fictional.</p>
-            <button
-              disabled={busy}
-              className="entry-option"
-              onClick={() => void selectPersona("avery")}
-            >
-              <span className="avatar mint">AM</span>
-              <span>
-                <strong>Continue as Avery</strong>
-                <small>Patient · Find an earlier appointment</small>
-              </span>
-              <ArrowRight />
-            </button>
-            <button
-              disabled={busy}
-              className="entry-option"
-              onClick={() => void selectPersona("staff-cedar")}
-            >
-              <span className="avatar lavender">
-                <Heart size={20} />
-              </span>
-              <span>
-                <strong>Cedar Health workspace</strong>
-                <small>Clinic staff · Fill an opening</small>
-              </span>
-              <ArrowRight />
-            </button>
-            <label className="field">
-              Other demo personas
-              <select
-                defaultValue=""
-                onChange={(e) =>
-                  e.target.value && void selectPersona(e.target.value)
-                }
-                disabled={busy}
-              >
-                <option value="">Choose a persona…</option>
-                {state.personas.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {error && (
-              <p role="alert" className="alert error">
-                {error}
-              </p>
-            )}
-            <div className="demo-note">
-              <ShieldCheck size={16} /> Demo access only. No real medical
-              records, insurance checks or payments.
-            </div>
-          </div>
-        </section>
-      </main>
-    );
   const nav = staff ? navClinic : navPatient;
   const heading =
     path === "/appointments"
@@ -248,10 +176,10 @@ export function CareouselApp() {
     <FeedbackContext.Provider value={error}>
       <div className="app-shell">
         <aside className="sidebar">
-          <a className="brand" href={staff ? "/clinic/schedule" : "/search"}>
+          <Link className="brand" href="/" aria-label="Careousel home">
             <Heart />
             careousel<span>✳</span>
-          </a>
+          </Link>
           <div className="workspace-label">
             {staff ? "CLINIC WORKSPACE" : "PATIENT WORKSPACE"}
           </div>
