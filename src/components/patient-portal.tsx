@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "./language-provider";
 import { useState } from "react";
 import {
   ArrowRight,
@@ -21,7 +22,6 @@ import type {
   SlotView,
 } from "@/lib/types";
 import {
-  dateLabel,
   money,
   PLANS,
   SERVICES,
@@ -38,6 +38,7 @@ export function SearchCare({
   onDetail: (s: SlotView) => void;
   onWaitlist: () => void;
 }) {
+  const { t, dateLabel } = useI18n();
   const [service, setService] = useState(""),
     [city, setCity] = useState(""),
     [plan, setPlan] = useState(""),
@@ -63,20 +64,20 @@ export function SearchCare({
         <div>
           <span className="pill">
             <span className="live-dot" />
-            CARE THAT FITS YOUR LIFE
+            {t(" CARE THAT FITS YOUR LIFE ")}
           </span>
           <h2>
-            Your next chapter
+            {t(" Your next chapter ")}
             <br />
-            shouldn’t have to wait.
+            {t(" shouldn’t have to wait. ")}
           </h2>
           <p>
-            Explore appointments across trusted local clinics.
+            {t(" Explore appointments across trusted local clinics. ")}
             <br />
-            Find a time that works for you.
+            {t(" Find a time that works for you. ")}
           </p>
           <button className="hero-link" onClick={onWaitlist}>
-            Looking for something sooner? Join a waitlist{" "}
+            {t(" Looking for something sooner? Join a waitlist")}{" "}
             <ArrowUpRight size={18} />
           </button>
         </div>
@@ -87,9 +88,9 @@ export function SearchCare({
           <div className="floating-card">
             <CheckCircle2 />
             <span>
-              Earlier care.
+              {t(" Earlier care. ")}
               <br />
-              <strong>More possibilities.</strong>
+              <strong>{t("More possibilities.")}</strong>
             </span>
           </div>
           <span className="art-star">✳</span>
@@ -97,56 +98,62 @@ export function SearchCare({
       </section>
       <section className="filter-card">
         <label>
-          Specialty
+          {t(" Specialty ")}
           <select
-            aria-label="Specialty"
+            aria-label={t("Specialty")}
             value={service}
             onChange={(e) => setService(e.target.value)}
           >
-            <option value="">All specialties</option>
+            <option value="">{t("All specialties")}</option>
             {SERVICES.map((s) => (
-              <option key={s}>{s}</option>
+              <option key={s} value={s}>
+                {t(s)}
+              </option>
             ))}
           </select>
         </label>
         <label>
-          Location
+          {t(" Location ")}
           <select
-            aria-label="Location"
+            aria-label={t("Location")}
             value={city}
             onChange={(e) => setCity(e.target.value)}
           >
-            <option value="">All locations</option>
+            <option value="">{t("All locations")}</option>
             {[...new Set(state.clinics.map((c) => c.city))].map((c) => (
-              <option key={c}>{c}</option>
+              <option key={c} value={c}>
+                {t(c)}
+              </option>
             ))}
           </select>
         </label>
         <label>
-          Insurance
+          {t(" Insurance ")}
           <select
-            aria-label="Insurance"
+            aria-label={t("Insurance")}
             value={plan}
             onChange={(e) => setPlan(e.target.value)}
           >
-            <option value="">All demo plans</option>
+            <option value="">{t("All demo plans")}</option>
             {PLANS.map((p) => (
-              <option key={p}>{p}</option>
+              <option key={p} value={p}>
+                {t(p)}
+              </option>
             ))}
           </select>
         </label>
         <label>
-          Maximum cost ($)
+          {t(" Maximum cost ($) ")}
           <input
             type="number"
             min="0"
             value={price}
-            placeholder="Any budget"
+            placeholder={t("Any budget")}
             onChange={(e) => setPrice(e.target.value)}
           />
         </label>
         <label>
-          Appointment date
+          {t(" Appointment date ")}
           <input
             type="date"
             value={date}
@@ -157,10 +164,10 @@ export function SearchCare({
       <div className="section-title">
         <div>
           <h2>
-            Available appointments{" "}
+            {t(" Available appointments")}{" "}
             <span className="result-count">{results.length}</span>
           </h2>
-          <p>Real-time openings. A fresh start for your schedule.</p>
+          <p>{t("Real-time openings. A fresh start for your schedule.")}</p>
         </div>
         <button
           className="text-button"
@@ -172,13 +179,15 @@ export function SearchCare({
             setDate("");
           }}
         >
-          Clear filters
+          {t(" Clear filters ")}
         </button>
       </div>
       {!results.length ? (
         <Empty
-          title="No openings match just yet"
-          body="Try adjusting your filters, or join the waitlist for a suitable opening."
+          title={t("No openings match just yet")}
+          body={t(
+            "Try adjusting your filters, or join the waitlist for a suitable opening.",
+          )}
         />
       ) : (
         <div className="appointment-grid">
@@ -190,10 +199,10 @@ export function SearchCare({
                 </span>
                 <span className="availability">
                   <span className="live-dot" />
-                  Available
+                  {t(" Available ")}
                 </span>
               </div>
-              <span className="eyebrow">{s.service}</span>
+              <span className="eyebrow">{t(s.service)}</span>
               <h3>{s.clinic.name}</h3>
               <p className="muted">
                 <MapPin size={14} />
@@ -203,14 +212,21 @@ export function SearchCare({
                 <CalendarDays size={17} />
                 <strong>{dateLabel(s.start)}</strong>
               </div>
-              <p>{s.provider} · 30-minute visit</p>
+              <p>
+                {t(s.provider)} ·{" "}
+                {Math.round((+new Date(s.end) - +new Date(s.start)) / 60000)}
+                {t(" minute visit")}
+              </p>
               <div className="card-bottom">
                 <div>
                   <strong className="price">{money(s.price)}</strong>
-                  <span className="tiny"> estimated · demo insurance</span>
+                  <span className="tiny">
+                    {t(" estimated · demo insurance")}
+                  </span>
                 </div>
                 <button className="secondary" onClick={() => onDetail(s)}>
-                  View & book <ChevronRight size={16} />
+                  {t(" View & book ")}
+                  <ChevronRight size={16} />
                 </button>
               </div>
             </article>
@@ -222,14 +238,16 @@ export function SearchCare({
           <Clock3 />
         </span>
         <div>
-          <h3>A sooner appointment could be around the corner.</h3>
+          <h3>{t("A sooner appointment could be around the corner.")}</h3>
           <p>
-            Keep your booking. We’ll watch for openings that fit your
-            preferences.
+            {t(
+              " Keep your booking. We’ll watch for openings that fit your preferences. ",
+            )}
           </p>
         </div>
         <button className="primary" onClick={onWaitlist}>
-          Join the waitlist <ArrowRight size={16} />
+          {t(" Join the waitlist ")}
+          <ArrowRight size={16} />
         </button>
       </div>
     </>
@@ -244,13 +262,14 @@ export function Appointments({
   act: Action;
   join: (b?: Booking) => void;
 }) {
+  const { t, dateLabel } = useI18n();
   return (
     <>
       <div className="insight-row">
         <div className="card insight">
           <CalendarDays />
           <div>
-            <span>Upcoming appointments</span>
+            <span>{t("Upcoming appointments")}</span>
             <strong>
               {state.bookings.filter((b) => b.status === "CONFIRMED").length}
             </strong>
@@ -259,19 +278,21 @@ export function Appointments({
         <div className="card insight">
           <ShieldCheck />
           <div>
-            <span>Your booking stays safe</span>
-            <strong className="small">Until you accept an earlier offer</strong>
+            <span>{t("Your booking stays safe")}</span>
+            <strong className="small">
+              {t("Until you accept an earlier offer")}
+            </strong>
           </div>
         </div>
       </div>
       <div className="section-title">
-        <h2>Your care calendar</h2>
-        <span className="muted">Pacific time</span>
+        <h2>{t("Your care calendar")}</h2>
+        <span className="muted">{t("Pacific time")}</span>
       </div>
       {!state.bookings.length ? (
         <Empty
-          title="Your calendar is ready"
-          body="Find care to book your first appointment."
+          title={t("Your calendar is ready")}
+          body={t("Find care to book your first appointment.")}
         />
       ) : (
         <div className="stack">
@@ -281,10 +302,10 @@ export function Appointments({
                 <CalendarDays />
               </span>
               <div className="grow">
-                <span className="eyebrow">{b.slot.service}</span>
+                <span className="eyebrow">{t(b.slot.service)}</span>
                 <h3>{b.slot.clinic.name}</h3>
                 <p>
-                  {dateLabel(b.slot.start)} · {b.slot.provider}
+                  {dateLabel(b.slot.start)} · {t(b.slot.provider)}
                 </p>
                 <p className="muted">
                   <MapPin size={14} />
@@ -297,20 +318,22 @@ export function Appointments({
                   <>
                     <button className="secondary" onClick={() => join(b)}>
                       <Clock3 size={16} />
-                      Find an earlier time
+                      {t(" Find an earlier time ")}
                     </button>
                     <button
                       className="text-button"
                       onClick={() => {
                         if (
                           confirm(
-                            "Cancel this appointment? Any linked waitlist will be withdrawn.",
+                            t(
+                              "Cancel this appointment? Any linked waitlist will be withdrawn.",
+                            ),
                           )
                         )
                           void act({ type: "cancel", bookingId: b.id });
                       }}
                     >
-                      Cancel appointment
+                      {t(" Cancel appointment ")}
                     </button>
                   </>
                 )}
@@ -337,6 +360,7 @@ export function WaitlistForm({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useI18n();
   const [days, setDays] = useState(existing?.weekdays ?? [0, 1, 2, 3, 4, 5, 6]),
     [saving, setSaving] = useState(false);
   const [clinicIds, setClinicIds] = useState(existing?.clinicIds ?? []);
@@ -349,15 +373,19 @@ export function WaitlistForm({
     <Modal
       title={
         existing
-          ? "Edit waitlist preferences"
-          : "Let’s find you an earlier opening"
+          ? t("Edit waitlist preferences")
+          : t("Let’s find you an earlier opening")
       }
       onClose={onClose}
     >
       <p className="muted">
         {booking || existing?.bookingId
-          ? "Your original appointment stays confirmed until you accept an earlier offer."
-          : "Choose your preferences. A clinic will review each match before inviting you."}
+          ? t(
+              "Your original appointment stays confirmed until you accept an earlier offer.",
+            )
+          : t(
+              "Choose your preferences. A clinic will review each match before inviting you.",
+            )}
       </p>
       <form
         onSubmit={async (e) => {
@@ -385,39 +413,45 @@ export function WaitlistForm({
       >
         <div className="form-grid">
           <label>
-            Specialty
+            {t(" Specialty ")}
             <select
               value={service}
               disabled={!!booking || !!existing}
               onChange={(e) => setService(e.target.value)}
             >
               {SERVICES.map((s) => (
-                <option key={s}>{s}</option>
+                <option key={s} value={s}>
+                  {t(s)}
+                </option>
               ))}
             </select>
           </label>
           <label>
-            Demo insurance
+            {t(" Demo insurance ")}
             <select
               name="plan"
               defaultValue={existing?.plan ?? state.user?.plan}
             >
               {PLANS.map((p) => (
-                <option key={p}>{p}</option>
+                <option key={p} value={p}>
+                  {t(p)}
+                </option>
               ))}
             </select>
           </label>
           <label>
-            Location
+            {t(" Location ")}
             <select name="city" defaultValue={existing?.city ?? ""}>
-              <option value="">All locations</option>
+              <option value="">{t("All locations")}</option>
               {[...new Set(state.clinics.map((c) => c.city))].map((c) => (
-                <option key={c}>{c}</option>
+                <option key={c} value={c}>
+                  {t(c)}
+                </option>
               ))}
             </select>
           </label>
           <label>
-            Maximum estimated cost ($)
+            {t(" Maximum estimated cost ($) ")}
             <input
               name="maxPrice"
               type="number"
@@ -428,7 +462,7 @@ export function WaitlistForm({
             />
           </label>
           <label>
-            From date
+            {t(" From date ")}
             <input
               type="date"
               name="earliest"
@@ -441,7 +475,7 @@ export function WaitlistForm({
             />
           </label>
           <label>
-            Through date
+            {t(" Through date ")}
             <input
               type="date"
               name="latest"
@@ -454,7 +488,7 @@ export function WaitlistForm({
             />
           </label>
           <label>
-            Earliest hour (Pacific)
+            {t(" Earliest hour (Pacific) ")}
             <input
               type="number"
               min="0"
@@ -465,7 +499,7 @@ export function WaitlistForm({
             />
           </label>
           <label>
-            Latest hour (Pacific)
+            {t(" Latest hour (Pacific) ")}
             <input
               type="number"
               min="1"
@@ -477,10 +511,10 @@ export function WaitlistForm({
           </label>
         </div>
         <fieldset>
-          <legend>Preferred weekdays</legend>
+          <legend>{t("Preferred weekdays")}</legend>
           <div className="check-row">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d, i) => (
-              <label key={d}>
+              <label key={t(d)}>
                 <input
                   type="checkbox"
                   checked={days.includes(i)}
@@ -492,15 +526,15 @@ export function WaitlistForm({
                     )
                   }
                 />
-                {d}
+                {t(d)}
               </label>
             ))}
           </div>
         </fieldset>
         <fieldset>
           <legend>
-            Participating clinics{" "}
-            <span className="muted">(none selected = all)</span>
+            {t(" Participating clinics")}{" "}
+            <span className="muted">{t("(none selected = all)")}</span>
           </legend>
           <div className="check-row">
             {state.clinics.map((c) => (
@@ -523,11 +557,16 @@ export function WaitlistForm({
         </fieldset>
         <div className="demo-note">
           <ShieldCheck size={18} />
-          Accepting an earlier offer will replace your linked original
-          appointment. Travel buffers are not checked.
+          {t(
+            " Accepting an earlier offer will replace your linked original appointment. Travel buffers are not checked. ",
+          )}
         </div>
         <button className="primary full" disabled={saving || !days.length}>
-          {saving ? "Saving…" : existing ? "Save preferences" : "Join waitlist"}
+          {saving
+            ? t("Saving…")
+            : existing
+              ? t("Save preferences")
+              : t("Join waitlist")}
           <ArrowRight size={17} />
         </button>
       </form>
@@ -535,12 +574,15 @@ export function WaitlistForm({
   );
 }
 export function Inbox({ state, act }: { state: AppState; act: Action }) {
+  const { t, dateLabel } = useI18n();
   return (
     <>
       {!state.notifications.length ? (
         <Empty
-          title="A little quiet, for now"
-          body="When a clinic approves a suitable opening, your invitation will appear here."
+          title={t("A little quiet, for now")}
+          body={t(
+            "When a clinic approves a suitable opening, your invitation will appear here.",
+          )}
         />
       ) : (
         <div className="stack">
@@ -556,23 +598,34 @@ export function Inbox({ state, act }: { state: AppState; act: Action }) {
                 </span>
                 <div className="grow">
                   <span className="eyebrow">{dateLabel(n.createdAt)}</span>
-                  <h3>{n.title}</h3>
-                  <p>{n.body}</p>
+                  <h3>{t(n.title)}</h3>
+                  <p>{t(n.body)}</p>
                   {offer && (
                     <div className="offer-box">
                       <strong>
-                        {offer.slot.clinic.name} · {offer.slot.service}
+                        {offer.slot.clinic.name} · {t(offer.slot.service)}
                       </strong>
                       <p>
                         {dateLabel(offer.slot.start)} ·{" "}
-                        {money(offer.slot.price)} estimated
+                        {money(offer.slot.price)}
+                        {t(" estimated ")}
                       </p>
                       <Status value={offer.status} />
+                      {offer.batchId && (
+                        <p className="demo-note">
+                          {t(
+                            "Group invitation: other approved patients may receive this opening too. Only the first eligible confirmation succeeds. If another patient confirms, your original booking is unchanged.",
+                          )}
+                        </p>
+                      )}
                       {offer.status === "PENDING" && (
                         <>
                           <p>
-                            Respond by {dateLabel(offer.expiresAt)}. Accepting
-                            replaces your linked original appointment.
+                            {t(" Respond by ")}
+                            {dateLabel(offer.expiresAt)}
+                            {t(
+                              ". Accepting replaces your linked original appointment. ",
+                            )}
                           </p>
                           <div className="button-row">
                             <button
@@ -580,7 +633,9 @@ export function Inbox({ state, act }: { state: AppState; act: Action }) {
                               onClick={() => {
                                 if (
                                   confirm(
-                                    "Confirm this earlier appointment and replace your linked original booking?",
+                                    t(
+                                      "Confirm this earlier appointment and replace your linked original booking?",
+                                    ),
                                   )
                                 )
                                   void act({
@@ -591,7 +646,7 @@ export function Inbox({ state, act }: { state: AppState; act: Action }) {
                               }}
                             >
                               <Check size={16} />
-                              Accept earlier appointment
+                              {t(" Accept earlier appointment ")}
                             </button>
                             <button
                               className="secondary"
@@ -603,7 +658,7 @@ export function Inbox({ state, act }: { state: AppState; act: Action }) {
                                 })
                               }
                             >
-                              Decline
+                              {t(" Decline ")}
                             </button>
                           </div>
                         </>
@@ -617,7 +672,7 @@ export function Inbox({ state, act }: { state: AppState; act: Action }) {
                         void act({ type: "read", notificationId: n.id })
                       }
                     >
-                      Mark as read
+                      {t(" Mark as read ")}
                     </button>
                   )}
                 </div>

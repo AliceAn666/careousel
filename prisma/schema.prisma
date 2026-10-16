@@ -44,6 +44,7 @@ model Slot {
   bookings Booking[]
   offers Offer[]
   suggestions Suggestion[]
+  batches NotificationBatch[]
   @@index([clinicId, start])
 }
 model Booking {
@@ -105,7 +106,26 @@ model Offer {
   reason String
   expiresAt DateTime
   createdAt DateTime @default(now())
+  batchId String?
+  batch NotificationBatch? @relation(fields: [batchId, slotId], references: [id, slotId])
   notifications Notification[]
+  @@unique([batchId, waitlistId])
+}
+model NotificationBatch {
+  id String @id @default(cuid())
+  slotId String
+  slot Slot @relation(fields: [slotId], references: [id])
+  priorityIds String[]
+  generalIds String[]
+  intervalMinutes Int
+  round Int @default(0)
+  nextAt DateTime?
+  status String @default("ACTIVE")
+  reason String
+  actor String
+  createdAt DateTime @default(now())
+  offers Offer[]
+  @@unique([id, slotId])
 }
 model Notification {
   id String @id @default(cuid())

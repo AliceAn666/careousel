@@ -1,7 +1,9 @@
 "use client";
+import { useI18n } from "./language-provider";
 import { ShieldCheck, Sparkles } from "lucide-react";
 import type { Action } from "@/lib/types";
 export function DemoGuide({ staff, act }: { staff: boolean; act: Action }) {
+  const { t } = useI18n();
   const steps = [
     [
       "Avery joins the waitlist",
@@ -29,14 +31,15 @@ export function DemoGuide({ staff, act }: { staff: boolean; act: Action }) {
       <section className="hero compact">
         <div>
           <span className="pill">
-            <Sparkles size={14} />A FIVE-MINUTE STORY
+            <Sparkles size={14} />
+            {t("A FIVE-MINUTE STORY ")}
           </span>
           <h2>
-            Turn a cancellation
+            {t(" Turn a cancellation ")}
             <br />
-            into an opportunity.
+            {t(" into an opportunity. ")}
           </h2>
-          <p>Two clinics. One patient. Care that arrives sooner.</p>
+          <p>{t("Two clinics. One patient. Care that arrives sooner.")}</p>
         </div>
         <div className="hero-art" aria-hidden="true">
           <div className="art-cross">✚</div>
@@ -47,8 +50,8 @@ export function DemoGuide({ staff, act }: { staff: boolean; act: Action }) {
           <div className="step" key={title}>
             <span>{i + 1}</span>
             <div>
-              <h3>{title}</h3>
-              <p>{body}</p>
+              <h3>{t(title)}</h3>
+              <p>{t(body)}</p>
             </div>
           </div>
         ))}
@@ -56,33 +59,36 @@ export function DemoGuide({ staff, act }: { staff: boolean; act: Action }) {
       <div className="info-banner">
         <ShieldCheck />
         <div>
-          <strong>Try the alternate paths, too.</strong>
+          <strong>{t("Try the alternate paths, too.")}</strong>
           <p>
-            Decline an offer to keep the original booking, let a 10-minute
-            invitation expire, or use different browser sessions to demonstrate
-            shared data. All identities, plans and estimates are synthetic.
+            {t(
+              " Decline an offer to keep the original booking, let a 10-minute invitation expire, or use different browser sessions to demonstrate shared data. All identities, plans and estimates are synthetic. ",
+            )}
           </p>
         </div>
       </div>
       {staff && (
         <section className="card reset-card">
-          <h3>Restore the synthetic demo</h3>
+          <h3>{t("Restore the synthetic demo")}</h3>
           <p>
-            Deletes all demo actions and restores future-dated fixtures. This is
-            available only in demo mode.
+            {t(
+              " Deletes all demo actions and restores future-dated fixtures. This is available only in demo mode. ",
+            )}
           </p>
           <button
             className="danger"
             onClick={() => {
               if (
                 prompt(
-                  "Type RESET to delete all demo changes and restore the baseline.",
+                  t(
+                    "Type RESET to delete all demo changes and restore the baseline.",
+                  ),
                 ) === "RESET"
               )
                 void act({ type: "reset", confirmation: "RESET" });
             }}
           >
-            Reset demo data
+            {t(" Reset demo data ")}
           </button>
         </section>
       )}

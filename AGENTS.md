@@ -31,7 +31,7 @@ Keep UI in `src/app`/`src/components`, domain behavior in `src/server/services`,
 
 The PRD state model is authoritative. All booking, cancellation, approval, expiry and offer acceptance transitions belong in domain services with transactions and database constraints. The current demo deliberately serializes all scheduling reads/writes with PostgreSQL advisory lock 728194. Do not remove or bypass this lock without replacing it with tested patient/slot serialization.
 
-- At most one confirmed booking or active hold per slot. Prevent patient overlap across slots with patient-level transactional serialization.
+- At most one confirmed booking or active hold owner per slot. A staff-approved notification batch may share its hold across multiple pending patient invitations; the first eligible acceptance wins and revokes peers. Standalone invitations remain exclusive. Prevent patient overlap across slots with patient-level transactional serialization.
 - Recheck eligibility, ownership, current state and server-time expiry at mutation time.
 - Accepting a replacement must atomically confirm the new booking, reschedule the old booking, fulfill the waitlist, update offers/slots and record notifications/audit; rollback preserves the old booking.
 - Retries and double clicks must be idempotent. Acquire locks consistently and test races against actual PostgreSQL.
@@ -45,7 +45,7 @@ Use invented identities and reserved example contact domains only. Never ingest 
 
 Use server-issued demo sessions and enforce patient ownership and clinic membership on every read and mutation. Do not trust client-selected roles or IDs. Gate persona switching and confirmed reset behind explicit demo mode, and reset behind server authorization. Protect cookie-based mutations against CSRF. Do not claim production security, regulatory compliance, insurance verification or real clinical prioritization.
 
-Committed changes must persist across app restarts. Ordinary startup must not reseed or reset the database. Use reviewed migrations; coordinate schema ownership and never reset a shared database casually. Run `npm run db:migrate` (checksum-tracked SQL), not `prisma migrate dev` or `db push`. Prisma 6.19.2 packages are pinned together; `npm run db:generate` uses its pinned generator API without unused Rust downloads. Review this integration before upgrades.
+Committed changes must persist across app restarts. Ordinary startup must not reseed or reset the database. Use reviewed migrations; coordinate schema ownership and never reset a shared database casually. Run `npm run dev` / `npm start` to launch both the app and durable-deadline notification worker. Never rely on browser polling to send later groups. Run `npm run db:migrate` (checksum-tracked SQL), not `prisma migrate dev` or `db push`. Prisma 6.19.2 packages are pinned together; `npm run db:generate` uses its pinned generator API without unused Rust downloads. Review this integration before upgrades.
 
 ## Verification after approval
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { CareouselApp } from "@/components/careousel-app";
+import { LanguageProvider } from "@/components/language-provider";
 export const metadata: Metadata = {
   title: "Careousel — Better care, sooner",
   description:
@@ -14,7 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <CareouselApp />
+        <LanguageProvider>
+          <CareouselApp />
+        </LanguageProvider>
         {children}
       </body>
     </html>

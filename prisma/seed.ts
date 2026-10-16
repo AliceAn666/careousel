@@ -15,6 +15,6 @@ await db.$transaction(
   { timeout: 30000 },
 );
 console.log(
-  "Seeded 4 clinics, 16 personas, 56 slots, offer states and matching scenarios.",
+  "Seeded 4 clinics, 16 personas, 80 slots, offer states and matching scenarios.",
 );
 await db.$disconnect();

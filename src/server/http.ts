@@ -3,7 +3,7 @@ import { DomainError } from "./services/scheduling";
 export function apiError(error: unknown) {
   if (error instanceof ZodError)
     return Response.json(
-      { error: error.issues[0]?.message ?? "Invalid input" },
+      { error: "Check the form values and try again." },
       { status: 400 },
     );
   if (error instanceof DomainError)

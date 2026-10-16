@@ -1,8 +1,10 @@
+import { addExpandedServices } from "./expanded-services";
 import { Prisma } from "@prisma/client";
 import { OFFER_MINUTES, PLANS, SERVICES } from "../src/lib/config";
 export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
   await tx.notification.deleteMany();
   await tx.offer.deleteMany();
+  await tx.notificationBatch.deleteMany();
   await tx.suggestion.deleteMany();
   await tx.waitlist.deleteMany();
   await tx.booking.updateMany({ data: { replacementId: null } });
@@ -312,4 +314,5 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
       body: "This synthetic demo invitation illustrates offer status.",
     })),
   });
+  await addExpandedServices(tx, now);
 }

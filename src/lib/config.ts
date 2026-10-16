@@ -1,4 +1,14 @@
-export const SERVICES = ["Dermatology", "Cardiology", "Primary care"] as const;
+export const SERVICES = [
+  "Dermatology",
+  "Cardiology",
+  "Primary care",
+  "Vaccination",
+  "Health screening",
+  "Physical therapy",
+  "Vision care",
+  "Dental checkup",
+  "Nutrition consultation",
+] as const;
 export const PLANS = [
   "Blue Horizon",
   "Aster Health",

@@ -73,7 +73,7 @@ These checks provide prototype evidence, not production healthcare/security cert
 - The UI polls every 12 seconds and refreshes immediately after mutations. No SMS/email or push service is connected.
 - Production authentication, real insurance verification, billing, medical records, travel buffers, specialized clinical constraints and real clinic integrations are absent by design.
 - The explicit synthetic seed includes pending/expired offers, overlap, tied priorities, service/time incompatibilities and a no-match cancellation scenario. These updated fixtures were verified in `careousel_test`; the existing demo data was not reseeded.
-- Staff-created slots are 30 minutes with one seeded provider. Rich recurring schedules, analytics, full accessibility audit, multilingual UI and additional browser-engine testing are later work.
+- Staff-created slots are 30 minutes with one seeded provider. Rich recurring schedules, analytics, full accessibility audit, locales beyond English/Chinese and additional browser-engine testing are later work.
 - GitHub Actions configuration is supplied; its remote run and repository branch-protection settings must be checked separately. Local passing checks are not a claim that GitHub-hosted CI has already passed.
 - Public deployment has not been performed or authorized. Hosting, actual student ownership and the feature-freeze deadline remain team decisions.
 
@@ -88,3 +88,19 @@ Work is based on `e063f386e618a43b9606ffa70f4567a4d54c720e`. The uncommitted Cod
 - Database integrity: additive composite foreign keys bind waitlists and offers to the same patient as their linked records. Direct SQL tests verify cross-patient links fail and one-confirmed-booking/one-pending-hold per slot constraints remain enforced.
 - Migration `0002_booking_history_patient_integrity` was applied to both isolated `careousel_test` and the current `careousel` database. Before applying it to `careousel`, read-only preflight found zero cross-patient mismatches; the migration added schema only, without resetting or deleting demo rows.
 - Follow-up checks: `npm run db:generate`, `npm exec -- prisma validate`, 26 unit tests, 27 PostgreSQL integration tests, lint, typecheck, format check and production build passed. The browser E2E suite was not rerun for this server/domain-only follow-up; its previously recorded 5-test result is from the initial prototype validation.
+
+## Group notification and bilingual service extension — 2026-10-16
+
+Implemented on `feat/batch-notifications-bilingual`. Additive migration `0003_notification_batches` was applied to the local demo and isolated test database. Existing demo bookings were preserved; `scripts/add-expanded-services.ts` added 24 synthetic service slots without reseeding. The full reset fixture now contains 80 slots and nine service categories.
+
+- Unit suite: 26 passed.
+- PostgreSQL integration suite: 38 passed. Eleven new cases cover priority-before-general delivery, timed advancement/exhaustion, all-declined advancement, shared-hold acceptance races, one-decline hold preservation, queued-request withdrawal, clinic authorization/idempotency/cancellation, invalid groups, acceptance rollback, actual worker-process delivery without browser/API traffic, database rejection of mixed holds, and configurable service duration/provider/insurance behavior.
+- Chromium browser suite: 7 passed. Added Chinese language persistence, canonical service filtering/booking, localized confirmation/status, 375px overflow check, switching back to English, staff group approval and automatic general-group delivery after priority decline.
+- Lint and strict TypeScript checks passed. Production build and the production-server restart persistence check passed.
+
+The first browser pass exposed an untranslated synthetic provider label and an overly exact test locator for the composite staff-entry button. The provider label was localized and the locator corrected; the complete seven-test rerun passed. No tests were disabled or assertions removed to obtain the pass.
+
+Group delivery is still in-app only. The worker reconciles every five seconds and uses stored deadlines; server-side reads/mutations provide recovery as well. No external AI provider, real notification delivery, clinical qualification, geographic expansion or production healthcare readiness is claimed. Human-entered notes and proper names are preserved as supplied; dates remain Pacific time.
+
+- Final manual browser check: Chinese desktop search, 375px mobile search and staff group composer rendered correctly; no browser page errors. Existing demo appointments were not changed by this inspection.
+- `npm run format:check` passed after formatting the new styles.

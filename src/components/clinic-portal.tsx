@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "./language-provider";
 import { useState } from "react";
 import {
   ArrowDownLeft,
@@ -10,8 +11,10 @@ import {
   Users,
 } from "lucide-react";
 import type { Action, AppState } from "@/lib/types";
-import { dateLabel, money, SERVICES } from "@/lib/config";
+import { money, SERVICES } from "@/lib/config";
 import { request } from "@/lib/api";
+import { BatchComposer, BatchPlans } from "./batch-notifications";
+import { PLANS } from "@/lib/config";
 import { Status, Empty, Modal } from "./ui";
 export function ClinicSchedule({
   state,
@@ -20,6 +23,7 @@ export function ClinicSchedule({
   state: AppState;
   act: Action;
 }) {
+  const { t, dateLabel } = useI18n();
   const [date, setDate] = useState(""),
     [show, setShow] = useState(false);
   const visible = state.slots.filter(
@@ -38,7 +42,7 @@ export function ClinicSchedule({
         <div className="card insight">
           <CalendarDays />
           <div>
-            <span>Confirmed appointments</span>
+            <span>{t("Confirmed appointments")}</span>
             <strong>
               {state.bookings.filter((b) => b.status === "CONFIRMED").length}
             </strong>
@@ -47,7 +51,7 @@ export function ClinicSchedule({
         <div className="card insight">
           <ArrowDownLeft />
           <div>
-            <span>Available openings</span>
+            <span>{t("Available openings")}</span>
             <strong>
               {state.slots.filter((s) => s.status === "AVAILABLE").length}
             </strong>
@@ -56,43 +60,45 @@ export function ClinicSchedule({
         <div className="card insight">
           <Users />
           <div>
-            <span>Eligible matches</span>
+            <span>{t("Eligible matches")}</span>
             <strong>{state.candidates.length}</strong>
           </div>
         </div>
       </div>
       <div className="section-title">
         <div>
-          <h2>Appointment schedule</h2>
+          <h2>{t("Appointment schedule")}</h2>
           <p>
-            Cancellations automatically surface eligible waitlist candidates.
+            {t(
+              " Cancellations automatically surface eligible waitlist candidates. ",
+            )}
           </p>
         </div>
         <button className="primary" onClick={() => setShow(true)}>
           <Plus size={17} />
-          New opening
+          {t(" New opening ")}
         </button>
       </div>
       <label className="inline-filter">
-        Filter by date
+        {t(" Filter by date ")}
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
         />
         <button className="text-button" onClick={() => setDate("")}>
-          Clear
+          {t(" Clear ")}
         </button>
       </label>
       <div className="card table-scroll">
         <table>
           <thead>
             <tr>
-              <th>Appointment</th>
-              <th>Service / provider</th>
-              <th>Patient</th>
-              <th>Status</th>
-              <th>Action</th>
+              <th>{t("Appointment")}</th>
+              <th>{t("Service / provider")}</th>
+              <th>{t("Patient")}</th>
+              <th>{t("Status")}</th>
+              <th>{t("Action")}</th>
             </tr>
           </thead>
           <tbody>
@@ -104,11 +110,14 @@ export function ClinicSchedule({
                 <tr key={s.id}>
                   <td>
                     <strong>{dateLabel(s.start)}</strong>
-                    <small>{money(s.price)} estimated</small>
+                    <small>
+                      {money(s.price)}
+                      {t(" estimated")}
+                    </small>
                   </td>
                   <td>
-                    {s.service}
-                    <small>{s.provider}</small>
+                    {t(s.service)}
+                    <small>{t(s.provider)}</small>
                   </td>
                   <td>{b?.patient.name ?? "—"}</td>
                   <td>
@@ -121,19 +130,23 @@ export function ClinicSchedule({
                         onClick={() => {
                           if (
                             confirm(
-                              `Cancel ${b.patient.name}’s appointment and release the slot?`,
+                              t(
+                                `Cancel ${b.patient.name}’s appointment and release the slot?`,
+                              ),
                             )
                           )
                             void act({ type: "cancel", bookingId: b.id });
                         }}
                       >
-                        Cancel & release
+                        {t(" Cancel & release ")}
                       </button>
                     ) : (
                       <span className="muted">
                         {s.status === "HELD"
-                          ? "Awaiting patient response"
-                          : `${state.candidates.filter((c) => c.slotId === s.id).length} eligible matches`}
+                          ? t("Awaiting patient response")
+                          : t(
+                              `${state.candidates.filter((c) => c.slotId === s.id).length} eligible matches`,
+                            )}
                       </span>
                     )}
                   </td>
@@ -144,14 +157,14 @@ export function ClinicSchedule({
         </table>
         {!visible.length && (
           <Empty
-            title="No appointments on this date"
-            body="Try another date or create a new opening."
+            title={t("No appointments on this date")}
+            body={t("Try another date or create a new opening.")}
           />
         )}
       </div>
       {show && (
         <Modal
-          title="Create an appointment opening"
+          title={t("Create an appointment opening")}
           onClose={() => setShow(false)}
         >
           <form
@@ -162,6 +175,9 @@ export function ClinicSchedule({
                 await act({
                   type: "createSlot",
                   service: f.get("service"),
+                  provider: f.get("provider"),
+                  durationMinutes: Number(f.get("durationMinutes")),
+                  plans: f.getAll("plans"),
                   start: new Date(String(f.get("start"))).toISOString(),
                   price: Math.round(Number(f.get("price")) * 100),
                 })
@@ -170,19 +186,21 @@ export function ClinicSchedule({
             }}
           >
             <label>
-              Specialty
+              {t(" Specialty ")}
               <select name="service">
                 {SERVICES.map((s) => (
-                  <option key={s}>{s}</option>
+                  <option key={s} value={s}>
+                    {t(s)}
+                  </option>
                 ))}
               </select>
             </label>
             <label>
-              Start date & time (your device timezone)
+              {t(" Start date & time (your device timezone) ")}
               <input type="datetime-local" name="start" required />
             </label>
             <label>
-              Estimated cost ($)
+              {t(" Estimated cost ($) ")}
               <input
                 name="price"
                 type="number"
@@ -192,10 +210,49 @@ export function ClinicSchedule({
                 required
               />
             </label>
+            <label>
+              {t("Provider")}
+              <input
+                name="provider"
+                defaultValue="Dr. Maya Lin"
+                minLength={2}
+                maxLength={100}
+                required
+              />
+            </label>
+            <label>
+              {t("Duration (minutes)")}
+              <input
+                name="durationMinutes"
+                type="number"
+                min="10"
+                max="180"
+                defaultValue="30"
+                required
+              />
+            </label>
+            <fieldset>
+              <legend>{t("Accepted demo plans")}</legend>
+              <div className="check-row">
+                {PLANS.map((p) => (
+                  <label key={p}>
+                    <input
+                      type="checkbox"
+                      name="plans"
+                      value={p}
+                      defaultChecked
+                    />
+                    {p}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             <p className="demo-note">
-              30-minute visit with Dr. Maya Lin. All demo plans accepted.
+              {t(
+                "Synthetic services only. Real eligibility, provider credentials and insurance must be verified before a real visit.",
+              )}
             </p>
-            <button className="primary full">Create opening</button>
+            <button className="primary full">{t("Create opening")}</button>
           </form>
         </Modal>
       )}
@@ -203,6 +260,7 @@ export function ClinicSchedule({
   );
 }
 export function Matches({ state, act }: { state: AppState; act: Action }) {
+  const { t, dateLabel } = useI18n();
   const [selected, setSelected] = useState(""),
     [summary, setSummary] = useState<{
       source: string;
@@ -221,18 +279,18 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
       <div className="info-banner">
         <Sparkles />
         <div>
-          <strong>Intelligent matching. Human decisions.</strong>
+          <strong>{t("Intelligent matching. Human decisions.")}</strong>
           <p>
-            Eligibility is checked automatically. Candidates are ordered by
-            waitlist join time. Clinic staff make every final offer; clinical
-            urgency is never inferred.
+            {t(
+              " Eligibility is checked automatically. Candidates are ordered by waitlist join time. Clinic staff make every final offer; clinical urgency is never inferred. ",
+            )}
           </p>
         </div>
       </div>
       <div className="matches-layout">
         <section className="card openings">
-          <h2>Available openings</h2>
-          <p className="muted">Select a slot to review matches</p>
+          <h2>{t("Available openings")}</h2>
+          <p className="muted">{t("Select a slot to review matches")}</p>
           {slots.map((s) => (
             <button
               key={s.id}
@@ -243,16 +301,18 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
                 setAiError("");
               }}
             >
-              <span className="eyebrow">{s.service}</span>
+              <span className="eyebrow">{t(s.service)}</span>
               <strong>{dateLabel(s.start)}</strong>
               <span>
                 {state.candidates.filter((c) => c.slotId === s.id).length}{" "}
-                eligible candidates
+                {t(" eligible candidates ")}
               </span>
             </button>
           ))}
           {!slots.length && (
-            <p>No available openings. Cancel a booking or create a slot.</p>
+            <p>
+              {t("No available openings. Cancel a booking or create a slot.")}
+            </p>
           )}
         </section>
         <section>
@@ -261,22 +321,32 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
               <div className="section-title">
                 <div>
                   <h2>
-                    Suggested patients{" "}
+                    {t(" Suggested patients")}{" "}
                     <span className="result-count">{candidates.length}</span>
                   </h2>
                   <p>
-                    {slot.service} · {dateLabel(slot.start)}
+                    {t(slot.service)} · {dateLabel(slot.start)}
                   </p>
                 </div>
               </div>
+              {!!candidates.length && (
+                <BatchComposer
+                  key={slot.id}
+                  slotId={slot.id}
+                  candidates={candidates}
+                  act={act}
+                />
+              )}
               <div className="recommendation">
                 <span className="eyebrow">
                   <Sparkles size={14} />
-                  ASSISTED REVIEW
+                  {t(" ASSISTED REVIEW ")}
                 </span>
                 <p>
-                  {summary?.summary ??
-                    "Get a concise explanation of the eligible candidates before making your decision. Matching works even without an external AI service."}
+                  {t(
+                    summary?.summary ??
+                      "Get a concise explanation of the eligible candidates before making your decision. Matching works even without an external AI service.",
+                  )}
                 </p>
                 <button
                   className="secondary"
@@ -297,22 +367,24 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
                     }
                   }}
                 >
-                  {loading ? "Preparing…" : "Explain recommendations"}
+                  {loading ? t("Preparing…") : t("Explain recommendations")}
                   <Sparkles size={15} />
                 </button>
                 {summary && (
                   <small>
                     {summary.source === "ai"
-                      ? "AI-assisted explanation — verify before approval"
-                      : "Local rules fallback · no external AI required"}
+                      ? t("AI-assisted explanation — verify before approval")
+                      : t("Local rules fallback · no external AI required")}
                   </small>
                 )}
-                {aiError && <p role="alert">{aiError}</p>}
+                {aiError && <p role="alert">{t(aiError)}</p>}
               </div>
               {!candidates.length ? (
                 <Empty
-                  title="No eligible candidates yet"
-                  body="The opening remains available for direct booking. Candidates must match all required preferences."
+                  title={t("No eligible candidates yet")}
+                  body={t(
+                    "The opening remains available for direct booking. Candidates must match all required preferences.",
+                  )}
                 />
               ) : (
                 <div className="stack">
@@ -327,15 +399,18 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
                         </span>
                         <div>
                           <h3>{c.name}</h3>
-                          <p>Waitlist priority #{i + 1}</p>
+                          <p>
+                            {t("Waitlist priority #")}
+                            {i + 1}
+                          </p>
                         </div>
-                        <span className="status active">Eligible</span>
+                        <span className="status active">{t("Eligible")}</span>
                       </div>
                       <div className="reason-list">
                         {c.reasons.map((r) => (
-                          <span key={r}>
+                          <span key={t(r)}>
                             <CheckCircle2 size={14} />
-                            {r}
+                            {t(r)}
                           </span>
                         ))}
                       </div>
@@ -343,8 +418,10 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
                         className="primary"
                         onClick={() => {
                           const reason = prompt(
-                            "Reason for approving this eligible patient:",
-                            "Reviewed eligibility and scheduling preferences",
+                            t("Reason for approving this eligible patient:"),
+                            t(
+                              "Reviewed eligibility and scheduling preferences",
+                            ),
                           );
                           if (reason)
                             void act({
@@ -355,7 +432,8 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
                             });
                         }}
                       >
-                        Approve & send offer <ArrowRight size={16} />
+                        {t(" Approve & send offer ")}
+                        <ArrowRight size={16} />
                       </button>
                     </article>
                   ))}
@@ -365,16 +443,17 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
           )}
         </section>
       </div>
+      <BatchPlans state={state} act={act} />
       <section className="section-title">
-        <h2>Recent invitations</h2>
+        <h2>{t("Recent invitations")}</h2>
       </section>
       <div className="stack">
         {state.offers.map((o) => (
           <div key={o.id} className="card request-card">
             <div>
-              <h3>{o.slot.service}</h3>
+              <h3>{t(o.slot.service)}</h3>
               <p>
-                {dateLabel(o.slot.start)} · {o.reason}
+                {dateLabel(o.slot.start)} · {t(o.reason)}
               </p>
             </div>
             <Status value={o.status} />
@@ -385,26 +464,27 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
   );
 }
 export function ActivityFeed({ state }: { state: AppState }) {
+  const { t, dateLabel } = useI18n();
   return (
     <section className="card">
-      <h2>Scheduling audit trail</h2>
-      <p className="muted">Only activity from your clinic is shown.</p>
+      <h2>{t("Scheduling audit trail")}</h2>
+      <p className="muted">{t("Only activity from your clinic is shown.")}</p>
       {state.activity.length ? (
         state.activity.map((a) => (
           <div className="activity" key={a.id}>
             <span className="activity-dot" />
             <div>
-              <strong>{a.action}</strong>
+              <strong>{t(a.action)}</strong>
               <p>
-                {a.actor} · {dateLabel(a.createdAt)}
+                {t(a.actor)} · {dateLabel(a.createdAt)}
               </p>
             </div>
           </div>
         ))
       ) : (
         <Empty
-          title="Ready for your first action"
-          body="Booking changes and approvals will appear here."
+          title={t("Ready for your first action")}
+          body={t("Booking changes and approvals will appear here.")}
         />
       )}
     </section>

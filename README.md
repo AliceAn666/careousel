@@ -46,7 +46,7 @@ Try declining instead: the original booking and active request remain, and the s
 - Database-backed in-app inbox with read state, acceptance, rejection and server-time expiry; 12-second polling plus immediate refresh after mutations.
 - Atomic cross-clinic replacement, rollback protection, idempotent retries, overlap checks, unique booking/offer constraints and audit history.
 - Staff date-filtered schedules, new 30-minute openings, cancellations, match explanations and guarded demo reset.
-- Four clinics, three specialties, four insurance plans plus self-pay, twelve patients, four staff and fifty slots with future relative dates.
+- Four clinics, nine service categories, four insurance plans plus self-pay, twelve patients, four staff and eighty slots with future relative dates.
 
 The clinic-detail and booking-review experiences are dialogs within Find care rather than separate standalone pages. The old patient/symptom record editor is intentionally absent. No real health records or contact data are collected.
 
@@ -90,6 +90,24 @@ Suggested next PR ownership: Member 1 schema/migration/CI integration; Member 2 
 
 ## Deliberate limits
 
-Synthetic data only; insurance matching and prices are demonstrations, with no real verification, billing or payment. In-app notifications are real; SMS/email are not connected. No production identity, autonomous clinical triage, EHR integration, geocoding, travel buffer, or public deployment. New staff-created visits are 30 minutes with a seeded provider. All seeded clinics use America/Los_Angeles. Local explanations and a mocked provider adapter are tested; external AI availability is not required or claimed.
+Synthetic data only; insurance matching and prices are demonstrations, with no real verification, billing or payment. In-app notifications are real; SMS/email are not connected. No production identity, autonomous clinical triage, EHR integration, geocoding, travel buffer, or public deployment. Staff-created visits use an explicit provider, duration and accepted demo plans. All seeded clinics use America/Los_Angeles. Local explanations and a mocked provider adapter are tested; external AI availability is not required or claimed.
 
 UI uses original CSS and Lucide icons rather than adding Tailwind/shadcn during this milestone. No remote fonts or images are required. Core dependencies use permissive licenses (Next/React/Lucide/Zod/pg: MIT or ISC; Prisma: Apache-2.0); preserve installed package notices when redistributing.
+
+## Group notifications, languages and expanded services
+
+Use **English / 中文** in the page header to switch language. The choice persists across refreshes; Chinese browsers default to Chinese. UI labels, statuses, standard errors, notifications, matching reasons and date displays are localized. Names, addresses, staff-entered notes and external AI prose remain as supplied. Appointment dates remain in the clinic demo's Pacific timezone; changing language does not change timezones or insurance eligibility.
+
+In **Waitlist matches → Notify in groups**, assign each eligible patient to **Priority group**, **General group**, or **Not included**. Enter the response window (1–60 minutes, default 10) and a review reason, then choose **Approve & start groups**. All patients in a group receive an in-app invitation together. If everyone declines or the group's deadline expires, the next approved group is notified automatically. The first eligible confirmation succeeds; competing invitations are revoked, and other patients keep their original bookings. Staff choose priority; AI never infers medical urgency. Each later group is revalidated before sending. Plans and deadlines are persisted, can be cancelled by the owning clinic, and recover after restart. An empty or no-longer-eligible group is skipped.
+
+`npm run dev` and `npm start` now run both Next.js and a notification worker. The worker checks due transitions every five seconds, including when browsers are closed. API reads/mutations also reconcile overdue state under the same database lock; correctness never depends on a browser timer. Start through these npm scripts for automatic notifications. Invitations are still **in-app only**, not SMS/email. The group window ends at appointment start if that is earlier than the configured deadline.
+
+Nine synthetic service categories are available: Dermatology, Cardiology, Primary care, Vaccination, Health screening, Physical therapy, Vision care, Dental checkup and Nutrition consultation. New openings support provider name, 10–180 minute duration and explicitly accepted demo plans. These labels do not establish real clinical qualification or insurance verification. The full fixture set now has 80 slots across the existing four clinics. Existing local demo databases can receive the 24 extra slots without reset using:
+
+```sh
+node --import tsx scripts/add-expanded-services.ts
+```
+
+The helper is limited to the local synthetic `careousel` database and is idempotent. It preserves existing slots/bookings. Apply migration `0003_notification_batches` with `npm run db:migrate`; do not edit earlier migrations. It adds persistent group plans and permits multiple pending invitations only within the same approved batch; confirmed booking uniqueness remains unchanged.
+
+中文操作：切换为诊所前台 → 候补匹配 → 选择空位 → 为患者选择优先组或普通组 → 设置等待分钟数并填写审核理由 → 批准并开始分组通知。所有组都无人接受后，号源恢复为可直接预约。语言切换和新增服务均可在手机上使用。

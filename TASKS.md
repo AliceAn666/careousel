@@ -176,3 +176,13 @@ The original milestones remain the target roadmap. This ledger distinguishes del
 - [ ] Select hosting and obtain separate public-deployment approval if desired.
 
 Suggested next ownership remains: Member 1 data/CI; Member 2 patient UI; Member 3 clinic UI; Member 4 scheduling/AI adapter; Member 5 acceptance and rehearsal. This implementation does not invoke parallel agents.
+
+## User-requested extension — grouped notifications and bilingual services
+
+- [x] Add staff-approved priority/general groups, configurable response windows, cancellation and persisted plans.
+- [x] Automatically notify the next approved group after expiry/all-declined; recheck eligibility and preserve one confirmed booking per slot under races.
+- [x] Start a notification worker with both development and production npm scripts; recover due work from stored deadlines.
+- [x] Add persistent English/Chinese switching across patient/staff interfaces, standard feedback and notification content.
+- [x] Expand to nine synthetic service categories and configurable provider, duration and accepted plans, preserving existing demo data.
+- [x] Verify group races/rollback/permissions/worker delivery and Chinese booking/mobile flows in database/browser tests.
+- [ ] Human clinical/product review of group policy before any real pilot; external notifications and clinical qualification remain separate work.

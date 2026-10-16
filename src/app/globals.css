@@ -1616,3 +1616,64 @@ dialog p {
     gap: 3px;
   }
 }
+
+.batch-composer {
+  margin-bottom: 24px;
+}
+.batch-composer h3 {
+  margin-bottom: 10px;
+}
+.batch-composer p {
+  margin-bottom: 14px;
+}
+.batch-composer form {
+  display: grid;
+  gap: 14px;
+}
+.batch-candidate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.batch-candidate select {
+  width: min(52%, 230px);
+}
+.batch-plans {
+  margin-top: 28px;
+  margin-bottom: 28px;
+}
+.batch-plans article {
+  display: grid;
+  gap: 10px;
+}
+.language-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.language-switch button {
+  padding: 7px 10px;
+  border: 1px solid var(--line, #dce4df);
+  border-radius: 8px;
+  background: white;
+  color: #184e40;
+  font: inherit;
+  cursor: pointer;
+}
+.language-switch button[aria-pressed="true"] {
+  background: #184e40;
+  color: white;
+}
+@media (max-width: 600px) {
+  .topbar {
+    flex-wrap: wrap;
+    height: auto;
+    gap: 10px;
+    padding-block: 12px;
+  }
+  .landing header {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+}

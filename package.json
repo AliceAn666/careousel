@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --hostname 0.0.0.0",
+    "dev": "tsx scripts/run-app.ts dev",
     "build": "next build --webpack",
-    "start": "next start --hostname 0.0.0.0",
+    "start": "tsx scripts/run-app.ts start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run tests/unit",

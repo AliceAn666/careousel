@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "../db";
 import { eligibility, overlaps } from "./matching";
 import { OFFER_MINUTES, PLANS, SERVICES } from "../../lib/config";
+import { advanceBatches } from "./notification-batches";
 import { seedData } from "../../../prisma/seed-data";
 export class DomainError extends Error {
   constructor(
@@ -44,11 +45,27 @@ export const actionSchema = z.discriminatedUnion("type", [
     waitlistId: id,
     reason: z.string().trim().min(3).max(500),
   }),
+  z.object({
+    type: z.literal("startBatch"),
+    slotId: id,
+    priorityIds: z.array(id).max(100),
+    generalIds: z.array(id).max(100),
+    intervalMinutes: z.number().int().min(1).max(60),
+    reason: z.string().trim().min(3).max(500),
+  }),
+  z.object({ type: z.literal("cancelBatch"), batchId: id }),
   z.object({ type: z.literal("respond"), offerId: id, accept: z.boolean() }),
   z.object({ type: z.literal("read"), notificationId: id }),
   z.object({
     type: z.literal("createSlot"),
     service: z.enum(SERVICES),
+    provider: z.string().trim().min(2).max(100).default("Dr. Maya Lin"),
+    durationMinutes: z.number().int().min(10).max(180).default(30),
+    plans: z
+      .array(z.enum(PLANS))
+      .min(1)
+      .max(5)
+      .default([...PLANS]),
     start: z.coerce.date(),
     price: z.number().int().min(0).max(1000000),
   }),
@@ -83,6 +100,13 @@ async function releaseOffer(
 ) {
   if (offer.status !== "PENDING") return;
   await tx.offer.update({ where: { id: offer.id }, data: { status } });
+  const otherHolds = await tx.offer.count({
+    where: { slotId: offer.slotId, status: "PENDING" },
+  });
+  const activeBatch = await tx.notificationBatch.count({
+    where: { slotId: offer.slotId, status: "ACTIVE" },
+  });
+  if (otherHolds || activeBatch) return;
   await tx.slot.updateMany({
     where: { id: offer.slotId, status: "HELD" },
     data: { status: "AVAILABLE" },
@@ -177,6 +201,7 @@ export async function performAction(
     const user = await tx.user.findUnique({ where: { id: userId } });
     if (!user) fail("Please select a demo persona.", 401);
     await expireOffers(tx, now);
+    await advanceBatches(tx, now);
     const staff = (clinicId?: string) => {
       if (
         user.role !== "STAFF" ||
@@ -402,6 +427,93 @@ export async function performAction(
         message = "Invitation sent. The slot is held for 10 minutes.";
         break;
       }
+      case "startBatch": {
+        const slot = await tx.slot.findUnique({
+          where: { id: input.slotId },
+          include: { clinic: true },
+        });
+        if (!slot) fail("Slot not found.", 404);
+        staff(slot.clinicId);
+        const ids = [...input.priorityIds, ...input.generalIds];
+        if (!ids.length || new Set(ids).size !== ids.length)
+          fail("Choose distinct patients for the two groups.", 400);
+        const existing = await tx.notificationBatch.findFirst({
+          where: { slotId: slot.id, status: "ACTIVE" },
+        });
+        if (existing) {
+          if (
+            JSON.stringify(existing.priorityIds) ===
+              JSON.stringify(input.priorityIds) &&
+            JSON.stringify(existing.generalIds) ===
+              JSON.stringify(input.generalIds) &&
+            existing.intervalMinutes === input.intervalMinutes &&
+            existing.reason === input.reason
+          )
+            return { message: "This notification plan is already active." };
+          fail("A notification plan already holds this slot.");
+        }
+        if (slot.status !== "AVAILABLE")
+          fail("Another booking or offer already holds this slot.");
+        const bookings = await tx.booking.findMany({
+          where: { status: "CONFIRMED" },
+          include: { slot: true },
+        });
+        for (const waitlistId of ids) {
+          const w = await tx.waitlist.findUnique({
+            where: { id: waitlistId },
+            include: { booking: { include: { slot: true } } },
+          });
+          if (!w || !eligibility(w, slot, bookings, now))
+            fail("This patient no longer meets the eligibility requirements.");
+          if (
+            await tx.offer.count({
+              where: { slotId: slot.id, waitlistId, status: "DECLINED" },
+            })
+          )
+            fail(
+              "This patient declined this slot. Please choose another candidate.",
+            );
+        }
+        await tx.notificationBatch.create({
+          data: {
+            slotId: slot.id,
+            priorityIds: input.priorityIds,
+            generalIds: input.generalIds,
+            intervalMinutes: input.intervalMinutes,
+            reason: input.reason,
+            actor: user.name,
+          },
+        });
+        await advanceBatches(tx, now);
+        message = "Group notification plan approved and started.";
+        break;
+      }
+      case "cancelBatch": {
+        const batch = await tx.notificationBatch.findUnique({
+          where: { id: input.batchId },
+          include: { slot: true },
+        });
+        if (!batch) fail("Notification plan not found.", 404);
+        staff(batch.slot.clinicId);
+        if (batch.status !== "ACTIVE")
+          return { message: "This notification plan is already inactive." };
+        await tx.notificationBatch.update({
+          where: { id: batch.id },
+          data: { status: "CANCELLED", nextAt: null },
+        });
+        const offers = await tx.offer.findMany({
+          where: { batchId: batch.id, status: "PENDING" },
+        });
+        for (const o of offers) await releaseOffer(tx, o, "REVOKED");
+        await audit(
+          tx,
+          batch.slot.clinicId,
+          user.name,
+          "Group notification plan cancelled",
+        );
+        message = "Notification plan cancelled. The slot is available again.";
+        break;
+      }
       case "respond": {
         patient();
         const o = await tx.offer.findUnique({
@@ -482,8 +594,15 @@ export async function performAction(
           where: { id: o.waitlistId },
           data: { status: "FULFILLED" },
         });
+        await tx.notificationBatch.updateMany({
+          where: { slotId: o.slotId, status: "ACTIVE" },
+          data: { status: "COMPLETED", nextAt: null },
+        });
         const others = await tx.offer.findMany({
-          where: { patientId: user.id, status: "PENDING" },
+          where: {
+            status: "PENDING",
+            OR: [{ patientId: user.id }, { slotId: o.slotId }],
+          },
         });
         for (const other of others) await releaseOffer(tx, other, "REVOKED");
         await tx.notification.create({
@@ -515,13 +634,13 @@ export async function performAction(
       case "createSlot": {
         staff();
         if (input.start <= now) fail("New slots must be in the future.", 400);
-        const end = new Date(+input.start + 1800000);
+        const end = new Date(+input.start + input.durationMinutes * 60000);
         const conflict = await tx.slot.findFirst({
           where: {
             clinicId: user.clinicId!,
             start: { lt: end },
             end: { gt: input.start },
-            provider: "Dr. Maya Lin",
+            provider: input.provider,
           },
         });
         if (conflict) fail("This provider already has a slot at this time.");
@@ -529,11 +648,11 @@ export async function performAction(
           data: {
             clinicId: user.clinicId!,
             service: input.service,
-            provider: "Dr. Maya Lin",
+            provider: input.provider,
             start: input.start,
             end,
             price: input.price,
-            plans: [...PLANS],
+            plans: input.plans,
           },
         });
         await audit(
@@ -555,6 +674,7 @@ export async function performAction(
         break;
       }
     }
+    await advanceBatches(tx, now);
     if (input.type !== "cancel") {
       if (options.failRefreshMatches)
         throw new Error("Injected match refresh failure");
@@ -583,6 +703,7 @@ export async function getState(user: User | null) {
   return locked(async (tx) => {
     const now = new Date();
     await expireOffers(tx, now);
+    await advanceBatches(tx, now);
     await refreshMatches(tx, now);
     const clinics = await tx.clinic.findMany({ orderBy: { name: "asc" } });
     const slots = await tx.slot.findMany({
@@ -608,6 +729,7 @@ export async function getState(user: User | null) {
         offers: [],
         notifications: [],
         candidates: [],
+        batches: [],
         activity: [],
       };
     const staff = user.role === "STAFF";
@@ -702,7 +824,22 @@ export async function getState(user: User | null) {
       offers,
       notifications,
       candidates,
+      batches: staff
+        ? await tx.notificationBatch.findMany({
+            where: { slot: { clinicId: user.clinicId! } },
+            orderBy: { createdAt: "desc" },
+            take: 50,
+          })
+        : [],
       activity,
     };
+  });
+}
+
+export async function maintainNotifications(at?: Date) {
+  return locked(async (tx) => {
+    const now = at ?? new Date();
+    await expireOffers(tx, now);
+    await advanceBatches(tx, now);
   });
 }

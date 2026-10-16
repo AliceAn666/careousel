@@ -1,20 +1,23 @@
 "use client";
+import { useI18n } from "./language-provider";
 import { createContext, useContext, useEffect, useRef } from "react";
 import { CalendarDays, X } from "lucide-react";
 export const FeedbackContext = createContext("");
 export function Status({ value }: { value: string }) {
+  const { t } = useI18n();
   return (
     <span className={`status ${value.toLowerCase()}`}>
-      {value.replaceAll("_", " ").toLowerCase()}
+      {t(value.replaceAll("_", " ").toLowerCase())}
     </span>
   );
 }
 export function Empty({ title, body }: { title: string; body: string }) {
+  const { t } = useI18n();
   return (
     <div className="empty">
       <CalendarDays size={32} />
-      <h3>{title}</h3>
-      <p>{body}</p>
+      <h3>{t(title)}</h3>
+      <p>{t(body)}</p>
     </div>
   );
 }
@@ -27,6 +30,7 @@ export function Modal({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const { t } = useI18n();
   const ref = useRef<HTMLDialogElement>(null);
   const feedback = useContext(FeedbackContext);
   useEffect(() => {
@@ -36,7 +40,7 @@ export function Modal({
   }, []);
   return (
     <dialog
-      aria-label={title}
+      aria-label={t(title)}
       ref={ref}
       onCancel={onClose}
       onClick={(e) => {
@@ -44,11 +48,11 @@ export function Modal({
       }}
     >
       <div className="modal-heading">
-        <h2>{title}</h2>
+        <h2>{t(title)}</h2>
         <button
           className="icon-button"
           onClick={onClose}
-          aria-label="Close dialog"
+          aria-label={t("Close dialog")}
         >
           <X />
         </button>
