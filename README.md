@@ -2,6 +2,16 @@
 
 Better care, sooner. A functional synthetic cross-clinic appointment and waitlist prototype built from scratch. No previous HTML/CSS/JavaScript frontend is used.
 
+## Open in GitHub Codespaces
+
+Select the `feat/batch-notifications-bilingual` branch on GitHub, then **Code → Codespaces → Create codespace**. In the repository terminal run:
+
+```sh
+bash scripts/setup-demo.sh && npm run dev
+```
+
+Then open **Ports → 3000 → Open in Browser**. The setup helper requires Node.js 22.12+ and Docker Compose (available in the standard Codespaces environment); it installs locked dependencies, generates a local session secret only when `.env` is absent, starts PostgreSQL, applies migrations and initializes only an empty local synthetic database. It preserves existing bookings. Run setup before starting the app, never while servers/tests are running. Language can be switched using **English / 中文** in the header.
+
 ## Run locally
 
 Requirements: Node.js 22.12+ (Node 24 tested), npm, Docker with Compose. Ports 3000 and 5432 should be available.
