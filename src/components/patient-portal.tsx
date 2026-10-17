@@ -226,7 +226,7 @@ export function SearchCare({
           </label>
         )}
         <p className="muted">
-          We'll highlight clinics where your demo coverage doesn't apply. All
+          We will highlight clinics where your demo coverage does not apply. All
           clinics remain bookable; you may need to pay the listed self-pay price.
           Plan benefits are simulated, not verified.
         </p>
