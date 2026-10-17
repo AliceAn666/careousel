@@ -2,7 +2,7 @@
 
 ## Current authorization
 
-The user explicitly approved application implementation on 2026-10-16, including dependencies, a synthetic demo database, local execution, testing, a dedicated branch and a review PR. Start from scratch; do not restore or reuse deleted `index.html`, `style.css`, or `app.js`. Public deployment remains unauthorized. Preserve teammate changes and document implementation decisions.
+The user now owns all development with Codex. Phase 1 is authorized on `feat/final-integration` from latest main: repair baseline CI and unsafe demo resets, preserve existing functionality, test with an isolated database and create a review PR targeting main. Do not rebuild, assign tasks to teammates, merge optional branches yet, push to main, reset/reseed the shared demo database or deploy publicly. Preserve every existing dirty worktree. See `docs/final-integration.md` for inspected refs, CI evidence and subsequent integration gates.
 
 ## Read first
 
@@ -38,6 +38,7 @@ The PRD state model is authoritative. All booking, cancellation, approval, expir
 - A suggestion does not reserve capacity. Staff approval precedes a patient offer. No automatic clinical urgency inference or confirmation.
 - Explicitly handle withdrawal, preference edits, stale offers, cancellation of linked bookings, decline, expiration, and release of the replaced slot.
 - Never rely on polling, browser timers or an always-running worker to preserve correctness.
+- Home navigation, refresh, login, registration and persona switching must never reseed shared data. Reset is a separate signed-staff, DEMO_MODE-only action requiring literal RESET confirmation. Test independent patient/staff browser sessions.
 
 ## Demo security and data
 
@@ -59,13 +60,9 @@ Available scripts: `lint`, `typecheck`, `test`, `test:integration`, `test:e2e`, 
 - Do not add tests that merely mirror markup or implementation. Documentation-only changes require consistency review, not installing/running the application.
 - Report what ran, results and limitations accurately; never mark unexecuted checks passed.
 
-## Five-person GitHub workflow
+## Independent development and GitHub workflow
 
-Use short-lived branches such as `feat/patient-search`, `feat/offer-service`, `fix/booking-conflict`, `docs/demo-guide`. Do not push directly to main. Prefer small PRs with one reviewer, a clear behavior change, linked task/acceptance criteria and validation evidence. Proposed branch protection/CI configuration requires repository permissions and is a later task.
-
-Assign one schema/migration integrator (Member 1 by default). Agree domain contracts before parallel feature work; coordinate edits to schema, lockfile, shared services and configuration. Merge foundational PRs first and regularly update feature branches. Never commit generated databases, credentials or build output. Review dependency licenses and record attribution requirements.
-
-Do not spawn agents just because the team has five members; use delegated agents only when explicitly authorized by the user or applicable instructions.
+The user and Codex are the sole owners. Earlier five-person task assignments are superseded. Do not ask the user to contact teammates or spawn agents. Use short-lived feature/fix branches and review PRs; no direct main push or automatic merge. Keep migration/API changes coordinated within each small PR. Record test evidence and limitations. No reset, reseed or migration of the shared database without separate explicit authorization; preserve applied migration checksums and use additive reviewed changes.
 
 ## Completion reporting
 

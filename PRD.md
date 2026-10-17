@@ -218,3 +218,7 @@ Approval of planning should resolve or accept the proposed defaults; implementat
 - Models consolidate PatientProfile/StaffMembership into seeded User records and service/insurance compatibility into Slot fields; no production credential/account enrollment is implied. Visits are 30 minutes and all seeded clinics use America/Los_Angeles.
 - D02/D03/D10 remain unresolved: actual deadline, hosting/budget/credentials, and student names/availability. Public deployment, real insurance/payment, EHR integrations and clinical triage remain out of scope.
 - Remaining acceptance coverage, fixture variants and release rehearsal must be reported honestly in VALIDATION.md; a working prototype does not establish production readiness or full release-gate completion.
+
+## Final integration baseline update
+
+Phase 1 starts from main bbc753f after merged PR #7. Preserve intentional intake gate, calendar search and combined appointments/waitlists. Ordinary home navigation, refresh, login and persona selection never reset data. Reset is an explicit staff-authorized demo-only action with confirmation. The waitlist form must allow selecting an owned confirmed same-service original booking; joining never cancels it, and replacement remains atomic. Separate patient/staff browsers share persistent state with independent sessions. Proposal-alignment PR #5 remains unmerged; its requirements and gaps are assessed in docs/final-integration.md, not claimed implemented. Ownership is the user with Codex exclusively.

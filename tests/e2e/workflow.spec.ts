@@ -13,15 +13,33 @@ async function reset(request: import("@playwright/test").APIRequestContext) {
 test.beforeEach(async ({ request }) => {
   await reset(request);
 });
+
+async function completeIntake(page: import("@playwright/test").Page) {
+  await expect(
+    page.getByRole("button", { name: "My appointments", exact: true }),
+  ).toBeDisabled();
+  await page.getByLabel("Skin problem", { exact: true }).check();
+  await page.getByRole("button", { name: "Submit questionnaire" }).click();
+  await page.getByRole("button", { name: "Continue to find care" }).click();
+  await expect(
+    page.getByRole("button", { name: "My appointments", exact: true }),
+  ).toBeEnabled();
+}
 test("complete patient → cancellation → staff approval → accepted replacement", async ({
   page,
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Continue as Avery" }).click();
+  await completeIntake(page);
   await page
     .getByRole("button", { name: "My appointments", exact: true })
     .click();
-  await page.getByRole("button", { name: "Find an earlier time" }).click();
+  await page
+    .getByRole("button", { name: "Join a waitlist", exact: true })
+    .click();
+  await page
+    .getByLabel("Existing appointment to replace (optional)")
+    .selectOption("avery-original");
   await page
     .getByRole("button", { name: "Join waitlist", exact: true })
     .click();
@@ -74,30 +92,36 @@ test("search filters, detail review, direct booking and mobile layout", async ({
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Continue as Avery" }).click();
-  const appointmentCards = page.locator(".appointment-card");
-  await expect(appointmentCards.first()).toBeVisible();
-  const defaultCardCount = await appointmentCards.count();
-  expect(defaultCardCount).toBeGreaterThan(0);
+  await completeIntake(page);
+  const openings = page.locator(".cal-pop li button[data-slot-id]");
+  await expect(
+    page.getByRole("region", { name: "Appointment calendar" }),
+  ).toBeVisible();
+  const baseline = await openings.count();
+  expect(baseline).toBeGreaterThan(0);
   await page
     .getByLabel("Specialty", { exact: true })
     .selectOption("Cardiology");
   await page.getByLabel("Location", { exact: true }).selectOption("Oakland");
   await page.getByLabel("Maximum cost ($)").fill("1");
-  await expect(page.getByText("No openings match just yet")).toBeVisible();
+  await expect(
+    page.getByText("No openings match these filters.", { exact: false }),
+  ).toBeVisible();
+  await expect(openings).toHaveCount(baseline);
+  expect(
+    await page.locator(".cal-pop li button[data-slot-id]:not(.dim)").count(),
+  ).toBe(0);
   await page.getByRole("button", { name: "Clear filters" }).click();
-  await expect(appointmentCards).toHaveCount(defaultCardCount);
+  await expect(openings).toHaveCount(baseline);
   await page
     .getByLabel("Insurance", { exact: true })
     .selectOption("Blue Horizon");
-  await expect
-    .poll(() => appointmentCards.count())
-    .toBeLessThan(defaultCardCount);
-  const insuranceCardCount = await appointmentCards.count();
-  expect(insuranceCardCount).toBeGreaterThan(0);
+  const matching = page.locator(".cal-pop li button[data-slot-id]:not(.dim)");
+  await expect.poll(() => matching.count()).toBeGreaterThan(0);
+  expect(await matching.count()).toBeLessThan(baseline);
+  const id = await matching.first().getAttribute("data-slot-id");
   const snapshot = await (await page.request.get("/api/state")).json();
-  const first = snapshot.slots.find((s: { plans: string[] }) =>
-    s.plans.includes("Blue Horizon"),
-  );
+  const first = snapshot.slots.find((slot: { id: string }) => slot.id === id);
   const date = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Los_Angeles",
     year: "numeric",
@@ -105,12 +129,29 @@ test("search filters, detail review, direct booking and mobile layout", async ({
     day: "2-digit",
   }).format(new Date(first.start));
   await page.getByLabel("Appointment date", { exact: true }).fill(date);
-  await expect.poll(() => appointmentCards.count()).toBeGreaterThan(0);
-  const dateCardCount = await appointmentCards.count();
-  expect(dateCardCount).toBeLessThan(insuranceCardCount);
+  await expect.poll(() => matching.count()).toBeGreaterThan(0);
+  for (const slotId of await matching.evaluateAll((nodes) =>
+    nodes.map((n) => n.getAttribute("data-slot-id")),
+  )) {
+    const slot = snapshot.slots.find((s: { id: string }) => s.id === slotId);
+    expect(slot.plans).toContain("Blue Horizon");
+    expect(
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: slot.clinic.timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date(slot.start)),
+    ).toBe(date);
+  }
   await page.getByRole("button", { name: "Clear filters" }).click();
-  await expect(appointmentCards).toHaveCount(defaultCardCount);
-  await page.getByRole("button", { name: "View & book" }).first().click();
+  const chosen = page.locator(`button[data-slot-id="${id}"]`);
+  await chosen
+    .locator("xpath=ancestor::div[contains(@class,'cal-clinic')]")
+    .getByRole("button")
+    .first()
+    .click();
+  await chosen.click();
   await page.getByRole("button", { name: "Confirm appointment" }).click();
   await expect(page.getByRole("status")).toContainText("Appointment confirmed");
   await page.setViewportSize({ width: 375, height: 812 });
@@ -153,6 +194,17 @@ async function prepareInvitation(
 ) {
   const headers = { origin: "http://localhost:3100" };
   await request.post("/api/session", { data: { id: "avery" }, headers });
+  const intake = await request.post("/api/actions", {
+    headers,
+    data: {
+      type: "intake",
+      symptoms: [
+        { area: "skin", pain: 4, duration: "month", worsening: false },
+      ],
+      warningSigns: [],
+    },
+  });
+  expect(intake.ok(), await intake.text()).toBe(true);
   const now = new Date();
   const joined = await request.post("/api/actions", {
     headers,

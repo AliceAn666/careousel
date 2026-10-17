@@ -335,6 +335,7 @@ export function SearchCare({
                               {slots.map((s) => (
                                 <li key={s.id}>
                                   <button
+                                    data-slot-id={s.id}
                                     className={
                                       matches(s) || !filtering ? "" : "dim"
                                     }
@@ -565,7 +566,7 @@ export function WaitlistForm({
           const success = await act({
             type: "waitlist",
             waitlistId: existing?.id,
-            bookingId: booking?.id ?? existing?.bookingId ?? undefined,
+            bookingId: String(f.get("bookingId") || "") || undefined,
             service,
             plan: f.get("plan"),
             city: f.get("city"),
@@ -581,6 +582,30 @@ export function WaitlistForm({
           if (success) onSaved();
         }}
       >
+        <label className="field">
+          Existing appointment to replace (optional)
+          <select
+            name="bookingId"
+            key={service}
+            defaultValue={existing?.bookingId ?? booking?.id ?? ""}
+          >
+            <option value="">No linked appointment</option>
+            {state.bookings
+              .filter(
+                (b) => b.status === "CONFIRMED" && b.slot.service === service,
+              )
+              .map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.slot.clinic.name} · {dateLabel(b.slot.start)}
+                </option>
+              ))}
+          </select>
+          <small>
+            A linked appointment stays confirmed until an earlier replacement
+            succeeds. Unlinked requests do not replace it.
+          </small>
+        </label>
+
         <div className="form-grid">
           <label>
             Specialty

@@ -88,3 +88,28 @@ Work is based on `e063f386e618a43b9606ffa70f4567a4d54c720e`. The uncommitted Cod
 - Database integrity: additive composite foreign keys bind waitlists and offers to the same patient as their linked records. Direct SQL tests verify cross-patient links fail and one-confirmed-booking/one-pending-hold per slot constraints remain enforced.
 - Migration `0002_booking_history_patient_integrity` was applied to both isolated `careousel_test` and the current `careousel` database. Before applying it to `careousel`, read-only preflight found zero cross-patient mismatches; the migration added schema only, without resetting or deleting demo rows.
 - Follow-up checks: `npm run db:generate`, `npm exec -- prisma validate`, 26 unit tests, 27 PostgreSQL integration tests, lint, typecheck, format check and production build passed. The browser E2E suite was not rerun for this server/domain-only follow-up; its previously recorded 5-test result is from the initial prototype validation.
+
+## Final integration Phase 1 — 2026-10-16 (client timezone)
+
+Base: remote main `bbc753f9387fd1ee6472458524c31f908f3ee244`, new branch `feat/final-integration`, independent worktree. Sole development ownership: user with Codex. PR #5/#6 and merged #7 plus all five requested branches were inspected; optional branches were not integrated. Full inventory and migration/API conflicts: `docs/final-integration.md`.
+
+### Failure evidence and fixes
+
+Actual main GitHub Actions run **38984105042**, job **117251439724**: 4 browser failures/1 pass, while lint/typecheck/unit/integration succeeded; build/persistence skipped. Also inspected PR #7 run 38984058637. Reproduced the **same 4 failures/1 pass** using a detached, pristine main worktree and the isolated PostgreSQL database. My appointments was intentionally disabled until intake, card selectors were obsolete after calendar UX, and decline/expiry fixtures omitted required intake. Tests now cover those intended behaviors without bypassing gates or removing booking/rollback/expiry/security assertions.
+
+Real bugs fixed: homepage entry reset all shared rows through an unauthenticated demo reset service; refresh redirected deep links home; the combined page no longer provided a way to link an existing appointment to a waitlist. Persona switching/home are now nondestructive, reset requires current staff session+same origin+DEMO_MODE+literal RESET through one domain action, refresh retains the route, and the form explicitly selects an owned same-service confirmed booking. The production persistence script also now completes synthetic intake before booking.
+
+### Executed checks
+
+- New PostgreSQL 17 container, port **5542**, database **careousel_test**; existing migrations 0001/0002/0003 applied only there. Fixture seeding/reset occurred only in this isolated container. No schema/migration changes were created, and no shared development/demo database was migrated/reset/reseeded.
+- `npm run lint`, `npm run typecheck`: passed.
+- `npm test` and equivalent `npm run test`: **30 unit tests passed**. Repeated names in the request refer to the same script, not distinct test suites.
+- `npm run test:integration`: **34 real PostgreSQL tests passed**, preserving booking/offer concurrency, rollback, patient/clinic ownership, repeated decline, history, eligibility and intake assertions.
+- `npm run test:e2e`: **7 Chromium tests passed**: all 5 adapted original journeys plus independent patient/staff browser-context rescheduling and both reset endpoints' authorization/confirmation/origin checks. Tests assert original→replacement linkage and preserved state after refresh/home/persona entry. Calendar combined filters, plan/date, gray-out, booking and 375px overflow checks remain.
+- `npm run build`: passed.
+- `npm run test:persistence`: **passed**; confirmed booking and signed patient session survived a production-server restart against the isolated PostgreSQL database.
+- Modified-file Prettier checks and `git diff --check`: passed.
+
+Initial local runs also exposed an empty-test-database prerequisite and temporary test-authoring/synchronization errors (duplicate fixture variable; reload before navigation finished); these were corrected before final passing runs. Installed dependencies were copied into an independent dependency directory, with branch-specific Prisma client generation; dependencies/lockfile unchanged. Local Node 24.19.0, PostgreSQL 17 and system Chromium; remote CI used Node 24.21.0. No new external services or credentials are required.
+
+Limitations: Chromium only, no complete accessibility/load/security audit. Registration exists on the inspected optional branch, not main, and is not implemented by this phase. No claim of clinical triage, real insurance checks, live hospital integration, payment processing or production compliance. Existing questionnaire scores remain synthetic administrative hints with FIFO unchanged; clinician-assigned marker and proposal-aligned fairness work remains in the next-stage plan. Remote CI results for this new PR must be distinguished from local results.
