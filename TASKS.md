@@ -162,4 +162,19 @@ Implementation is approved. Cloud deployment, Neon initialization, Vercel and Cl
 - [x] Additive 0009–0010 migrations, source/review immutability, scoped access, audit history and transaction rollback/concurrency protection.
 - [x] Final checks: 68 unit tests, 92 PostgreSQL integration tests, 25 browser tests, lint/typecheck/build/format/diff and production/worker persistence passed; results in VALIDATION.md.
 - [ ] Human review and merge of Part B PR. No automatic merge, public deployment or shared database operation.
-- [ ] After Part B review/merge: Part C external bookings and multiple independent scheduling needs. No Part C coding in this PR.
+- [x] Part B reviewed/merged as PR #25; latest main CI succeeded before Part C development.
+
+
+## Phase 8 Part C — functional independent patient scheduling
+
+- [x] Patient-owned scheduling needs, original/current booking links and unverified external reports; additive migration 0011 with no historical backfill.
+- [x] Separate same-service requests, preferences and explicit approved clinical evidence per need.
+- [x] Scoped atomic replacement, competing acceptance guards, original preservation and manual external cancellation guidance.
+- [x] Optional referral/authorization requirements, saved-plan enforcement and visible incompatibility warnings.
+- [x] Patient/clinic permissions, optimistic versions and immutable per-need history.
+- [x] Patient UI at /needs plus appointment/waitlist/inbox/priority integrations; no symptom gate.
+- [x] Unit, PostgreSQL migration/concurrency/authorization, Chromium and restart persistence coverage added. Executed results are recorded in VALIDATION.md.
+- [ ] Human review and merge of this feature PR; never automatically merge.
+- [ ] Separately authorized shared database rollout/public deployment. No shared database was modified during implementation.
+
+Contracts: docs/patient-needs.md. Application implementation is approved; deployment remains separate.

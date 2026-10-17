@@ -1,7 +1,56 @@
-import type { Booking, Slot, Waitlist } from "@prisma/client";
-export type RequestWithBooking = Waitlist & {
-  booking: (Booking & { slot: Slot }) | null;
-};
+import type {
+  Booking,
+  Slot,
+  Waitlist,
+  Prisma,
+  ExternalAppointment,
+  PatientNeed,
+} from "@prisma/client";
+export type BookingInterval = Pick<Booking, "id" | "patientId" | "status"> &
+  Partial<
+    Pick<Booking, "slotId" | "createdAt" | "replacementId" | "needId">
+  > & { slot: Pick<Slot, "start" | "end"> };
+export type RequestWithBooking = Omit<
+  Waitlist,
+  | "needId"
+  | "externalAppointmentId"
+  | "requiresReferral"
+  | "requiresAuthorization"
+> &
+  Partial<
+    Pick<
+      Waitlist,
+      | "needId"
+      | "externalAppointmentId"
+      | "requiresReferral"
+      | "requiresAuthorization"
+    >
+  > & {
+    booking:
+      (Pick<Booking, "id" | "patientId" | "status"> & { slot: Slot }) | null;
+    patientNeed?: Pick<PatientNeed, "id" | "state" | "currentBookingId"> | null;
+    externalAppointment?: ExternalAppointment | null;
+  };
+export async function schedulingConflicts(
+  tx: Prisma.TransactionClient,
+): Promise<BookingInterval[]> {
+  const bookings = await tx.booking.findMany({
+    where: { status: "CONFIRMED" },
+    include: { slot: true },
+  });
+  const external = await tx.externalAppointment.findMany({
+    where: { reportedConfirmed: true, reportedCancelled: false },
+  });
+  return [
+    ...bookings,
+    ...external.map((e) => ({
+      id: `external:${e.id}`,
+      patientId: e.patientId,
+      status: "CONFIRMED",
+      slot: { start: e.start, end: e.end },
+    })),
+  ];
+}
 export function overlaps(
   a: Pick<Slot, "start" | "end">,
   b: Pick<Slot, "start" | "end">,
@@ -11,13 +60,28 @@ export function overlaps(
 export function eligibility(
   request: RequestWithBooking,
   slot: Slot & { clinic: { city: string; timezone: string } },
-  bookings: (Booking & { slot: Slot })[],
+  bookings: BookingInterval[],
   now = new Date(),
 ): string[] | null {
   if (
     request.status !== "ACTIVE" ||
     slot.start <= now ||
     request.service !== slot.service
+  )
+    return null;
+  if (
+    request.needId &&
+    (!request.patientNeed ||
+      request.patientNeed.state !== "OPEN" ||
+      (request.bookingId &&
+        request.patientNeed.currentBookingId !== request.bookingId))
+  )
+    return null;
+  if (
+    request.externalAppointmentId &&
+    (!request.externalAppointment ||
+      request.externalAppointment.reportedCancelled ||
+      slot.start >= request.externalAppointment.start)
   )
     return null;
   if (request.city && request.city !== slot.clinic.city) return null;
@@ -68,6 +132,7 @@ export function eligibility(
         b.patientId === request.patientId &&
         b.status === "CONFIRMED" &&
         b.id !== request.bookingId &&
+        b.id !== `external:${request.externalAppointmentId}` &&
         overlaps(b.slot, slot),
     )
   )
@@ -81,6 +146,10 @@ export function eligibility(
   if (request.booking)
     reasons.push(
       `${Math.floor((request.booking.slot.start.getTime() - slot.start.getTime()) / 86400000)} days earlier`,
+    );
+  if (request.externalAppointment)
+    reasons.push(
+      "Earlier than patient-reported external date; original remains unverified and externally managed",
     );
   return reasons;
 }

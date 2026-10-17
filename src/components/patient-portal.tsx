@@ -128,7 +128,6 @@ export function SearchCare({
             : s.service === category)) &&
       (!service || s.service === service) &&
       (!city || s.clinic.city === city) &&
-      (!plan || s.plans.includes(plan)) &&
       (!price || s.price <= Number(price) * 100) &&
       (!date || pacificDate(s.start) === date) &&
       (!coveredOnly ||
@@ -376,12 +375,14 @@ export function SearchCare({
                   <strong>{dateLabel(s.start)}</strong> · {s.provider}
                 </p>
                 <p className="muted">
-                  {state.slots.filter(
-                    (slot) =>
-                      slot.clinicId === s.clinicId &&
-                      slot.service === s.service &&
-                      slot.provider === s.provider,
-                  ).length}{" "}
+                  {
+                    state.slots.filter(
+                      (slot) =>
+                        slot.clinicId === s.clinicId &&
+                        slot.service === s.service &&
+                        slot.provider === s.provider,
+                    ).length
+                  }{" "}
                   available appointment{" "}
                   {state.slots.filter(
                     (slot) =>
@@ -397,6 +398,13 @@ export function SearchCare({
                   {money(s.price)} estimated listed price · Fictional plans:{" "}
                   {s.plans.join(", ")}
                 </p>
+                {!s.plans.includes(plan || state.user?.plan || "") && (
+                  <p className="demo-note">
+                    Insurance compatibility warning: the selected or saved plan
+                    is not listed. This clinic remains visible; booking
+                    eligibility is checked separately.
+                  </p>
+                )}
                 {plan && (
                   <CoverageSummary
                     slot={s}
@@ -488,7 +496,10 @@ export function Appointments({
               </div>
               <div className="card-actions">
                 <Status value={b.status} />
-                {b.status === "CONFIRMED" && (
+                {b.needId && (
+                  <Link href="/needs">Manage linked medical need</Link>
+                )}
+                {b.status === "CONFIRMED" && !b.needId && (
                   <button
                     className="secondary"
                     onClick={() => onWaitlist(undefined, b)}
@@ -573,9 +584,16 @@ export function Appointments({
                 <Status value={w.status} />
                 {w.status === "ACTIVE" && (
                   <>
-                    <button className="secondary" onClick={() => onWaitlist(w)}>
-                      Edit preferences
-                    </button>
+                    {w.needId ? (
+                      <Link href="/needs">Manage linked medical need</Link>
+                    ) : (
+                      <button
+                        className="secondary"
+                        onClick={() => onWaitlist(w)}
+                      >
+                        Edit preferences
+                      </button>
+                    )}
                     <button
                       className="text-button"
                       onClick={() => {
@@ -877,6 +895,16 @@ export function Inbox({ state, act }: { state: AppState; act: Action }) {
                         {money(offer.slot.price)} estimated
                       </p>
                       <Status value={offer.status} />
+                      {offer.waitlist.patientNeed && (
+                        <p>Medical need: {offer.waitlist.patientNeed.title}</p>
+                      )}
+                      {offer.waitlist.externalAppointmentId && (
+                        <p>
+                          External original is patient-reported and unverified.
+                          Careousel cannot cancel it; contact the original
+                          clinic yourself.
+                        </p>
+                      )}
                       <p>
                         Referral:{" "}
                         {offer.slot.requiresReferral
@@ -909,8 +937,10 @@ export function Inbox({ state, act }: { state: AppState; act: Action }) {
                       {offer.status === "PENDING" && (
                         <>
                           <p>
-                            Respond by {dateLabel(offer.expiresAt)}. Accepting
-                            replaces your linked original appointment.
+                            Respond by {dateLabel(offer.expiresAt)}.{" "}
+                            {offer.waitlist.externalAppointmentId
+                              ? "Accepting books a new Careousel appointment; the external original remains unchanged."
+                              : "Accepting replaces only the linked original Careousel appointment."}
                           </p>
                           <div className="button-row">
                             <button
@@ -918,7 +948,9 @@ export function Inbox({ state, act }: { state: AppState; act: Action }) {
                               onClick={() => {
                                 if (
                                   confirm(
-                                    "Confirm this earlier appointment and replace your linked original booking?",
+                                    offer.waitlist.externalAppointmentId
+                                      ? "Confirm the new appointment? Your external original will NOT be cancelled. Contact its clinic yourself."
+                                      : "Confirm this earlier appointment and replace only this request's linked original Careousel booking?",
                                   )
                                 )
                                   void act({

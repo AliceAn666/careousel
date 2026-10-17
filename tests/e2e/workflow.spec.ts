@@ -132,10 +132,16 @@ test("search filters, detail review, direct booking and mobile layout", async ({
     .selectOption("Blue Horizon");
   const matching = page.locator(".appointment-results button[data-slot-id]");
   await expect.poll(() => matching.count()).toBeGreaterThan(0);
-  expect(await matching.count()).toBeLessThan(baseline);
-  const id = await matching.first().getAttribute("data-slot-id");
+  // Choosing insurance now warns rather than hiding potentially incompatible care.
+  await expect(matching).toHaveCount(baseline);
+  await expect(
+    page.getByText(/Insurance compatibility warning:/).first(),
+  ).toBeVisible();
   const snapshot = await (await page.request.get("/api/state")).json();
-  const first = snapshot.slots.find((slot: { id: string }) => slot.id === id);
+  const first = snapshot.slots.find((slot: { plans: string[] }) =>
+    slot.plans.includes("Blue Horizon"),
+  );
+  const id = first.id;
   const date = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Los_Angeles",
     year: "numeric",
@@ -148,7 +154,6 @@ test("search filters, detail review, direct booking and mobile layout", async ({
     nodes.map((n) => n.getAttribute("data-slot-id")),
   )) {
     const slot = snapshot.slots.find((s: { id: string }) => s.id === slotId);
-    expect(slot.plans).toContain("Blue Horizon");
     expect(
       new Intl.DateTimeFormat("en-CA", {
         timeZone: slot.clinic.timezone,
