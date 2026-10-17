@@ -295,7 +295,6 @@ Final reconciled results: lint, typecheck, formatting/diff checks passed; **43 u
 
 Additional verification corrections: an intermediate local Vitest invocation discovered recovery snapshots under work/ as duplicate test files; renamed those scratch snapshots, with no test exclusions/config changes, then reran all 70 real integration cases successfully. The health-history browser case now explicitly waits for its route before refreshing. An older account case queried the saved cookie immediately after clicking logout, before the DELETE transaction completed; it now awaits the successful DELETE response and home navigation, then retains the exact stale-token denial assertion. The final full 21-case run passed with these stronger completion checks. No safety assertion was removed.
 
-
 ## Phase 8 Part A — actual isolated verification (October 17, 2026)
 
 Base: CI-verified main `3f36058`, after merged PR16/PR17. Branch: `feat/phase8-clinician-medical-tags`. This section supersedes earlier future/unconnected tag placeholders; it does not change historical validation results. Record import and complete independent per-need scheduling remain PR2/PR3.
@@ -312,6 +311,13 @@ All database checks used a newly created isolated PostgreSQL 17 container on loc
 
 Integration follow-up: main advanced during development to `3a827a6` (PR18–PR20). Merged its existing safe-error diagnostics and Prisma WASM tracing configuration without conflict; no deployment was performed. Final checks were repeated on the combined branch. Formatting-only cleanup also covers the inherited HTTP diagnostics formatting.
 
+## Readable UI typography
+
+Branch feat/readable-typography starts from main b545b544021d26873404dda597aab6a5eda64cf5 (latest main Actions success verified). Changes are limited to global/landing/onboarding styles and documentation: 16px standard body and inputs, approximately 15px labels and 14px supporting copy; relative rem sizing, comfortable line height, responsive filters, wrapped navigation and full-width mobile demo identity selection. Illustration lettering stays separate from operational copy; illustration disclaimers were also enlarged. Existing branding, actions, authorization and scheduling logic remain unchanged.
+
+Final verification: lint passed with one existing anonymous-default-export warning in deployment/cloudflare/worker.js; typecheck passed after regenerating the client matching latest main. Full Chromium E2E **23 passed**, including clinician tags, accounts, insurance, booking, priorities, automated sequences and rescheduling. Final production build passed. Manual browser checks covered home, login, patient search and clinic schedule at 375/768/1280px (12 combinations): body and actual input/select controls measured 16px, no whole-page horizontal overflow, state API successful. Patient text enlargement to 125% also had no horizontal overflow. Final mobile/desktop screenshots inspected; mobile names and clinic navigation remain readable rather than clipped. Changed CSS/docs formatting and whitespace checks passed.
+
+The initial local client/test database predated main's clinician-tag schema; regenerated Prisma and applied existing 0008 only to isolated careousel-search-tests, port 5548, careousel_test, then reran successfully. No shared database connection/reset/reseed/migration and no migration/schema source changes. Unit/PostgreSQL integration/persistence suites were not rerun for this stylesheet-only change; full browser regression and production compilation were run. Repository-wide format:check still flags the unchanged src/app/api/internal/notifications/github/route.ts from main; it was not reformatted as unrelated security code. No warnings/assertions were suppressed, public deployment or automatic merge performed.
 
 ## Phase 8 Part B — actual isolated verification (October 17, 2026)
 
@@ -325,3 +331,11 @@ Started only after PR21 merged and main `429cee0` [CI 39022984937](https://githu
 - No live model, hospital, cloud database or deployment was contacted. Optional local AI adapter request/validation was tested with mocked loopback responses; normal browser extraction used deterministic fallback. English synthetic samples and canonical service instructions only; no full FHIR-profile certification or real clinical extraction quality claim.
 
 All database checks used a **new isolated PostgreSQL 17 container on port 5550**, database `careousel_test`, with a sentinel unused application URL and explicit test URL guards. No existing Codespaces/cloud/shared demo database was accessed/migrated/reset/reseeded. The GitHub notification hook received formatting-only cleanup to repair an inherited format-check failure; no authentication, scheduler or deployment behavior changed. Existing pg-client deprecation warnings do not fail checks. See [contracts, retention and limitations](docs/medical-record-import.md).
+
+### PR #26 conflict resolution against current main
+
+Merged main fba373e into feat/readable-typography without rewriting history. Resolved the two append conflicts by retaining both typography and appointment-choice CSS blocks (including their independent closing braces), and both typography/Phase 8 validation sections. Preserved main's registration feedback, selectable appointment dates, slower background refresh and synthetic record-import functionality. New date choices use the same readable 1rem/44px controls; registration error/hint text is aligned with the typography scale. No application-logic or schema/migration source changes against this main.
+
+Final isolated verification: lint passed with the inherited Cloudflare default-export warning; typecheck passed; **68 unit / 92 PostgreSQL integration / 26 Chromium E2E** passed; production build passed; production/independent-worker persistence passed, including record consent/FHIR archive/review/revocation, medical tags/needs/history, bookings/sessions/priorities and overdue P2 recovery. Existing main migrations 0009/0010 were applied only to careousel-search-tests, port 5548, careousel_test. Shared database untouched; no new migrations, automatic main merge or deployment commands.
+
+Changed-file formatting and whitespace checks passed. Repository-wide format:check reports five unchanged main files (account-access.tsx, careousel-app.tsx, patient-portal.tsx, scheduling.ts and accounts.spec.ts); they are identical to origin/main and were not reformatted as part of this scoped conflict fix. No test assertions or warnings were suppressed.
