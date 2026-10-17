@@ -119,6 +119,45 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
       },
     });
   }
+  // Complete, non-realistic demo availability for every clinic and service.
+  // Each clinic has multiple distinct dates and daytime choices per service.
+  // Stable synthetic IDs make repeated resets deterministic and easy to inspect.
+  const doctors = [
+    "Dr. Maya Lin",
+    "Dr. Noah Reed",
+    "Dr. Elena Cruz",
+    "Dr. Priya Shah",
+    "Dr. Ethan Brooks",
+    "Dr. Sofia Reyes",
+  ];
+  const demoSlots: Prisma.SlotCreateManyInput[] = [];
+  for (let clinicIndex = 0; clinicIndex < clinics.length; clinicIndex++) {
+    for (let serviceIndex = 0; serviceIndex < SERVICES.length; serviceIndex++) {
+      const group = (clinicIndex + serviceIndex) % 3;
+      const plans =
+        group === 0
+          ? ["Blue Horizon", "Aster Health", "Self-pay"]
+          : group === 1
+            ? ["Aster Health", "United Demo", "Self-pay"]
+            : ["Pacific Care", "Blue Horizon", "Self-pay"];
+      for (let day = 0; day < 2; day++)
+        for (let time = 0; time < 3; time++) {
+          const start = date(3 + day * 7, 17 + time * 2);
+          demoSlots.push({
+            id: `demo-open-${clinics[clinicIndex][0]}-${serviceIndex}-${day}-${time}`,
+            clinicId: clinics[clinicIndex][0],
+            service: SERVICES[serviceIndex],
+            provider: doctors[serviceIndex],
+            start,
+            end: new Date(+start + 30 * 60000),
+            price: 8500 + serviceIndex * 1300 + clinicIndex * 900,
+            plans,
+            status: "AVAILABLE",
+          });
+        }
+    }
+  }
+  await tx.slot.createMany({ data: demoSlots });
   for (const [id, clinicId, days] of [
     ["later", "harbor", 28],
     ["earlier", "cedar", 7],
