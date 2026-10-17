@@ -22,7 +22,7 @@ import {
 } from "../../lib/config";
 import { DURATIONS, SYMPTOM_AREAS, WARNING_SIGNS } from "../../lib/priority";
 import { PRIORITY_LEVELS } from "../../lib/waitlist-priority";
-import { demoCoverage } from "../../lib/demo-coverage";
+import { demoClinicAccepts, demoCoverage } from "../../lib/demo-coverage";
 import { priorityInclude, priorityRequestScope } from "./waitlist-priority";
 import { ensureStaffAccess } from "../auth/access";
 import { seedData } from "../../../prisma/seed-data";
@@ -741,7 +741,10 @@ export async function performAction(
             "This invitation is no longer active. Your original appointment is unchanged.",
           );
         if (input.accept) {
-          if (!o.slot.plans.includes(user.plan))
+          if (
+            user.plan !== "Self-pay" &&
+            !demoClinicAccepts(o.slot.clinicId, user.plan, "PPO", o.slot.plans)
+          )
             fail(
               "Your saved insurance plan is not accepted. Your original appointment is unchanged.",
             );

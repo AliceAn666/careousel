@@ -1,3 +1,4 @@
+import { demoClinicAccepts } from "../../lib/demo-coverage";
 import type {
   Booking,
   Slot,
@@ -87,7 +88,11 @@ export function eligibility(
   if (request.city && request.city !== slot.clinic.city) return null;
   if (request.clinicIds.length && !request.clinicIds.includes(slot.clinicId))
     return null;
-  if (!slot.plans.includes(request.plan) || slot.price > request.maxPrice)
+  if (
+    (request.plan !== "Self-pay" &&
+      !demoClinicAccepts(slot.clinicId, request.plan, "PPO", slot.plans)) ||
+    slot.price > request.maxPrice
+  )
     return null;
   if (slot.start < request.earliest || slot.end > request.latest) return null;
   const parts = new Intl.DateTimeFormat("en-US", {
