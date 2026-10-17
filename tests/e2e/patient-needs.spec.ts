@@ -371,10 +371,27 @@ test("incompatible clinic stays visible with a warning while booking remains pro
   const response = page.waitForResponse(
     (r) => r.url().endsWith("/api/actions") && r.request().method() === "POST",
   );
-  await card.getByRole("button", { name: "Book for this need" }).click();
+  const incompatible = card
+    .locator(".card")
+    .filter({ hasText: "Insurance plan not listed — confirm coverage" });
+  await incompatible
+    .getByRole("button", { name: "Book for this need" })
+    .click();
   expect((await response).status()).toBe(409);
   expect(
     await db.booking.count({ where: { slotId: "incompatible-need-opening" } }),
   ).toBe(0);
+  await incompatible
+    .getByRole("checkbox", {
+      name: /I acknowledge the full listed self-pay demo price/,
+    })
+    .check();
+  await incompatible
+    .getByRole("button", { name: "Book for this need" })
+    .click();
+  await expect(card).toContainText("SECURED");
+  expect(
+    await db.booking.count({ where: { slotId: "incompatible-need-opening" } }),
+  ).toBe(1);
   await db.$disconnect();
 });

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { patientNeedsDashboard } from "@/server/services/patient-needs";
 import { needPreferences } from "@/lib/patient-needs";
+import { demoCoverage } from "@/lib/demo-coverage";
 import type { Action } from "@/lib/types";
 import { SERVICES, dateLabel, money } from "@/lib/config";
 type Serialized<T> = T extends Date
@@ -692,8 +693,11 @@ export function PatientNeeds({ act }: { act: Action }) {
                     .filter((s) => s.service === need.service)
                     .map((s) => {
                       const p = needPreferences.parse(need.preferences);
+                      const selfPay =
+                        data.plan === "Self-pay" ||
+                        demoCoverage(s, data.plan, "PPO").estimate === null;
                       const warnings = [
-                        ...(!s.plans.includes(data.plan)
+                        ...(selfPay
                           ? ["Insurance plan not listed — confirm coverage"]
                           : []),
                         ...(s.requiresReferral || need.requiresReferral
@@ -722,19 +726,37 @@ export function PatientNeeds({ act }: { act: Action }) {
                               {w}
                             </p>
                           ))}
-                          <button
-                            disabled={busy}
-                            onClick={() =>
+                          <form
+                            onSubmit={(event) => {
+                              event.preventDefault();
+                              const form = new FormData(event.currentTarget);
                               void perform({
                                 type: "book",
                                 slotId: s.id,
                                 needId: need.id,
                                 expectedNeedVersion: need.version,
-                              })
-                            }
+                                insuranceProvider: data.plan,
+                                planType: "PPO",
+                                selfPayAcknowledged: form.has(
+                                  "selfPayAcknowledged",
+                                ),
+                              });
+                            }}
                           >
-                            Book for this need
-                          </button>
+                            {selfPay && (
+                              <label>
+                                <input
+                                  type="checkbox"
+                                  name="selfPayAcknowledged"
+                                />
+                                I acknowledge the full listed self-pay demo
+                                price of {money(s.price)} for this need. No
+                                payment is collected; insurance benefits are
+                                unverified.
+                              </label>
+                            )}
+                            <button disabled={busy}>Book for this need</button>
+                          </form>
                         </div>
                       );
                     })}

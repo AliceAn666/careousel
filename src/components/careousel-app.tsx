@@ -29,8 +29,10 @@ import {
   money,
   pacificDate,
   timeLabel,
+  PLANS,
   VISIT_TYPES,
 } from "@/lib/config";
+import { demoCoverage } from "@/lib/demo-coverage";
 import { request } from "@/lib/api";
 import { FeedbackContext, Modal } from "./ui";
 import {
@@ -269,8 +271,7 @@ export function CareouselApp() {
         .filter(
           (slot) =>
             slot.clinicId === detail.clinicId &&
-            slot.service === detail.service &&
-            slot.provider === detail.provider,
+            slot.service === detail.service,
         )
         .sort(
           (a, b) =>
@@ -281,6 +282,13 @@ export function CareouselApp() {
     ...new Set(appointmentChoices.map((slot) => pacificDate(slot.start))),
   ];
   const selectedDay = detail ? pacificDate(detail.start) : "";
+  const appointmentInsurer = coverage.provider || state.user?.plan || "";
+  const selectedBenefit = detail
+    ? demoCoverage(detail, appointmentInsurer, coverage.planType)
+    : null;
+  const needsSelfPay =
+    appointmentInsurer === "Self-pay" ||
+    (selectedBenefit !== null && selectedBenefit.estimate === null);
   const nav = staff ? navClinic : navPatient;
   const heading =
     path === "/waitlists" || path === "/earlier"
@@ -584,7 +592,7 @@ export function CareouselApp() {
               <p className="muted">
                 {appointmentChoices.length} available{" "}
                 {appointmentChoices.length === 1 ? "opening" : "openings"} for
-                this specialist at this clinic. All times are Pacific.
+                this service at this clinic. All times are Pacific.
               </p>
               <div
                 className="booking-choice-group"
@@ -630,7 +638,7 @@ export function CareouselApp() {
                       disabled={busy}
                       onClick={() => setDetail(slot)}
                     >
-                      {timeLabel(slot.start)}
+                      {timeLabel(slot.start)} · {slot.provider}
                     </button>
                   ))}
               </div>
@@ -653,31 +661,85 @@ export function CareouselApp() {
                 <dd>{money(detail.price)}</dd>
               </div>
             </dl>
+            <div className="insurance-selection-fields">
+              <label>
+                Insurance company for this appointment (demo)
+                <select
+                  aria-label="Insurance company for appointment"
+                  value={appointmentInsurer}
+                  onChange={(e) =>
+                    setCoverage((current) => ({
+                      ...current,
+                      provider: e.target.value,
+                    }))
+                  }
+                >
+                  {PLANS.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Plan type
+                <select
+                  aria-label="Appointment insurance plan type"
+                  value={coverage.planType}
+                  disabled={appointmentInsurer === "Self-pay"}
+                  onChange={(e) =>
+                    setCoverage((current) => ({
+                      ...current,
+                      planType: e.target.value as PlanType,
+                    }))
+                  }
+                >
+                  <option value="PPO">PPO · demo</option>
+                  <option value="HMO">HMO · demo</option>
+                </select>
+              </label>
+            </div>
             <CoverageSummary
               slot={detail}
-              provider={coverage.provider}
+              provider={appointmentInsurer}
               planType={coverage.planType}
             />
             <p className="demo-note">
-              Booking uses your saved persona plan, {user.plan}. PPO/HMO search
-              scenarios do not change that plan or verify coverage. Demo
-              insurance compatibility:{" "}
-              {detail.plans.includes(user.plan)
-                ? `${user.plan} accepted`
-                : "Plan not accepted"}
-              . No payment is collected.
+              Your saved demo profile lists {user.plan}. This booking uses the
+              insurer selected above for fictional comparisons; coverage and
+              referral requirements have not been verified. Your saved profile
+              is unchanged. No payment will be collected.
             </p>
+            {needsSelfPay && (
+              <p className="insurance-booking-warning" role="status">
+                This demo plan does not cover the selected appointment. You may
+                still continue as self-pay at the full listed price of{" "}
+                <strong>{money(detail.price)}</strong>. No insurance benefit is
+                assumed and no payment will be collected.
+              </p>
+            )}
             <button
               className="primary full"
-              disabled={busy || !detail.plans.includes(user.plan)}
+              disabled={busy}
               onClick={async () => {
-                if (await act({ type: "book", slotId: detail.id })) {
+                if (
+                  await act({
+                    type: "book",
+                    slotId: detail.id,
+                    insuranceProvider: appointmentInsurer,
+                    planType: coverage.planType,
+                    selfPayAcknowledged: needsSelfPay,
+                  })
+                ) {
                   setDetail(null);
                   router.push("/appointments");
                 }
               }}
             >
-              Confirm appointment <ArrowRight size={17} />
+              {needsSelfPay
+                ? `Confirm self-pay appointment · ${money(detail.price)}`
+                : "Confirm appointment"}{" "}
+              <ArrowRight size={17} />
             </button>
           </Modal>
         )}

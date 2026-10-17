@@ -22,6 +22,7 @@ import {
 } from "../../lib/config";
 import { DURATIONS, SYMPTOM_AREAS, WARNING_SIGNS } from "../../lib/priority";
 import { PRIORITY_LEVELS } from "../../lib/waitlist-priority";
+import { demoCoverage } from "../../lib/demo-coverage";
 import { priorityInclude, priorityRequestScope } from "./waitlist-priority";
 import { ensureStaffAccess } from "../auth/access";
 import { seedData } from "../../../prisma/seed-data";
@@ -56,6 +57,9 @@ export const actionSchema = z.discriminatedUnion("type", [
     slotId: id,
     needId: id.optional(),
     expectedNeedVersion: z.number().int().positive().optional(),
+    insuranceProvider: z.enum(PLANS).optional(),
+    planType: z.enum(["PPO", "HMO"]).optional(),
+    selfPayAcknowledged: z.boolean().optional(),
   }),
   z.object({ type: z.literal("cancel"), bookingId: id }),
   z.object({
@@ -376,8 +380,20 @@ export async function performAction(
           fail(
             "This opening requires staff-reviewed referral/authorization clearance through a waitlist invitation.",
           );
-        if (!s.plans.includes(user.plan))
-          fail("Your demo insurance plan is not accepted.");
+        const selectedInsurer = input.insuranceProvider ?? user.plan;
+        const coverage = demoCoverage(
+          s,
+          selectedInsurer,
+          input.planType ?? "PPO",
+        );
+        const selfPay =
+          selectedInsurer === "Self-pay" || coverage.estimate === null;
+        // Incompatible synthetic insurance does not block care: the patient
+        // must explicitly opt into the published self-pay demonstration price.
+        if (selfPay && !input.selfPayAcknowledged)
+          fail(
+            "This demo insurance scenario does not cover the selected opening. Confirm the listed self-pay price to continue.",
+          );
         const booked = await tx.booking.create({
           data: { patientId: user.id, slotId: s.id, needId: need?.id },
         });
@@ -423,10 +439,19 @@ export async function performAction(
         });
         for (const o of pending)
           if (overlaps(s, o.slot)) await releaseOffer(tx, o, "REVOKED");
-        await audit(tx, s.clinicId, user.name, "Appointment booked");
+        await audit(
+          tx,
+          s.clinicId,
+          user.name,
+          selfPay
+            ? "Synthetic appointment booked with explicit self-pay acknowledgment"
+            : "Synthetic appointment booked using fictional insurance comparison",
+        );
         message = external
           ? "Appointment confirmed. Your external appointment remains unchanged; contact its clinic yourself if you want to cancel it."
-          : "Appointment confirmed. You’re all set.";
+          : selfPay
+            ? "Demo appointment confirmed with self-pay acknowledgment. No payment was collected."
+            : "Appointment confirmed. Fictional insurance benefits are unverified.";
         break;
       }
       case "cancel": {

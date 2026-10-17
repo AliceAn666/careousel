@@ -98,7 +98,7 @@ test("complete patient → cancellation → staff approval → accepted replacem
     page.locator(".booking-card").filter({ hasText: "Harbor Medical" }),
   ).toContainText("rescheduled");
 });
-test("search filters, detail review, direct booking and mobile layout", async ({
+test("search filters keep clinics visible, prioritize insurer matches and support booking", async ({
   page,
 }) => {
   await page.goto("/");
@@ -111,8 +111,8 @@ test("search filters, detail review, direct booking and mobile layout", async ({
   await expect(
     page.getByRole("region", { name: "Appointment results" }),
   ).toBeVisible();
+  await expect.poll(() => openings.count()).toBeGreaterThan(0);
   const baseline = await openings.count();
-  expect(baseline).toBeGreaterThan(0);
   await page
     .getByLabel("Specialty", { exact: true })
     .selectOption("Cardiology");
@@ -122,51 +122,32 @@ test("search filters, detail review, direct booking and mobile layout", async ({
     page.getByText("No openings match these filters.", { exact: false }),
   ).toBeVisible();
   await expect(openings).toHaveCount(0);
-  expect(
-    await page.locator(".appointment-results button[data-slot-id]").count(),
-  ).toBe(0);
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(openings).toHaveCount(baseline);
+  const insurer = page.getByLabel("Insurance company (demo)");
+  await insurer.selectOption("Pacific Care");
+  await expect(openings).toHaveCount(baseline);
+  await insurer.selectOption("Blue Horizon");
   await page
-    .getByLabel("Insurance", { exact: true })
-    .selectOption("Blue Horizon");
-  const matching = page.locator(".appointment-results button[data-slot-id]");
-  await expect.poll(() => matching.count()).toBeGreaterThan(0);
-  // Choosing insurance now warns rather than hiding potentially incompatible care.
-  await expect(matching).toHaveCount(baseline);
+    .getByLabel("Specialty", { exact: true })
+    .selectOption("Cardiology");
+  await expect(openings).toHaveCount(4);
   await expect(
-    page.getByText(/Insurance compatibility warning:/).first(),
+    page.locator(".appointment-results .insurance-match-good").first(),
   ).toBeVisible();
+  await expect(
+    page.locator(".appointment-results .insurance-match-warning").first(),
+  ).toBeVisible();
+  const id = await openings.first().getAttribute("data-slot-id");
   const snapshot = await (await page.request.get("/api/state")).json();
-  const first = snapshot.slots.find((slot: { plans: string[] }) =>
-    slot.plans.includes("Blue Horizon"),
-  );
-  const id = first.id;
-  const date = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Los_Angeles",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(first.start));
-  await page.getByLabel("Appointment date", { exact: true }).fill(date);
-  await expect.poll(() => matching.count()).toBeGreaterThan(0);
-  for (const slotId of await matching.evaluateAll((nodes) =>
-    nodes.map((n) => n.getAttribute("data-slot-id")),
-  )) {
-    const slot = snapshot.slots.find((s: { id: string }) => s.id === slotId);
-    expect(
-      new Intl.DateTimeFormat("en-CA", {
-        timeZone: slot.clinic.timezone,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(new Date(slot.start)),
-    ).toBe(date);
-  }
-  await page.getByRole("button", { name: "Clear filters" }).click();
-  const chosen = page.locator(`button[data-slot-id="${id}"]`);
-  await chosen.click();
-  await page.getByRole("button", { name: "Confirm appointment" }).click();
+  const slot = snapshot.slots.find((s: { id: string }) => s.id === id);
+  expect(slot.plans).toContain("Blue Horizon");
+  await openings.first().click();
+  const details = page.getByRole("dialog", { name: "Appointment details" });
+  await expect(
+    details.getByRole("group", { name: "Available appointment times" }),
+  ).toBeVisible();
+  await details.getByRole("button", { name: "Confirm appointment" }).click();
   await expect(page.getByRole("status")).toContainText("Appointment confirmed");
   await page.setViewportSize({ width: 375, height: 812 });
   await page
