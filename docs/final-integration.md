@@ -73,3 +73,7 @@ Approved same-clinic evidence is read-only in priority review; it does not mutat
 scheduling decisions or P1–P4. Import/search/extraction and independent per-need
 scheduling links remain PR2/PR3. Existing/cloud databases and deployment are
 outside this PR’s execution authorization.
+
+## Phase 8 Part B integration
+
+See [medical-record-import.md](medical-record-import.md): new synthetic imports and pending extraction suggestions are private until clinician review, and only actively consented approved tags enter scheduling evidence. Consent revocation retires import-derived tags while retaining private audit/source history and preserving existing bookings and human priority decisions. Part C remains gated on Part B review/merge.

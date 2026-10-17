@@ -2,7 +2,10 @@ import { Prisma, type User } from "@prisma/client";
 import { medicalTagAction } from "../../lib/medical-tags";
 import { ensureStaffAccess } from "../auth/access";
 import { DomainError, locked } from "./scheduling";
-async function actor(tx: Prisma.TransactionClient, userId: string) {
+export async function medicalActor(
+  tx: Prisma.TransactionClient,
+  userId: string,
+) {
   const user = await tx.user.findUnique({ where: { id: userId } });
   if (!user) throw new DomainError("Login required.", 401);
   if (user.role === "STAFF") await ensureStaffAccess(tx, user);
@@ -10,7 +13,10 @@ async function actor(tx: Prisma.TransactionClient, userId: string) {
     throw new DomainError("Access denied.", 403);
   return user;
 }
-async function canAuthor(tx: Prisma.TransactionClient, user: User) {
+export async function canAuthorMedicalTags(
+  tx: Prisma.TransactionClient,
+  user: User,
+) {
   if (user.role !== "STAFF") return false;
   const account = await tx.account.findUnique({
     where: { userId: user.id },
@@ -22,13 +28,14 @@ async function canAuthor(tx: Prisma.TransactionClient, user: User) {
 }
 export async function medicalTagsDashboard(userId: string) {
   return locked(async (tx) => {
-    const user = await actor(tx, userId),
-      author = await canAuthor(tx, user);
+    const user = await medicalActor(tx, userId),
+      author = await canAuthorMedicalTags(tx, user);
     const staff = user.role === "STAFF";
     const tags = await tx.medicalTag.findMany({
       where: {
         ...(staff ? { clinicId: user.clinicId! } : { patientId: user.id }),
         ...(!author ? { state: "APPROVED" } : {}),
+        OR: [{ sourceImportId: null }, { sourceImport: { state: "ACTIVE" } }],
       },
       include: {
         need: true,
@@ -99,6 +106,8 @@ export async function medicalTagsDashboard(userId: string) {
               reviewedById: t.reviewedById,
               reviewedAt: t.reviewedAt,
               sourceBookingId: t.sourceBookingId,
+              sourceType: t.sourceType,
+              sourceImportId: t.sourceImportId,
               clinicId: t.clinicId,
               state: t.state,
               version: t.version,
@@ -111,8 +120,8 @@ export async function medicalTagsDashboard(userId: string) {
 export async function mutateMedicalTag(userId: string, raw: unknown) {
   const input = medicalTagAction.parse(raw);
   return locked(async (tx) => {
-    const user = await actor(tx, userId);
-    if (!(await canAuthor(tx, user)))
+    const user = await medicalActor(tx, userId);
+    if (!(await canAuthorMedicalTags(tx, user)))
       throw new DomainError(
         "Explicit clinician author permission required.",
         403,
@@ -190,6 +199,17 @@ export async function mutateMedicalTag(userId: string, raw: unknown) {
         where: { id: input.tagId, clinicId: user.clinicId! },
       });
       if (!existing) throw new DomainError("Medical tag not found.", 404);
+      if (
+        existing.sourceImportId &&
+        !(await tx.medicalRecordImport.findFirst({
+          where: {
+            id: existing.sourceImportId,
+            state: "ACTIVE",
+            clinicId: user.clinicId!,
+          },
+        }))
+      )
+        throw new DomainError("Patient consent has been revoked.", 403);
       if (existing.version !== input.expectedVersion)
         throw new DomainError(
           "Tag changed; refresh before editing or reviewing.",

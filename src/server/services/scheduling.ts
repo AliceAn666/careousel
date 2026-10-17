@@ -1015,6 +1015,10 @@ export async function getState(
           where: {
             clinicId: user.clinicId!,
             state: "APPROVED",
+            OR: [
+              { sourceImportId: null },
+              { sourceImport: { state: "ACTIVE" } },
+            ],
             patientId: { in: scopedPriorityRequests.map((r) => r.patientId) },
           },
           select: {

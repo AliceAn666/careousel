@@ -2,7 +2,7 @@
 
 ## Patient search-first redesign — October 17, 2026
 
-This user-approved UX requirement supersedes all earlier instructions to require first-visit symptom intake or use a monthly clinic-icon calendar for patient search. No symptom questionnaire is shown in normal patient UI, including optional onboarding. No intake-completion gate applies to search, direct booking, waitlist registration, acceptance or guides. Existing Intake/SymptomTag rows and historical API compatibility are retained without deletion, migration or automatic backfill. Clinician-authored tags are implemented in Phase 8 Part A; patient-authorized record import remains separate future work. Do not invent clinical information.
+This user-approved UX requirement supersedes all earlier instructions to require first-visit symptom intake or use a monthly clinic-icon calendar for patient search. No symptom questionnaire is shown in normal patient UI, including optional onboarding. No intake-completion gate applies to search, direct booking, waitlist registration, acceptance or guides. Existing Intake/SymptomTag rows and historical API compatibility are retained without deletion, migration or automatic backfill. Clinician-authored tags are implemented in Phase 8 Part A; patient-authorized synthetic record import and clinician-reviewed extraction are implemented in Part B. Do not invent clinical information.
 
 Patient navigation centers on Book an Appointment, Find an Earlier Appointment, and Manage My Appointments and Waitlists, plus the durable notification inbox. Search includes a service/specialty text field, categories (Vaccinations, Blood Tests, Routine Checkups mapped to Primary care / Routine examination, Specialist Visits), service/location/insurance/date/listed-cost and fictional estimated-patient-cost filters. Only matching labeled appointment cards appear, earliest first; details/booking and waitlist actions remain available. Vaccination, Blood test and Routine examination are supported request service strings, but current synthetic fixtures may have no matching openings; display an honest empty state. Never relabel a specialist appointment as another service. Clinic operational schedules are preserved.
 
@@ -151,3 +151,15 @@ PR #15 merged during development (main f5212eb, successful CI). Preserve its can
 - [ ] PR3: external appointment references, independent scheduling for multiple needs and advanced service eligibility.
 
 Implementation is approved. Cloud deployment, Neon initialization, Vercel and Cloudflare configuration remain separate tasks requiring their own authorization. Validation results for this branch are recorded in docs/medical-tags.md after actual checks.
+
+
+## Phase 8 Part B — authorized synthetic record import
+
+- [x] PR21 merged; verified main 429cee0 CI success before creating feat/phase8-synthetic-record-import.
+- [x] Patient-explicit, clinic-specific synthetic FHIR import for new accounts without existing visits/tags; retry-safe consent grants, revocation and retained private archive.
+- [x] Keyword/PostgreSQL full-text record search, deterministic scheduling evidence extraction and optional validated loopback-only AI with reliable fallback.
+- [x] Functional patient source/provenance view and clinical correction/approval/rejection UI; separate pending suggestions from confirmed Part A tags and human P1–P4 review.
+- [x] Additive 0009–0010 migrations, source/review immutability, scoped access, audit history and transaction rollback/concurrency protection.
+- [x] Final checks: 68 unit tests, 92 PostgreSQL integration tests, 25 browser tests, lint/typecheck/build/format/diff and production/worker persistence passed; results in VALIDATION.md.
+- [ ] Human review and merge of Part B PR. No automatic merge, public deployment or shared database operation.
+- [ ] After Part B review/merge: Part C external bookings and multiple independent scheduling needs. No Part C coding in this PR.

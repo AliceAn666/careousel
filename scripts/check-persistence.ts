@@ -169,6 +169,47 @@ try {
     expectedVersion: 1,
     reason: "Synthetic clinician reviewed",
   });
+  const { mutateMedicalRecords } =
+    await import("../src/server/services/medical-records");
+  const recordPatient = await medicalDb.account.findUniqueOrThrow({
+    where: { username: "persistence.patient" },
+  });
+  const recordImport = await mutateMedicalRecords(recordPatient.userId, {
+    type: "authorizeImport",
+    clinicId: "cedar",
+    source: "CAREOUSEL_SYNTHETIC_FHIR_V1",
+    consent: true,
+    consentVersion: "SYNTHETIC_V1",
+    requestId: crypto.randomUUID(),
+  });
+  await mutateMedicalRecords(recordPatient.userId, {
+    type: "extract",
+    importId: recordImport.importId,
+    mode: "LOCAL_RULES",
+  });
+  const proposed = await medicalDb.importedTagSuggestion.findFirstOrThrow({
+    where: { importId: recordImport.importId },
+  });
+  const reviewedRecord = await mutateMedicalRecords("staff-cedar", {
+    type: "review",
+    suggestionId: proposed.id,
+    expectedVersion: proposed.version,
+    decision: "APPROVE",
+    fields: proposed.fields,
+    reason: "Persistent synthetic source reviewed",
+  });
+  const sourceBefore = JSON.stringify(
+    await medicalDb.importedMedicalRecord.findMany({
+      where: { importId: recordImport.importId },
+      orderBy: { resourceId: "asc" },
+    }),
+  );
+  const suggestionsBefore = JSON.stringify(
+    await medicalDb.importedTagSuggestion.findMany({
+      where: { importId: recordImport.importId },
+      orderBy: { createdAt: "asc" },
+    }),
+  );
   const medicalBefore = JSON.stringify(
     (await medicalTagsDashboard("staff-cedar")).tags,
   );
@@ -196,6 +237,56 @@ try {
   )
     throw new Error(
       "Patient approved clinical information did not survive restart.",
+    );
+  const persistedRecords = await (
+    await fetch(base + "/api/medical-records", {
+      headers: { cookie: accountCookie },
+    })
+  ).json();
+  if (
+    persistedRecords.imports[0]?.state !== "ACTIVE" ||
+    JSON.stringify(persistedRecords.records) !== sourceBefore ||
+    JSON.stringify(persistedRecords.suggestions) !== suggestionsBefore ||
+    !persistedRecords.audits.some(
+      (a: { action: string }) => a.action === "APPROVE",
+    )
+  )
+    throw new Error(
+      "Record consent, FHIR sources, suggestions or clinician review failed production restart.",
+    );
+  await post(
+    "/api/medical-records",
+    { type: "revoke", importId: recordImport.importId, expectedVersion: 1 },
+    accountCookie,
+  );
+  await stop();
+  await start();
+  const archived = await (
+    await fetch(base + "/api/medical-records", {
+      headers: { cookie: accountCookie },
+    })
+  ).json();
+  const revokedClinic = await (
+    await fetch(base + "/api/medical-records", {
+      headers: { cookie: staffCookie },
+    })
+  ).json();
+  const revokedTags = await (
+    await fetch(base + "/api/medical-tags", {
+      headers: { cookie: staffCookie },
+    })
+  ).json();
+  if (
+    archived.imports[0]?.state !== "REVOKED" ||
+    archived.records.length !== 4 ||
+    !archived.audits.some((a: { action: string }) => a.action === "REVOKE") ||
+    revokedClinic.records.length ||
+    revokedTags.tags.some(
+      (tag: { id: string }) => tag.id === reviewedRecord.tagId,
+    )
+  )
+    throw new Error(
+      "Record revocation or clinic isolation did not survive restart.",
     );
   const accountState = await (
     await fetch(base + "/api/state", { headers: { cookie: accountCookie } })
@@ -277,7 +368,7 @@ try {
     );
   await stop();
   console.log(
-    "PASS: medical tags/needs/revision history, booking, account/demo sessions, request priority/history and authorized automatic sequence survived production restart; independent restarted worker sent overdue P2 with no browser/web server running.",
+    "PASS: synthetic record consent/FHIR archive/review/revocation, medical tags/needs/revision history, booking, account/demo sessions, request priority/history and authorized automatic sequence survived production restart; independent restarted worker sent overdue P2 with no browser/web server running.",
   );
 } finally {
   await stop();
