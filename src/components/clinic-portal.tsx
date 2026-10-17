@@ -305,7 +305,8 @@ function LegacyMatches({ state, act }: { state: AppState; act: Action }) {
     if (routed.current) return;
     routed.current = true;
     const linked = new URLSearchParams(window.location.search).get("slotId");
-    if (linked && slots.some((s) => s.id === linked)) setSelected(linked);
+    if (linked && slots.some((s) => s.id === linked))
+      void Promise.resolve().then(() => setSelected(linked));
   }, [slots]);
   const slot =
     slots.find((s) => s.id === selected) ??
