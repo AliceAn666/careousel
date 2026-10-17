@@ -8,10 +8,15 @@ export function apiError(error: unknown) {
     );
   if (error instanceof DomainError)
     return Response.json({ error: error.message }, { status: error.status });
-  console.error(
-    "Careousel operation failed:",
-    error instanceof Error ? error.name : "UnknownError",
-  );
+  const failure = error as { name?: string; code?: string; message?: string } | null;
+  // Structured diagnostics avoid logging credentials, SQL, request bodies, or patient data.
+  console.error("Careousel operation failed:", {
+    name: failure?.name ?? "UnknownError",
+    code: typeof failure?.code === "string" ? failure.code : "unknown",
+    category: failure?.message?.includes("connect") ? "connection" :
+      failure?.message?.includes("timeout") ? "timeout" :
+      failure?.message?.includes("relation") ? "schema" : "other",
+  });
   return Response.json(
     {
       error:
