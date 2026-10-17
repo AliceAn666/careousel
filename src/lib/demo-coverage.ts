@@ -5,8 +5,8 @@ export type PlanType = "PPO" | "HMO";
 const DEMO_NETWORKS: Record<string, readonly string[]> = {
   harbor: ["Blue Horizon", "Aster Health"],
   cedar: ["Blue Horizon", "United Demo"],
-  summit: ["Pacific Care", "United Demo"],
-  willow: ["Aster Health", "Pacific Care"],
+  summit: ["Blue Horizon", "Pacific Care", "United Demo"],
+  willow: ["Blue Horizon", "Aster Health", "Pacific Care"],
 };
 
 export function demoClinicPlans(clinicId: string): string[] {
