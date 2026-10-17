@@ -86,8 +86,6 @@ export function SearchCare({
     price,
     date,
     planType,
-    coveredOnly,
-    patientCost,
   } = preferences;
   const update = (patch: Partial<SearchPreferences>) =>
     setPreferences((current) => ({ ...current, ...patch }));
@@ -357,56 +355,102 @@ export function SearchCare({
             body="Adjust your filters or join a waitlist. Your existing appointment stays protected."
           />
         ) : (
-          results.map((s) => (
-            <article className="card search-result" key={s.id}>
-              <div className="grow">
-                <span className="eyebrow">{s.service}</span>
-                <h3>{s.clinic.name}</h3>
-                <p>
-                  {s.clinic.address}, {s.clinic.city}
-                </p>
-                <p>
-                  <strong>{dateLabel(s.start)}</strong> · {s.provider}
-                </p>
-                <p className="muted">
-                  {state.slots.filter(
-                    (slot) =>
-                      slot.clinicId === s.clinicId &&
-                      slot.service === s.service &&
-                      slot.provider === s.provider,
-                  ).length}{" "}
-                  available appointment{" "}
-                  {state.slots.filter(
-                    (slot) =>
-                      slot.clinicId === s.clinicId &&
-                      slot.service === s.service &&
-                      slot.provider === s.provider,
-                  ).length === 1
-                    ? "time"
-                    : "times"}{" "}
-                  to choose from
-                </p>
-                <p>
-                  {money(s.price)} estimated listed price · Fictional plans:{" "}
-                  {s.plans.join(", ")}
-                </p>
-                {plan && (
-                  <CoverageSummary
-                    slot={s}
-                    provider={plan}
-                    planType={planType}
-                  />
-                )}
-              </div>
-              <button
-                className="primary"
-                data-slot-id={s.id}
-                onClick={() => onDetail(s, { provider: plan, planType })}
+          clinicOptions.map(({ slots, first, compatible }) => {
+            const defaultSlot =
+              (plan
+                ? slots.find(
+                    (slot) => demoCoverage(slot, plan, planType).estimate !== null,
+                  )
+                : undefined) ?? first;
+            return (
+              <article
+                className="card search-result clinic-availability"
+                key={`${first.clinicId}-${first.service}`}
               >
-                View details &amp; book
-              </button>
-            </article>
-          ))
+                <div className="grow">
+                  <span className="eyebrow">{first.service}</span>
+                  <h3>{first.clinic.name}</h3>
+                  <p>{first.clinic.address}, {first.clinic.city}</p>
+                  <p>
+                    {slots.length} available appointment{" "}
+                    {slots.length === 1 ? "time" : "times"} ·{" "}
+                    {[...new Set(slots.map((slot) => slot.provider))].join(", ")}
+                  </p>
+                  {plan && plan !== "Self-pay" && (
+                    <p
+                      className={
+                        compatible > 0
+                          ? "insurance-match insurance-match-good"
+                          : "insurance-match insurance-match-warning"
+                      }
+                    >
+                      {compatible > 0
+                        ? `${compatible} opening(s) with matching fictional ${plan} ${planType} benefits`
+                        : `${plan} ${planType}: out-of-network or uncovered in this demo. Self-pay remains possible.`}
+                    </p>
+                  )}
+                  {plan === "Self-pay" && (
+                    <p className="insurance-match">
+                      Self-pay: full listed price, no insurance benefit applied
+                    </p>
+                  )}
+                  <p className="muted">Available dates and times (Pacific):</p>
+                  <div
+                    className="clinic-time-options"
+                    role="group"
+                    aria-label={`Available times at ${first.clinic.name} for ${first.service}`}
+                  >
+                    {slots.slice(0, 9).map((slot) => {
+                      const accepted =
+                        !plan ||
+                        demoCoverage(slot, plan, planType).estimate !== null;
+                      return (
+                        <button
+                          key={slot.id}
+                          type="button"
+                          className="booking-choice clinic-time-choice"
+                          onClick={() =>
+                            onDetail(slot, {
+                              provider: plan,
+                              planType,
+                            })
+                          }
+                          title={
+                            accepted
+                              ? "View this available appointment"
+                              : "Demo insurance may not apply; self-pay can be selected"
+                          }
+                        >
+                          {dateLabel(slot.start)}
+                          {plan && !accepted && (
+                            <span className="clinic-time-warning"> · Self-pay</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {slots.length > 9 && (
+                    <p className="muted">
+                      +{slots.length - 9} more openings — view all in details.
+                    </p>
+                  )}
+                  <p className="muted">
+                    Listed visit prices from {money(Math.min(...slots.map((slot) => slot.price))}.
+                    Demo insurers are not verified.
+                  </p>
+                </div>
+                <button
+                  className="primary"
+                  data-slot-id={defaultSlot.id}
+                  onClick={() =>
+                    onDetail(defaultSlot, { provider: plan, planType })
+                  }
+                >
+                  View details &amp; book
+                </button>
+              </article>
+            );
+          })
         )}
       </section>
     </>
