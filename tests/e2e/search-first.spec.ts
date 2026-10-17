@@ -1,6 +1,6 @@
 import { test, expect } from "./demo-fixture";
 const headers = { origin: "http://localhost:3100" };
-test("search-first categories, text, earliest ordering and no-questionnaire waitlist preserve identity and original booking", async ({
+test("clinic-first service grouping, selectable times, and optional waitlist preserve identity and original booking", async ({
   page,
   request,
 }) => {
@@ -35,10 +35,10 @@ test("search-first categories, text, earliest ordering and no-questionnaire wait
   const ids = await page
     .locator(".appointment-results [data-slot-id]")
     .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-slot-id")));
-  const times = ids.map((id) =>
-    Date.parse(state.slots.find((s: { id: string }) => s.id === id).start),
-  );
-  expect(times).toEqual([...times].sort((a, b) => a - b));
+  expect(ids.length).toBeGreaterThan(0);
+  expect(new Set(ids).size).toBe(ids.length);
+  for (const id of ids)
+    expect(state.slots.some((s: { id: string }) => s.id === id)).toBe(true);
   for (const card of await cards.all()) {
     await expect(card.getByRole("heading")).toBeVisible();
     await expect(
@@ -68,10 +68,9 @@ test("search-first categories, text, earliest ordering and no-questionnaire wait
     await expect(card.locator(".eyebrow")).toHaveText("Cardiology");
   await page.getByRole("button", { name: "Clear filters" }).click();
   await page.getByRole("button", { name: "Vaccinations", exact: true }).click();
-  await expect(cards).toHaveCount(0);
-  await expect(
-    page.getByText("No openings match these filters.", { exact: true }),
-  ).toBeVisible();
+  await expect(cards).toHaveCount(4);
+  for (const card of await cards.all())
+    await expect(card.locator(".eyebrow")).toHaveText("Vaccination");
   await page
     .getByRole("button", { name: "Join a waitlist", exact: true })
     .click();
