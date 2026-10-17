@@ -78,26 +78,23 @@ export function SearchCare({
     const saved = readSearchPreferences(state.user?.id ?? "guest");
     return {
       ...saved,
-      // Start with the user's saved demo insurer, but permit comparisons.
-      plan:
-        saved.plan ||
-        ((PLANS as readonly string[]).includes(state.user?.plan ?? "")
-          ? (state.user!.plan as SearchPreferences["plan"])
-          : ""),
+      // Insurance company always comes from the signed-in patient's profile.
+      // Ignore stale browser search selections from earlier sessions.
+      plan: (state.user?.plan ?? "") as SearchPreferences["plan"],
     };
   });
-  const { service, city, plan, price, date, planType } = preferences;
+  const { service, city, price, date, planType } = preferences;
+  const plan = state.user?.plan ?? "";
   const update = (patch: Partial<SearchPreferences>) =>
     setPreferences((current) => ({ ...current, ...patch }));
   const setService = (service: SearchPreferences["service"]) =>
     update({ service });
   const setCity = (city: string) => update({ city });
-  const setPlan = (plan: SearchPreferences["plan"]) =>
-    update({ plan, coveredOnly: false, patientCost: "" });
   const setPrice = (price: string) => update({ price });
   const setDate = (date: string) => update({ date });
   useEffect(() => {
-    if (state.user) saveSearchPreferences(state.user.id, preferences);
+    if (state.user)
+      saveSearchPreferences(state.user.id, { ...preferences, plan: state.user.plan as SearchPreferences["plan"] });
   }, [preferences, state.user]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -154,9 +151,7 @@ export function SearchCare({
   const clear = () => {
     setPreferences({
       ...defaultSearchPreferences,
-      plan: (PLANS as readonly string[]).includes(state.user?.plan ?? "")
-        ? (state.user!.plan as SearchPreferences["plan"])
-        : "",
+      plan: (state.user?.plan ?? "") as SearchPreferences["plan"],
     });
     setQuery("");
     setCategory("");
@@ -166,8 +161,8 @@ export function SearchCare({
       <section className="card search-intro" aria-label="Appointment search">
         <h2>Book an appointment</h2>
         <p>
-          Search participating clinics by service. Compatible demo insurance
-          appears first; other clinics remain visible.
+          Search by service and choose an opening directly. Clinics where your
+          insurance may not apply will be labeled; you can still book.
         </p>
         <label className="field">
           Medical service or specialty
@@ -212,52 +207,28 @@ export function SearchCare({
           Find an earlier appointment · Join a waitlist
         </button>
       </section>
-      <section
-        className="card insurance-selection"
-        aria-label="Insurance preferences"
-      >
-        <h3>Which insurance company do you have?</h3>
-        <p>
-          We will show matching clinics first and clearly label other options.
-          These insurers and benefits are fictional. Your saved demo profile
-          currently lists <strong>{state.user?.plan ?? "no insurer"}</strong>;
-          changing this search selection does not update your profile.
-        </p>
-        <div className="insurance-selection-fields">
-          <label>
-            Insurance company (demo)
-            <select
-              aria-label="Insurance company (demo)"
-              value={plan}
-              onChange={(e) =>
-                setPlan(e.target.value as SearchPreferences["plan"])
-              }
-            >
-              <option value="">Compare all insurers</option>
-              {PLANS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Insurance plan type
+      <section className="insurance-account-note" aria-label="Insurance from your account">
+        <span>
+          Your insurance: <strong>{plan || "Not provided"}</strong>
+          <span className="muted"> · from your account</span>
+        </span>
+        {plan && plan !== "Self-pay" && (
+          <label className="account-plan-type">
+            Demo plan type
             <select
               aria-label="Insurance plan type"
               value={planType}
               onChange={(e) => update({ planType: e.target.value as PlanType })}
-              disabled={!plan || plan === "Self-pay"}
             >
-              <option value="PPO">PPO (demo)</option>
-              <option value="HMO">HMO (demo)</option>
+              <option value="PPO">PPO</option>
+              <option value="HMO">HMO</option>
             </select>
           </label>
-        </div>
+        )}
         <p className="muted">
-          Out-of-network clinics remain visible. If your selected demo insurance
-          does not apply, you may choose to acknowledge the displayed self-pay
-          price before confirming an appointment. No payment is collected.
+          We'll highlight clinics where your demo coverage doesn't apply. All
+          clinics remain bookable; you may need to pay the listed self-pay price.
+          Plan benefits are simulated, not verified.
         </p>
       </section>
       <section className="filter-card">
@@ -326,8 +297,7 @@ export function SearchCare({
             </span>
           </h2>
           <p>
-            Demo in-network matches first · other clinics shown with warnings ·
-            Pacific time.
+            Clinic options for your saved insurance · Book any available time · Pacific time.
           </p>
         </div>
         <div className="button-row">
@@ -362,11 +332,17 @@ export function SearchCare({
             body="Adjust your filters or join a waitlist. Your existing appointment stays protected."
           />
         ) : (
-          clinicOptions.map(({ slots, first, compatible }) => {
-            const clinicInNetwork =
+          clinicOptions.map(({ slots, first }) => {
+            const networkAccepted =
               !!plan &&
               plan !== "Self-pay" &&
               demoClinicAccepts(first.clinicId, plan, planType, first.plans);
+            const serviceCoverage =
+              plan && plan !== "Self-pay"
+                ? demoCoverage(first, plan, planType)
+                : null;
+            const needsCoverageWarning =
+              serviceCoverage !== null && serviceCoverage.estimate === null;
             const availableDays = [
               ...new Set(slots.map((slot) => pacificDate(slot.start))),
             ];
@@ -379,25 +355,11 @@ export function SearchCare({
                   <span className="eyebrow">{first.service}</span>
                   <div className="clinic-title-row">
                     <h3>{first.clinic.name}</h3>
-                    {plan && plan !== "Self-pay" && (
-                      <p
-                        className={
-                          clinicInNetwork && compatible > 0
-                            ? "insurance-match insurance-match-good"
-                            : "insurance-match insurance-match-warning"
-                        }
-                      >
-                        {clinicInNetwork
-                          ? compatible > 0
-                            ? `Accepts ${plan} ${planType} · demo network`
-                            : `Accepts ${plan} ${planType} · ${first.service} excluded by this fictional plan`
-                          : `Does not accept ${plan} ${planType} · Self-pay available`}
-                      </p>
-                    )}
-                    {plan === "Self-pay" && (
-                      <p className="insurance-match">
-                        Self-pay: full listed price, no insurance benefit
-                        applied
+                    {needsCoverageWarning && (
+                      <p className="insurance-match insurance-match-warning" role="status">
+                        {networkAccepted
+                          ? `Your ${plan} ${planType} does not cover this service · You can still book (self-pay)`
+                          : `Your ${plan} ${planType} is not accepted at this clinic · You can still book (self-pay)`}
                       </p>
                     )}
                   </div>
