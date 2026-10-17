@@ -137,7 +137,7 @@ export function AccountAccess({
               className={styles.form}
               noValidate
               onChange={(event) => {
-                const target = event.target as HTMLInputElement | HTMLSelectElement;
+                const target = event.target as unknown as HTMLInputElement | HTMLSelectElement;
                 if (target.name) clearEditedError(target.name);
               }}
               onSubmit={async (event) => {
