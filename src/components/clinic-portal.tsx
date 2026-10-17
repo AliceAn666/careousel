@@ -23,17 +23,35 @@ export function ClinicSchedule({
   act: Action;
 }) {
   const [date, setDate] = useState(""),
-    [show, setShow] = useState(false);
-  const visible = state.slots.filter(
-    (s) =>
+    [show, setShow] = useState(false),
+    [detailView, setDetailView] = useState<
+      "confirmed" | "openings" | "matches" | null
+    >(null);
+  const confirmedBookings = state.bookings.filter(
+    (booking) => booking.status === "CONFIRMED",
+  );
+  const availableSlots = state.slots.filter(
+    (slot) => slot.status === "AVAILABLE",
+  );
+  const visible = state.slots.filter((slot) => {
+    const matchesDate =
       !date ||
       new Intl.DateTimeFormat("en-CA", {
-        timeZone: s.clinic.timezone,
+        timeZone: slot.clinic.timezone,
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
-      }).format(new Date(s.start)) === date,
-  );
+      }).format(new Date(slot.start)) === date;
+    if (!matchesDate) return false;
+    if (detailView === "openings") return slot.status === "AVAILABLE";
+    if (detailView === "confirmed")
+      return confirmedBookings.some((booking) => booking.slotId === slot.id);
+    return true;
+  });
+  const toggleDetail = (view: "confirmed" | "openings" | "matches") => {
+    setDetailView((previous) => (previous === view ? null : view));
+    setDate("");
+  };
   return (
     <>
       <div className="insight-row">
