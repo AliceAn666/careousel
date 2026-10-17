@@ -442,8 +442,8 @@ export function Appointments({
         <h2>Historical health information</h2>
         <p>
           Appointments and waitlist needs do not require a symptom
-          questionnaire. Clinician-authored tags and consent-based record
-          imports are planned for Phase 8.
+          questionnaire. Approved clinician tags and consent-based synthetic
+          record imports are available in Health information.
         </p>
         <Link href="/health-information">View saved health information</Link>
       </section>

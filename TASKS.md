@@ -146,9 +146,9 @@ PR #15 merged during development (main f5212eb, successful CI). Preserve its can
 - [x] Functional create/edit/approve/retire clinic UI, audit history, patient health-information view, navigation and guided tours. Editing returns approved content to draft.
 - [x] Preserve search-first no-questionnaire patient UX, staff-approved priorities, eligibility checks, notification intervals and atomic scheduling.
 - [x] Lint/typecheck/build, 51 unit tests, 78 isolated PostgreSQL integration tests, 23 browser tests and production/worker persistence rehearsal passed.
-- [ ] Review and merge Part A PR manually. No automatic merge/deployment or shared database changes.
-- [ ] PR2: patient-authorized synthetic FHIR-compatible record import, local text search/extraction and clinician review.
-- [ ] PR3: external appointment references, independent scheduling for multiple needs and advanced service eligibility.
+- [x] Part A reviewed and merged as PR #21. No automatic merge/deployment or shared database changes.
+- [x] PR2: patient-authorized synthetic FHIR-compatible record import, local text search/extraction and clinician review (PR #25 merged).
+- [x] PR3 implementation: external appointment references, independent scheduling for multiple needs and advanced service eligibility. Current Part C feature PR still requires review.
 
 Implementation is approved. Cloud deployment, Neon initialization, Vercel and Cloudflare configuration remain separate tasks requiring their own authorization. Validation results for this branch are recorded in docs/medical-tags.md after actual checks.
 
@@ -161,7 +161,7 @@ Implementation is approved. Cloud deployment, Neon initialization, Vercel and Cl
 - [x] Functional patient source/provenance view and clinical correction/approval/rejection UI; separate pending suggestions from confirmed Part A tags and human P1–P4 review.
 - [x] Additive 0009–0010 migrations, source/review immutability, scoped access, audit history and transaction rollback/concurrency protection.
 - [x] Final checks: 68 unit tests, 92 PostgreSQL integration tests, 25 browser tests, lint/typecheck/build/format/diff and production/worker persistence passed; results in VALIDATION.md.
-- [ ] Human review and merge of Part B PR. No automatic merge, public deployment or shared database operation.
+- [x] Part B reviewed and merged as PR #25. No automatic merge, public deployment or shared database operation.
 - [x] Part B reviewed/merged as PR #25; latest main CI succeeded before Part C development.
 
 

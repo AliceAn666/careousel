@@ -24,18 +24,16 @@ const appointment = {
   reportedConfirmed: false,
 };
 it("allows symptom-free needs and optional external references without granting verification or priority", () => {
-  const input = {
+  const valid = {
     type: "createNeed",
     title: "Routine blood test",
-    service: "Blood Test",
+    service: "Blood test",
     preferences,
     requiresReferral: false,
     requiresAuthorization: false,
     tagIds: [],
     original: { type: "EXTERNAL", appointment },
   };
-  // Use a configured service, independently of presentation labels.
-  const valid = { ...input, service: "Dermatology" };
   expect(patientNeedAction.safeParse(valid).success).toBe(true);
   for (const extra of [
     { patientId: "other" },

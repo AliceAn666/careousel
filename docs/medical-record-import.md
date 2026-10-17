@@ -67,3 +67,8 @@ Part C (after this PR is reviewed and merged) owns external appointment referenc
 ## Verification
 
 All database verification uses a **new isolated PostgreSQL 17 container**, local port 5550, database `careousel_test`. No existing Codespaces/cloud/shared database is accessed, migrated, reset or reseeded. Observed results: 68 unit tests, 92 PostgreSQL integration tests and 25 Chromium E2E passed; lint/typecheck, production build, format/diff checks and production/worker restart rehearsal passed. Lint retains one existing Cloudflare worker warning. The optional AI request path was mocked; normal demonstration used local rules/fallback. See VALIDATION.md for full coverage and inherited warnings.
+
+
+## Part C integration update
+
+Part B has merged as PR #25. Independent scheduling needs and patient-reported external appointments are now implemented in Part C; see [patient scheduling contracts](patient-needs.md). Earlier scope notes above describe the original PR. Clinical MedicalNeed records remain distinct from patient-owned PatientNeed scheduling contexts. Explicit approved same-service tag links support staff review without assigning priority or clearance.

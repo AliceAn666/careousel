@@ -63,7 +63,8 @@ test("patient guide follows current screens, resumes after refresh, and never ch
   );
   await guide.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page).toHaveURL(/appointments$/);
-  await expect(guide).toContainText("Existing appointment to replace");
+  await expect(guide).toContainText("independent medical need");
+  await expect(guide).toContainText("cannot cancel external appointments");
   await guide.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page).toHaveURL(/notifications$/);
   await guide.getByRole("button", { name: "Finish", exact: true }).click();

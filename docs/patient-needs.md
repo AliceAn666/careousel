@@ -1,6 +1,6 @@
 # Independent patient scheduling needs (Phase 8 Part C)
 
-Implemented from PR #25's merged main `fba373e`; its latest main CI was successful before branching. No deployment or shared database was accessed. Migration **0011_independent_patient_needs** is additive. Applying it outside isolated development/test requires separate authorization.
+Implemented from PR #25's merged main `fba373e`; its latest main CI was successful before branching. During development, main advanced to PR #26 (`ee7e402`); [CI 39025855934](https://github.com/AliceAn666/careousel/actions/runs/39025855934) succeeded and that main was merged into this feature branch, preserving its readable typography. No deployment or shared database was accessed. Migration **0011_independent_patient_needs** is additive. Applying it outside isolated development/test requires separate authorization.
 
 ## Patient journey
 

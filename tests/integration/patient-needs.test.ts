@@ -657,3 +657,53 @@ it("rolls back request withdrawal and preference changes if immutable history ca
     await db.offer.findUnique({ where: { id: pending.id } }),
   ).toMatchObject({ status: "PENDING" });
 });
+it("serializes completion against acceptance and blocks database-level foreign need links", async () => {
+  const a = await need("Completion race", {
+    type: "EXTERNAL",
+    appointment: external("COMPLETE-RACE"),
+  });
+  const b = await need("Unaffected by completion race");
+  await request(b.id);
+  const w = await request(a.id);
+  await slot("completion-race-slot");
+  const pending = await offer(w.id, "completion-race-slot");
+  const current = await db.patientNeed.findUniqueOrThrow({
+    where: { id: a.id },
+  });
+  const attempts = await Promise.allSettled([
+    performAction(
+      "avery",
+      { type: "completeNeed", needId: a.id, expectedVersion: current.version },
+      { now },
+    ),
+    performAction(
+      "avery",
+      { type: "respond", offerId: pending.id, accept: true },
+      { now },
+    ),
+  ]);
+  expect(attempts.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+  const after = await db.patientNeed.findUniqueOrThrow({ where: { id: a.id } });
+  expect(["COMPLETED", "SECURED"]).toContain(after.state);
+  expect(
+    await db.booking.count({ where: { slotId: "completion-race-slot" } }),
+  ).toBe(after.state === "SECURED" ? 1 : 0);
+  expect(
+    await db.waitlist.count({ where: { needId: b.id, status: "ACTIVE" } }),
+  ).toBe(1);
+  await expect(
+    db.patientNeedEvidence.create({
+      data: { needId: a.id, patientId: "patient-1", tagId: "missing" },
+    }),
+  ).rejects.toThrow();
+  await slot("foreign-need-slot", "2030-01-09T18:00:00Z");
+  await expect(
+    db.booking.create({
+      data: {
+        patientId: "patient-1",
+        slotId: "foreign-need-slot",
+        needId: a.id,
+      },
+    }),
+  ).rejects.toThrow();
+});
