@@ -25,11 +25,11 @@ test("staff authorizes once, worker advances P2 without browser activity, patien
     data: { operation: "pause", slotId: "earlier" },
   });
   expect(csrf.status()).toBe(403);
-  await page.goto("/clinic/waitlists");
+  await page.goto("/clinic/waitlists?slotId=earlier&tab=notifications");
   const manager = page.getByRole("region", {
     name: "Automatic group notifications",
   });
-  await manager.getByLabel("Manage opening").selectOption("earlier");
+  await expect(page.getByLabel("Selected opening")).toHaveValue("earlier");
   await manager
     .getByRole("button", { name: "Preview groups and exclusions" })
     .click();

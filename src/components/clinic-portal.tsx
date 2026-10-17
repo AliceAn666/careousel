@@ -1,8 +1,8 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { NotificationManager } from "./notification-manager";
+import { waitlistHref } from "@/lib/clinic-navigation";
 import {
   ArrowDownLeft,
   ArrowRight,
@@ -72,7 +72,10 @@ export function ClinicSchedule({
       <div className="insight-row">
         <button
           type="button"
-          className={"card insight insight-action" + (detailView === "confirmed" ? " insight-active" : "")}
+          className={
+            "card insight insight-action" +
+            (detailView === "confirmed" ? " insight-active" : "")
+          }
           onClick={() => toggleDetail("confirmed")}
           aria-label="View confirmed appointments"
           aria-expanded={detailView === "confirmed"}
@@ -87,7 +90,10 @@ export function ClinicSchedule({
         </button>
         <button
           type="button"
-          className={"card insight insight-action" + (detailView === "openings" ? " insight-active" : "")}
+          className={
+            "card insight insight-action" +
+            (detailView === "openings" ? " insight-active" : "")
+          }
           onClick={() => toggleDetail("openings")}
           aria-label="View available openings"
           aria-expanded={detailView === "openings"}
@@ -102,7 +108,10 @@ export function ClinicSchedule({
         </button>
         <button
           type="button"
-          className={"card insight insight-action" + (detailView === "matches" ? " insight-active" : "")}
+          className={
+            "card insight insight-action" +
+            (detailView === "matches" ? " insight-active" : "")
+          }
           onClick={() => toggleDetail("matches")}
           aria-label="View matched waitlist requests"
           aria-expanded={detailView === "matches"}
@@ -162,7 +171,9 @@ export function ClinicSchedule({
                   <li className="overview-detail-item" key={booking.id}>
                     <div>
                       <strong>{booking.patient.name}</strong>
-                      <p>{booking.slot.service} · {booking.slot.provider}</p>
+                      <p>
+                        {booking.slot.service} · {booking.slot.provider}
+                      </p>
                       <small>{dateLabel(booking.slot.start)}</small>
                     </div>
                     <Status value={booking.status} />
@@ -170,7 +181,10 @@ export function ClinicSchedule({
                 ))}
               </ul>
             ) : (
-              <Empty title="No confirmed appointments" body="Confirmed bookings will appear here." />
+              <Empty
+                title="No confirmed appointments"
+                body="Confirmed bookings will appear here."
+              />
             )
           ) : detailView === "openings" ? (
             availableSlots.length ? (
@@ -178,15 +192,22 @@ export function ClinicSchedule({
                 {availableSlots.map((slot) => (
                   <li className="overview-detail-item" key={slot.id}>
                     <div>
-                      <strong>{slot.service} · {slot.provider}</strong>
-                      <p>{dateLabel(slot.start)} · {money(slot.price)} estimated</p>
+                      <strong>
+                        {slot.service} · {slot.provider}
+                      </strong>
+                      <p>
+                        {dateLabel(slot.start)} · {money(slot.price)} estimated
+                      </p>
                     </div>
                     <Status value={slot.status} />
                   </li>
                 ))}
               </ul>
             ) : (
-              <Empty title="No available openings" body="Create a new opening to make a slot available." />
+              <Empty
+                title="No available openings"
+                body="Create a new opening to make a slot available."
+              />
             )
           ) : (
             <>
@@ -202,18 +223,24 @@ export function ClinicSchedule({
                           <strong>{candidate.name}</strong>
                           <p>
                             {slot ? (
-                              <>{slot.service} · {dateLabel(slot.start)}</>
+                              <>
+                                {slot.service} · {dateLabel(slot.start)}
+                              </>
                             ) : (
                               "Matched waitlist request"
                             )}
                           </p>
                           <small>
-                            {priorityLabel(candidate.priority?.level)} · Staff review / clearance may be required
+                            {priorityLabel(candidate.priority?.level)} · Staff
+                            review / clearance may be required
                           </small>
                         </div>
                         <Link
                           className="secondary overview-review-slot"
-                          href={"/clinic/waitlists?slotId=" + encodeURIComponent(candidate.slotId)}
+                          href={
+                            "/clinic/waitlists?slotId=" +
+                            encodeURIComponent(candidate.slotId)
+                          }
                         >
                           Review this slot
                         </Link>
@@ -222,10 +249,17 @@ export function ClinicSchedule({
                   })}
                 </ul>
               ) : (
-                <Empty title="No matched waitlist requests" body="Matched waitlist candidates will appear here." />
+                <Empty
+                  title="No matched waitlist requests"
+                  body="Matched waitlist candidates will appear here."
+                />
               )}
-              <Link className="secondary overview-review-link" href="/clinic/waitlists">
-                Review waitlist matches <ArrowRight size={17} aria-hidden="true" />
+              <Link
+                className="secondary overview-review-link"
+                href="/clinic/waitlists"
+              >
+                Review waitlist matches{" "}
+                <ArrowRight size={17} aria-hidden="true" />
               </Link>
             </>
           )}
@@ -235,8 +269,10 @@ export function ClinicSchedule({
         <div>
           <h2>Appointment schedule</h2>
           <p>
-            {clinic ? `Showing ${clinic.name} appointments only.` : "Your clinic schedule"}
-            {" "}Waitlist candidates may come from any participating clinic.
+            {clinic
+              ? `Showing ${clinic.name} appointments only.`
+              : "Your clinic schedule"}{" "}
+            Waitlist candidates may come from any participating clinic.
             {detailView === "confirmed"
               ? " Filtered to confirmed appointments."
               : detailView === "openings"
@@ -288,7 +324,9 @@ export function ClinicSchedule({
                   !!priority.level &&
                   (!(s.requiresReferral || request?.requiresReferral) ||
                     priority.referralApproved) &&
-                  (!(s.requiresAuthorization || request?.requiresAuthorization) ||
+                  (!(
+                    s.requiresAuthorization || request?.requiresAuthorization
+                  ) ||
                     priority.authorizationApproved)
                 );
               });
@@ -317,7 +355,12 @@ export function ClinicSchedule({
                               `Cancel ${b.patient.name}’s appointment and release the slot?`,
                             )
                           )
-                            void act({ type: "cancel", bookingId: b.id });
+                            void act({ type: "cancel", bookingId: b.id }).then(
+                              (ok) => {
+                                if (ok)
+                                  router.push(waitlistHref("matches", s.id));
+                              },
+                            );
                         }}
                       >
                         Cancel & release
@@ -330,13 +373,21 @@ export function ClinicSchedule({
                               className="schedule-priority-groups"
                               aria-label={`Priority groups for ${s.service} ${dateLabel(s.start)}`}
                             >
-                              {(["P1", "P2", "P3", "P4"] as const).map((level) => (
-                                <span key={level} className="schedule-priority-count">
-                                  {level}: {reviewed.filter(
-                                    (c) => c.priority?.level === level,
-                                  ).length}
-                                </span>
-                              ))}
+                              {(["P1", "P2", "P3", "P4"] as const).map(
+                                (level) => (
+                                  <span
+                                    key={level}
+                                    className="schedule-priority-count"
+                                  >
+                                    {level}:{" "}
+                                    {
+                                      reviewed.filter(
+                                        (c) => c.priority?.level === level,
+                                      ).length
+                                    }
+                                  </span>
+                                ),
+                              )}
                               {unreviewed > 0 && (
                                 <span className="schedule-unreviewed">
                                   Review / clearance: {unreviewed}
@@ -344,11 +395,14 @@ export function ClinicSchedule({
                               )}
                             </div>
                             <small>
-                              Matched requests · final eligibility checked at review
+                              Matched requests · final eligibility checked at
+                              review
                             </small>
                           </>
                         ) : (
-                          <span className="muted">No matching waitlist requests</span>
+                          <span className="muted">
+                            No matching waitlist requests
+                          </span>
                         )}
                         <button
                           type="button"
@@ -359,7 +413,7 @@ export function ClinicSchedule({
                             )
                           }
                         >
-                          Review P1–P4 groups
+                          Review Waitlist Matches
                         </button>
                       </div>
                     ) : (
@@ -442,35 +496,26 @@ export function ClinicSchedule({
     </>
   );
 }
-export function Matches({ state, act }: { state: AppState; act: Action }) {
-  return (
-    <>
-      <NotificationManager state={state} />
-      <LegacyMatches state={state} act={act} />
-    </>
-  );
-}
-function LegacyMatches({ state, act }: { state: AppState; act: Action }) {
-  const routed = useRef(false);
-  const [selected, setSelected] = useState(""),
-    [summary, setSummary] = useState<{
+export function Matches({
+  state,
+  act,
+  slotId,
+  requestId,
+}: {
+  state: AppState;
+  act: Action;
+  slotId?: string;
+  requestId?: string;
+}) {
+  const [summary, setSummary] = useState<{
       source: string;
       summary: string;
     } | null>(null),
     [loading, setLoading] = useState(false),
     [aiError, setAiError] = useState("");
-  const slots = state.slots.filter((s) => s.status === "AVAILABLE");
-  useEffect(() => {
-    if (routed.current) return;
-    routed.current = true;
-    const linked = new URLSearchParams(window.location.search).get("slotId");
-    if (linked && slots.some((s) => s.id === linked))
-      void Promise.resolve().then(() => setSelected(linked));
-  }, [slots]);
-  const slot =
-    slots.find((s) => s.id === selected) ??
-    slots.find((s) => s.id === "earlier") ??
-    slots[0];
+  const slot = state.slots.find(
+    (s) => s.id === slotId && s.clinicId === state.user?.clinicId,
+  );
   const candidates = state.candidates.filter((c) => c.slotId === slot?.id);
   return (
     <>
@@ -488,34 +533,9 @@ function LegacyMatches({ state, act }: { state: AppState; act: Action }) {
           </p>
         </div>
       </div>
-      <div className="matches-layout">
-        <section className="card openings">
-          <h2>Available openings</h2>
-          <p className="muted">Select a slot to review matches</p>
-          {slots.map((s) => (
-            <button
-              key={s.id}
-              className={`opening ${slot?.id === s.id ? "selected" : ""}`}
-              onClick={() => {
-                setSelected(s.id);
-                setSummary(null);
-                setAiError("");
-              }}
-            >
-              <span className="eyebrow">{s.service}</span>
-              <strong>{dateLabel(s.start)}</strong>
-              <span>
-                {state.candidates.filter((c) => c.slotId === s.id).length}{" "}
-                eligible candidates
-              </span>
-            </button>
-          ))}
-          {!slots.length && (
-            <p>No available openings. Cancel a booking or create a slot.</p>
-          )}
-        </section>
+      <div className="matches-workspace">
         <section>
-          {slot && (
+          {slot && slot.status === "AVAILABLE" ? (
             <>
               <div className="section-title">
                 <div>
@@ -571,12 +591,18 @@ function LegacyMatches({ state, act }: { state: AppState; act: Action }) {
               {!candidates.length ? (
                 <Empty
                   title="No eligible candidates yet"
-                  body="The opening remains available for direct booking. Candidates must match all required preferences."
+                  body="No current scheduling matches. Candidates must match service, insurance, preferences and appointment-conflict checks; specialist services require reviewed invitations."
                 />
               ) : (
                 <div className="stack">
                   {candidates.map((c, i) => (
-                    <article className="card candidate" key={c.id}>
+                    <article
+                      className="card candidate"
+                      key={c.id}
+                      data-request-id={c.waitlistId}
+                      aria-label={`${c.name} matching request`}
+                      data-selected={c.waitlistId === requestId}
+                    >
                       <div className="candidate-heading">
                         <span className="avatar mint">
                           {c.name
@@ -588,13 +614,39 @@ function LegacyMatches({ state, act }: { state: AppState; act: Action }) {
                           <h3>{c.name}</h3>
                           <p>FIFO position #{i + 1}</p>
                         </div>
-                        <span className="status active">Eligible</span>
+                        <span className="status active">Scheduling match</span>
                       </div>
                       <div className="priority-hint">
                         <span className="eyebrow">
                           REQUEST PRIORITY · YOUR CLINIC
                         </span>
                         <p>{priorityLabel(c.priority?.level)}</p>
+                        <p>
+                          {c.priority?.reviewState !== "APPROVED" ||
+                          ((slot.requiresReferral ||
+                            state.priorityRequests.find(
+                              (r) => r.id === c.waitlistId,
+                            )?.requiresReferral) &&
+                            !c.priority?.referralApproved) ||
+                          ((slot.requiresAuthorization ||
+                            state.priorityRequests.find(
+                              (r) => r.id === c.waitlistId,
+                            )?.requiresAuthorization) &&
+                            !c.priority?.authorizationApproved)
+                            ? "Priority or eligibility clearance review required before group notifications."
+                            : "Approved priority; final eligibility is revalidated before sending."}
+                        </p>
+                        <Link
+                          className="secondary context-link"
+                          scroll={false}
+                          href={waitlistHref(
+                            "priorities",
+                            slot.id,
+                            c.waitlistId,
+                          )}
+                        >
+                          Review Priority
+                        </Link>
                         <small>
                           Staff-reviewed only. This label does not change
                           eligibility or reserve an appointment.
@@ -608,47 +660,43 @@ function LegacyMatches({ state, act }: { state: AppState; act: Action }) {
                           </span>
                         ))}
                       </div>
-                      <button
-                        className="primary"
-                        onClick={() => {
-                          const reason = prompt(
-                            "Reason for approving this eligible patient:",
-                            "Reviewed eligibility and scheduling preferences",
-                          );
-                          if (reason)
-                            void act({
-                              type: "approve",
-                              slotId: slot.id,
-                              waitlistId: c.waitlistId,
-                              reason,
-                            });
-                        }}
-                      >
-                        Approve & send offer <ArrowRight size={16} />
-                      </button>
+                      <details className="legacy-offer">
+                        <summary>Legacy single-patient invitation</summary>
+                        <p>
+                          Use only outside an automatic group sequence. Existing
+                          server eligibility and approval rules apply.
+                        </p>
+                        <button
+                          className="secondary"
+                          onClick={() => {
+                            const reason = prompt(
+                              "Reason for approving this eligible patient:",
+                              "Reviewed eligibility and scheduling preferences",
+                            );
+                            if (reason)
+                              void act({
+                                type: "approve",
+                                slotId: slot.id,
+                                waitlistId: c.waitlistId,
+                                reason,
+                              });
+                          }}
+                        >
+                          Approve & send offer <ArrowRight size={16} />
+                        </button>
+                      </details>
                     </article>
                   ))}
                 </div>
               )}
             </>
+          ) : (
+            <Empty
+              title="No available opening selected"
+              body="Choose an available opening above. Booked or held slots can still be monitored under Notifications."
+            />
           )}
         </section>
-      </div>
-      <section className="section-title">
-        <h2>Recent invitations</h2>
-      </section>
-      <div className="stack">
-        {state.offers.map((o) => (
-          <div key={o.id} className="card request-card">
-            <div>
-              <h3>{o.slot.service}</h3>
-              <p>
-                {dateLabel(o.slot.start)} · {o.reason}
-              </p>
-            </div>
-            <Status value={o.status} />
-          </div>
-        ))}
       </div>
     </>
   );

@@ -217,6 +217,10 @@ it("requires explicit administrator-granted clinical permission, immediately hon
   );
   const { tagId } = await create();
   await approve(tagId);
+  const clinicalUser = await db.user.findUniqueOrThrow({
+    where: { id: account.userId },
+  });
+  expect((await getState(clinicalUser)).clinicalAccess).toBe(false);
   const readonly = await medicalTagsDashboard(account.userId);
   expect(readonly.canAuthor).toBe(false);
   expect(JSON.stringify(readonly)).not.toContain("PRIVATE_SYNTHETIC_NOTE");
@@ -225,6 +229,7 @@ it("requires explicit administrator-granted clinical permission, immediately hon
   await manageAccess(account.userId, action);
   await expect(manageAccess(account.userId, action)).rejects.toThrow(/changed/);
   expect((await medicalTagsDashboard(account.userId)).canAuthor).toBe(true);
+  expect((await getState(clinicalUser)).clinicalAccess).toBe(true);
   await mutateMedicalTag(account.userId, draft);
   await manageAccess(account.userId, {
     ...action,
@@ -232,6 +237,7 @@ it("requires explicit administrator-granted clinical permission, immediately hon
     expectedEnabled: true,
     reason: "Clinical permission withdrawn",
   });
+  expect((await getState(clinicalUser)).clinicalAccess).toBe(false);
   await expect(mutateMedicalTag(account.userId, draft)).rejects.toThrow(
     /permission/,
   );
@@ -332,4 +338,20 @@ it("rolls back tag review and generic audit if a revision cannot be persisted", 
     await db.medicalTag.findUniqueOrThrow({ where: { id: tagId } }),
   ).toEqual(original);
   expect(await db.audit.count()).toBe(audits);
+});
+it("advertises clinical workspace capability without exposing private notes to ordinary staff", async () => {
+  const cedar = await db.user.findUniqueOrThrow({
+    where: { id: "staff-cedar" },
+  });
+  const harbor = await db.user.findUniqueOrThrow({
+    where: { id: "staff-harbor" },
+  });
+  const patient = await db.user.findUniqueOrThrow({ where: { id: "avery" } });
+  await create();
+  expect((await getState(cedar)).clinicalAccess).toBe(true);
+  const ordinary = await getState(harbor);
+  expect(ordinary.clinicalAccess).toBe(false);
+  expect(JSON.stringify(ordinary)).not.toContain("PRIVATE_SYNTHETIC_NOTE");
+  expect((await getState(patient)).clinicalAccess).toBe(false);
+  expect((await getState(null)).clinicalAccess).toBe(false);
 });

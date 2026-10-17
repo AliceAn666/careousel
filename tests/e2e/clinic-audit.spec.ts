@@ -26,7 +26,9 @@ test("clinic schedule creates a real opening, persists after refresh, and remain
   });
   expect(login.ok()).toBe(true);
   await page.goto("/clinic/schedule");
-  await expect(page.getByRole("heading", { name: "Appointment schedule" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Appointment schedule" }),
+  ).toBeVisible();
   const previous = await (await page.request.get("/api/state")).json();
   const beforeCount = previous.slots.length;
 
@@ -41,15 +43,21 @@ test("clinic schedule creates a real opening, persists after refresh, and remain
     name: "Create an appointment opening",
   });
   await modal.getByLabel("Specialty").selectOption("Vaccination");
-  await modal.getByLabel("Start date & time (your device timezone)").fill(startLocal);
+  await modal
+    .getByLabel("Start date & time (your device timezone)")
+    .fill(startLocal);
   await modal.getByLabel("Estimated cost ($)").fill("9132");
   await modal.getByRole("button", { name: "Create opening" }).click();
-  await expect(page.getByRole("status")).toContainText("New appointment opening created.");
+  await expect(page.getByRole("status")).toContainText(
+    "New appointment opening created.",
+  );
   const updated = await (await page.request.get("/api/state")).json();
   expect(updated.slots).toHaveLength(beforeCount + 1);
   const created = updated.slots.find(
     (slot: { price: number; clinicId: string; service: string }) =>
-      slot.price === 913200 && slot.clinicId === "cedar" && slot.service === "Vaccination",
+      slot.price === 913200 &&
+      slot.clinicId === "cedar" &&
+      slot.service === "Vaccination",
   );
   expect(created).toBeTruthy();
   await page.reload();
@@ -64,10 +72,14 @@ test("clinic schedule creates a real opening, persists after refresh, and remain
       data: { id: "staff-harbor", demo: true },
     });
     expect(otherLogin.ok()).toBe(true);
-    const otherState = await (await otherClinic.request.get("/api/state")).json();
+    const otherState = await (
+      await otherClinic.request.get("/api/state")
+    ).json();
     expect(otherState.user.clinicId).toBe("harbor");
     expect(
-      otherState.slots.every((slot: { clinicId: string }) => slot.clinicId === "harbor"),
+      otherState.slots.every(
+        (slot: { clinicId: string }) => slot.clinicId === "harbor",
+      ),
     ).toBe(true);
     expect(
       otherState.slots.some((slot: { id: string }) => slot.id === created.id),
@@ -81,19 +93,32 @@ test("clinic schedule creates a real opening, persists after refresh, and remain
       "/api/notification-sequences?slotId=earlier",
     );
     expect(leak.status()).toBe(403);
-    expect((await otherClinic.request.get("/api/clinic/access")).status()).toBe(403);
+    expect((await otherClinic.request.get("/api/clinic/access")).status()).toBe(
+      403,
+    );
   } finally {
     await otherClinic.close();
   }
 
   await page.setViewportSize({ width: 375, height: 812 });
-  for (const path of ["/clinic/schedule", "/clinic/waitlists", "/clinic/priorities"]) {
+  for (const path of [
+    "/clinic/schedule",
+    "/clinic/waitlists",
+    "/clinic/priorities",
+  ]) {
     await page.goto(path);
-    await expect(page.getByRole("heading", { name: "Appointment schedule" }).or(
-      page.getByRole("region", { name: "Automatic group notifications" })
-    ).or(page.getByText("Staff-reviewed request priorities"))).toBeVisible();
+    await expect(
+      path === "/clinic/schedule"
+        ? page.getByRole("heading", { name: "Appointment schedule" })
+        : page.getByRole("region", {
+            name: path === "/clinic/priorities" ? "Priority Review" : "Matches",
+            exact: true,
+          }),
+    ).toBeVisible();
     expect(
-      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
       `Clinic page ${path} must fit narrow viewport`,
     ).toBe(true);
   }
@@ -111,7 +136,9 @@ test("clinic schedule shows scoped P1–P4 groups and opens exact slot review", 
   const state = await (await page.request.get("/api/state")).json();
   expect(state.user.clinicId).toBe("cedar");
   expect(
-    state.slots.every((slot: { clinicId: string }) => slot.clinicId === "cedar"),
+    state.slots.every(
+      (slot: { clinicId: string }) => slot.clinicId === "cedar",
+    ),
   ).toBe(true);
   await page.goto("/clinic/schedule");
   await expect(
@@ -125,25 +152,31 @@ test("clinic schedule shows scoped P1–P4 groups and opens exact slot review", 
       slot.status === "AVAILABLE" &&
       state.candidates.some((c: { slotId: string }) => c.slotId === slot.id),
   );
-  expect(target, "Seed should include a matching available Cedar opening").toBeTruthy();
+  expect(
+    target,
+    "Seed should include a matching available Cedar opening",
+  ).toBeTruthy();
   const row = page.locator(`tbody tr[data-slot-id="${target.id}"]`);
   const groups = row.getByLabel(/Priority groups for/);
   await expect(groups).toContainText("P1:");
   await expect(groups).toContainText("P2:");
   await expect(groups).toContainText("P3:");
   await expect(groups).toContainText("P4:");
-  await row.getByRole("button", { name: "Review P1–P4 groups" }).click();
+  await row.getByRole("button", { name: "Review Waitlist Matches" }).click();
   await expect(page).toHaveURL(
     new RegExp(`/clinic/waitlists\\?slotId=${target.id}`),
   );
+  await page.getByRole("link", { name: "Notifications", exact: true }).click();
   const manager = page.getByRole("region", {
     name: "Automatic group notifications",
   });
-  await expect(manager.getByLabel("Manage opening")).toHaveValue(target.id);
-  await expect(manager.getByText("P1 — Time-Sensitive", { exact: true }))
-    .toBeVisible();
-  await expect(manager.getByText("P4 — Flexible", { exact: true }))
-    .toBeVisible();
+  await expect(page.getByLabel("Selected opening")).toHaveValue(target.id);
+  await expect(
+    manager.getByText("P1 — Time-Sensitive", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    manager.getByText("P4 — Flexible", { exact: true }),
+  ).toBeVisible();
 
   // A different clinic cannot access the Cedar slot or its preview.
   const other = await browser.newContext();
@@ -153,12 +186,14 @@ test("clinic schedule shows scoped P1–P4 groups and opens exact slot review", 
       data: { id: "staff-harbor", demo: true },
     });
     const stateOther = await (await other.request.get("/api/state")).json();
-    expect(stateOther.slots.every(
-      (slot: { clinicId: string }) => slot.clinicId === "harbor",
-    )).toBe(true);
-    expect(stateOther.slots.some(
-      (slot: { id: string }) => slot.id === target.id,
-    )).toBe(false);
+    expect(
+      stateOther.slots.every(
+        (slot: { clinicId: string }) => slot.clinicId === "harbor",
+      ),
+    ).toBe(true);
+    expect(
+      stateOther.slots.some((slot: { id: string }) => slot.id === target.id),
+    ).toBe(false);
     const forbidden = await other.request.get(
       `/api/notification-sequences?slotId=${encodeURIComponent(target.id)}`,
     );
@@ -200,9 +235,13 @@ test("patients and anonymous browsers cannot administer clinics or invoke notifi
     });
     expect(unauthorizedPriority.status()).toBe(403);
     expect(
-      (await patient.request.get("/api/notification-sequences?slotId=earlier")).status(),
+      (
+        await patient.request.get("/api/notification-sequences?slotId=earlier")
+      ).status(),
     ).toBe(403);
-    expect((await patient.request.get("/api/clinic/access")).status()).toBe(403);
+    expect((await patient.request.get("/api/clinic/access")).status()).toBe(
+      403,
+    );
   } finally {
     await patient.close();
   }
@@ -210,22 +249,38 @@ test("patients and anonymous browsers cannot administer clinics or invoke notifi
   const publicBrowser = await browser.newContext();
   try {
     expect(
-      (await publicBrowser.request.post("/api/internal/notifications/process", {
-        headers: sameOrigin,
-      })).status(),
+      (
+        await publicBrowser.request.post(
+          "/api/internal/notifications/process",
+          {
+            headers: sameOrigin,
+          },
+        )
+      ).status(),
     ).toBe(401);
     expect(
-      (await publicBrowser.request.post("/api/internal/notifications/github", {
-        headers: sameOrigin,
-      })).status(),
+      (
+        await publicBrowser.request.post("/api/internal/notifications/github", {
+          headers: sameOrigin,
+        })
+      ).status(),
     ).toBe(401);
     expect(
-      (await publicBrowser.request.post("/api/actions", {
-        headers: sameOrigin,
-        data: { type: "createSlot", service: "Vaccination", start: new Date(Date.now() + 60 * days).toISOString(), price: 10000 },
-      })).status(),
+      (
+        await publicBrowser.request.post("/api/actions", {
+          headers: sameOrigin,
+          data: {
+            type: "createSlot",
+            service: "Vaccination",
+            start: new Date(Date.now() + 60 * days).toISOString(),
+            price: 10000,
+          },
+        })
+      ).status(),
     ).toBe(401);
-    const publicState = await (await publicBrowser.request.get("/api/state")).json();
+    const publicState = await (
+      await publicBrowser.request.get("/api/state")
+    ).json();
     expect(publicState.user).toBeNull();
     expect(publicState.bookings).toHaveLength(0);
     expect(publicState.waitlists).toHaveLength(0);
@@ -369,7 +424,9 @@ test("clinic overview counters open actual scoped details and filter schedule ro
 
   await page.setViewportSize({ width: 375, height: 812 });
   expect(
-    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
   ).toBe(true);
   await page.getByRole("button", { name: "Close overview details" }).click();
   await expect(matchDetails).toHaveCount(0);

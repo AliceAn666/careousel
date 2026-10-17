@@ -102,10 +102,14 @@ test("signed-in insurer automatically flags only incompatible clinics without pr
 }) => {
   await enterPatient(page);
   const cards = page.locator(".appointment-results .search-result");
-  const account = page.getByRole("region", { name: "Insurance from your account" });
+  const account = page.getByRole("region", {
+    name: "Insurance from your account",
+  });
   await expect(account).toContainText("Blue Horizon");
   await expect(page.getByLabel("Insurance company (demo)")).toHaveCount(0);
-  await page.getByLabel("Specialty", { exact: true }).selectOption("Cardiology");
+  await page
+    .getByLabel("Specialty", { exact: true })
+    .selectOption("Cardiology");
   await expect(cards).toHaveCount(4);
   await expect(page.locator(".insurance-match-good")).toHaveCount(0);
   await expect(page.locator(".insurance-match-warning")).toHaveCount(0);
@@ -115,13 +119,16 @@ test("signed-in insurer automatically flags only incompatible clinics without pr
   await expect(cards).toHaveCount(4);
   await expect(page.locator(".insurance-match-warning")).toHaveCount(4);
   const cedar = cards.filter({ hasText: "Cedar Health" });
-  await expect(cedar.locator(".insurance-match-warning"))
-    .toContainText("does not cover this service");
+  await expect(cedar.locator(".insurance-match-warning")).toContainText(
+    "does not cover this service",
+  );
   const summit = cards.filter({ hasText: "Summit" });
-  await expect(summit.locator(".insurance-match-warning"))
-    .toContainText("is not accepted at this clinic");
-  await expect(cards.first().getByRole("button", { name: "View details & book" }))
-    .toHaveCount(0);
+  await expect(summit.locator(".insurance-match-warning")).toContainText(
+    "is not accepted at this clinic",
+  );
+  await expect(
+    cards.first().getByRole("button", { name: "View details & book" }),
+  ).toHaveCount(0);
 
   // Every displayed opening is selectable without first opening another menu.
   const chosen = cedar.locator("button[data-slot-id]").first();
@@ -129,18 +136,27 @@ test("signed-in insurer automatically flags only incompatible clinics without pr
   await chosen.click();
   const details = page.getByRole("dialog", { name: "Appointment details" });
   await expect(details).toContainText("Blue Horizon");
-  await expect(details.getByLabel("Insurance company for appointment"))
-    .toHaveCount(0);
-  await expect(details.locator(".insurance-booking-warning"))
-    .toContainText("full listed price");
-  await details.getByRole("button", { name: /Confirm self-pay appointment/ }).click();
+  await expect(
+    details.getByLabel("Insurance company for appointment"),
+  ).toHaveCount(0);
+  await expect(details.locator(".insurance-booking-warning")).toContainText(
+    "full listed price",
+  );
+  await details
+    .getByRole("button", { name: /Confirm self-pay appointment/ })
+    .click();
   await expect(page).toHaveURL(/\/appointments$/);
-  await expect(page.getByRole("status"))
-    .toContainText("self-pay acknowledgment");
+  await expect(page.getByRole("status")).toContainText(
+    "self-pay acknowledgment",
+  );
   const afterBooking = await state(page);
   expect(afterBooking.user.plan).toBe("Blue Horizon");
-  expect(afterBooking.bookings.some((b: {slotId:string;status:string}) =>
-    b.slotId === chosenId && b.status === "CONFIRMED")).toBe(true);
+  expect(
+    afterBooking.bookings.some(
+      (b: { slotId: string; status: string }) =>
+        b.slotId === chosenId && b.status === "CONFIRMED",
+    ),
+  ).toBe(true);
 
   await page.goto("/search");
   await page.reload();
@@ -152,9 +168,11 @@ test("signed-in insurer automatically flags only incompatible clinics without pr
   await expect(account).toContainText("Blue Horizon");
   await expect(page.getByLabel("Insurance company (demo)")).toHaveCount(0);
   await page.setViewportSize({ width: 375, height: 812 });
-  expect(await page.evaluate(
-    () => document.documentElement.scrollWidth <= innerWidth
-  )).toBe(true);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });
 
 test("clinic guide uses current priority navigation and keeps clinic session", async ({
@@ -168,7 +186,11 @@ test("clinic guide uses current priority navigation and keeps clinic session", a
   await guide.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page).toHaveURL(/clinic\/waitlists$/);
   await guide.getByRole("button", { name: "Next", exact: true }).click();
-  await expect(page).toHaveURL(/clinic\/priorities$/);
+  await expect(page).toHaveURL(/clinic\/waitlists\?tab=priorities$/);
+  await guide.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(page).toHaveURL(/clinic\/waitlists\?tab=notifications$/);
+  await guide.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(page).toHaveURL(/clinic\/records$/);
   await guide.getByRole("button", { name: "Finish", exact: true }).click();
   expect((await state(page)).user.clinicId).toBe("cedar");
   await page.reload();

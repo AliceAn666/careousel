@@ -7,10 +7,9 @@ import {
   CalendarDays,
   Clock3,
   CheckCircle2,
-  Gauge,
+  FileHeart,
   Heart,
   Home,
-  LayoutDashboard,
   Search,
   ShieldCheck,
   Sparkles,
@@ -35,15 +34,17 @@ import {
   Inbox,
   ClinicIcon,
 } from "./patient-portal";
-import { ClinicSchedule, Matches, ActivityFeed } from "./clinic-portal";
+import { ClinicSchedule, ActivityFeed } from "./clinic-portal";
 import accountStyles from "./account-access.module.css";
 import { AccountAccess } from "./account-access";
 import { PatientNeeds } from "./patient-needs";
-import { MedicalRecords } from "./medical-records";
-import { MedicalTags } from "./medical-tags";
 import { ClinicAccess } from "./clinic-access";
 import { PatientEntry, OptionalHealthInformation } from "./patient-entry";
-import { Priorities } from "./clinic-priorities";
+import {
+  WaitlistWorkspace,
+  ClinicalRecordsWorkspace,
+} from "./clinic-workspaces";
+import { clinicSection } from "@/lib/clinic-navigation";
 import { DemoGuide } from "./demo-guide";
 import { GuidedTour } from "./guided-tour";
 import { CoverageSummary } from "./coverage-summary";
@@ -58,11 +59,9 @@ const navPatient = [
   ["/notifications", "Notifications", Bell],
 ] as const;
 const navClinic = [
-  ["/clinic/medical-records", "Record review", Gauge],
-  ["/clinic/medical-tags", "Medical tags", Gauge],
-  ["/clinic/schedule", "Schedule", LayoutDashboard],
-  ["/clinic/waitlists", "Waitlist matches", Users],
-  ["/clinic/priorities", "Priorities", Gauge],
+  ["/clinic/schedule", "Schedule", CalendarDays],
+  ["/clinic/waitlists", "Waitlist Management", Users],
+  ["/clinic/records", "Clinical Records", FileHeart],
 ] as const;
 const initials = (name: string) =>
   name
@@ -276,19 +275,15 @@ export function CareouselApp() {
             ? "Clinic overview"
             : path === "/clinic/access"
               ? "Clinic staff access"
-              : path === "/clinic/medical-records"
-                ? "Authorized record review"
-                : path === "/clinic/medical-tags"
-                  ? "Clinical medical tags"
-                  : path === "/clinic/waitlists"
-                    ? "Waitlist matches"
-                    : path === "/clinic/priorities"
-                      ? "Request priorities"
-                      : path === "/clinic/activity"
-                        ? "Clinic activity"
-                        : path === "/demo"
-                          ? "A better-care walkthrough"
-                          : "Find your next appointment";
+              : clinicSection(path) === "records"
+                ? "Clinical Records"
+                : clinicSection(path) === "waitlists"
+                  ? "Waitlist Management"
+                  : path === "/clinic/activity"
+                    ? "Clinic activity"
+                    : path === "/demo"
+                      ? "A better-care walkthrough"
+                      : "Find your next appointment";
   const personaOptions = state.personas.map((p) => (
     <option key={p.id} value={p.id}>
       {personaLabel(p)}
@@ -309,12 +304,36 @@ export function CareouselApp() {
           <div className="workspace-label">
             {staff ? "CLINIC WORKSPACE" : "PATIENT WORKSPACE"}
           </div>
-          <nav className={staff ? undefined : "patient-navigation"}>
+          <nav
+            aria-label={staff ? "Clinic navigation" : "Patient navigation"}
+            className={staff ? "clinic-navigation" : "patient-navigation"}
+          >
             {nav.map(([href, label, Icon]) => (
               <button
                 key={href}
-                className={path === href ? "nav-item active" : "nav-item"}
-                onClick={() => router.push(href)}
+                aria-current={
+                  (
+                    staff
+                      ? clinicSection(path) === clinicSection(href)
+                      : path === href
+                  )
+                    ? "page"
+                    : undefined
+                }
+                className={
+                  (
+                    staff
+                      ? clinicSection(path) === clinicSection(href)
+                      : path === href
+                  )
+                    ? "nav-item active"
+                    : "nav-item"
+                }
+                onClick={() => {
+                  if (staff && clinicSection(path) === clinicSection(href))
+                    return;
+                  router.push(href);
+                }}
               >
                 <Icon size={19} />
                 {label}
@@ -408,18 +427,16 @@ export function CareouselApp() {
                 </button>
               )}
               <span className="timezone">Pacific time</span>
-              <button
-                className="icon-button"
-                aria-label={
-                  staff ? "Open waitlist matches" : "Open notifications"
-                }
-                onClick={() =>
-                  router.push(staff ? "/clinic/waitlists" : "/notifications")
-                }
-              >
-                <Bell size={20} />
-                {!staff && unread > 0 && <i />}
-              </button>
+              {!staff && (
+                <button
+                  className="icon-button"
+                  aria-label="Open notifications"
+                  onClick={() => router.push("/notifications")}
+                >
+                  <Bell size={20} />
+                  {unread > 0 && <i />}
+                </button>
+              )}
             </div>
           </header>
           <main className="main-content">
@@ -471,16 +488,12 @@ export function CareouselApp() {
               {path === "/demo" ? (
                 <DemoGuide staff={staff && demoMode} act={act} />
               ) : staff ? (
-                path === "/clinic/medical-records" ? (
-                  <MedicalRecords key={state.user?.id} />
-                ) : path === "/clinic/medical-tags" ? (
-                  <MedicalTags key={state.user?.id} />
+                clinicSection(path) === "records" ? (
+                  <ClinicalRecordsWorkspace key={user.id} state={state} />
                 ) : path === "/clinic/access" ? (
                   <ClinicAccess />
-                ) : path === "/clinic/waitlists" ? (
-                  <Matches state={state} act={act} />
-                ) : path === "/clinic/priorities" ? (
-                  <Priorities state={state} act={act} />
+                ) : clinicSection(path) === "waitlists" ? (
+                  <WaitlistWorkspace key={user.id} state={state} act={act} />
                 ) : path === "/clinic/activity" ? (
                   <ActivityFeed state={state} />
                 ) : (
@@ -582,7 +595,8 @@ export function CareouselApp() {
               </div>
             </dl>
             <p className="muted">
-              Insurance on your account: <strong>{appointmentInsurer || "Not provided"}</strong>.
+              Insurance on your account:{" "}
+              <strong>{appointmentInsurer || "Not provided"}</strong>.
               {appointmentInsurer && appointmentInsurer !== "Self-pay"
                 ? ` Demo ${coverage.planType} estimate.`
                 : " Self-pay pricing is displayed below."}

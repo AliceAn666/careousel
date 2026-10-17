@@ -63,11 +63,16 @@ test("complete patient → cancellation → staff approval → accepted replacem
     .click();
   await expect(page.getByRole("status")).toContainText("Appointment cancelled");
   await page
-    .getByRole("button", { name: "Waitlist matches", exact: true })
+    .getByRole("button", { name: "Waitlist Management", exact: true })
     .click();
   await page.getByRole("button", { name: "Explain recommendations" }).click();
   await expect(page.getByText("Local rules fallback")).toBeVisible();
   page.once("dialog", (d) => d.accept("Reviewed eligibility and scheduling"));
+  await page
+    .locator("article.candidate")
+    .filter({ hasText: "Avery Morgan" })
+    .getByText("Legacy single-patient invitation", { exact: true })
+    .click();
   await page
     .locator("article.candidate")
     .filter({ hasText: "Avery Morgan" })
@@ -128,15 +133,20 @@ test("search filters keep clinics visible, prioritize insurer matches and suppor
     page.getByRole("region", { name: "Insurance from your account" }),
   ).toContainText("Blue Horizon");
   await expect(page.getByLabel("Insurance company (demo)")).toHaveCount(0);
-  await page.getByLabel("Specialty", { exact: true }).selectOption("Cardiology");
+  await page
+    .getByLabel("Specialty", { exact: true })
+    .selectOption("Cardiology");
   await expect(openings).toHaveCount(4);
-  await expect(page.locator(".appointment-results .insurance-match-good"))
-    .toHaveCount(0);
-  await expect(page.locator(".appointment-results .insurance-match-warning"))
-    .toHaveCount(0);
+  await expect(
+    page.locator(".appointment-results .insurance-match-good"),
+  ).toHaveCount(0);
+  await expect(
+    page.locator(".appointment-results .insurance-match-warning"),
+  ).toHaveCount(0);
   await page.getByLabel("Insurance plan type").selectOption("HMO");
-  await expect(page.locator(".appointment-results .insurance-match-warning"))
-    .toHaveCount(4);
+  await expect(
+    page.locator(".appointment-results .insurance-match-warning"),
+  ).toHaveCount(4);
   await expect(openings).toHaveCount(4);
   await page.getByLabel("Insurance plan type").selectOption("PPO");
   const selectedTime = openings.first().locator(".clinic-time-choice").first();

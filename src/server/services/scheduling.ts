@@ -24,6 +24,7 @@ import { DURATIONS, SYMPTOM_AREAS, WARNING_SIGNS } from "../../lib/priority";
 import { PRIORITY_LEVELS } from "../../lib/waitlist-priority";
 import { demoClinicAccepts, demoCoverage } from "../../lib/demo-coverage";
 import { priorityInclude, priorityRequestScope } from "./waitlist-priority";
+import { canAuthorMedicalTags } from "./medical-tags";
 import { ensureStaffAccess } from "../auth/access";
 import { seedData } from "../../../prisma/seed-data";
 export class DomainError extends Error {
@@ -1117,6 +1118,7 @@ export async function getState(
     if (!user)
       return {
         user: null,
+        clinicalAccess: false,
         clinics,
         slots: slots.filter((s) => s.status === "AVAILABLE"),
         personas,
@@ -1325,6 +1327,7 @@ export async function getState(
       }
     }
     return {
+      clinicalAccess: staff ? await canAuthorMedicalTags(tx, user) : false,
       user: {
         id: user.id,
         name: user.name,

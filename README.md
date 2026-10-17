@@ -10,19 +10,19 @@ Migration **0011_independent_patient_needs** is additive with no automatic backf
 
 ## Patient-authorized synthetic records (Phase 8 Part B)
 
-Patients can explicitly authorize a clinic-specific synthetic FHIR-compatible sample import, search records and generate unconfirmed local suggestions. Permitted clinicians use **Record review** to correct, approve or reject evidence; only approved tags reach Part A's scheduling evidence. Patients can revoke access immediately while retaining their private source/audit archive. Booking never requires an import. No hospital connection or external AI API is needed; optional loopback AI reliably falls back to local rules. [Walkthrough, API, privacy, retention and limitations](docs/medical-record-import.md).
+Patients can explicitly authorize a clinic-specific synthetic FHIR-compatible sample import, search records and generate unconfirmed local suggestions. Permitted clinicians use **Clinical Records → Record Review** to correct, approve or reject evidence; only approved tags reach Part A's scheduling evidence. Patients can revoke access immediately while retaining their private source/audit archive. Booking never requires an import. No hospital connection or external AI API is needed; optional loopback AI reliably falls back to local rules. [Walkthrough, API, privacy, retention and limitations](docs/medical-record-import.md).
 
 Migrations **0009_patient_record_import** and **0010_record_review_integrity** are additive and tested in a new isolated database only. No deployment/shared database changes are performed. External bookings and independent multi-need scheduling are implemented in Part C; see [patient scheduling contracts](docs/patient-needs.md).
 
 ## Clinician-authored medical tags (Phase 8 Part A)
 
-Authorized clinicians can create visit-linked medical needs and tags, edit drafts, explicitly approve or retire them, and inspect immutable version history under **Medical tags**. Administrators explicitly grant clinical author permission; staff/admin roles alone do not grant it. Patients see their own approved follow-up information under **Health information**. Priority review shows approved same-clinic scheduling evidence without private clinical notes; human-approved P1–P4 and existing scheduling protections remain separate.
+Authorized clinicians can create visit-linked medical needs and tags, edit drafts, explicitly approve or retire them, and inspect immutable version history under **Clinical Records → Medical Tags**. Administrators explicitly grant clinical author permission; staff/admin roles alone do not grant it. Patients see their own approved follow-up information under **Health information**. Priority review shows approved same-clinic scheduling evidence without private clinical notes; human-approved P1–P4 and existing scheduling protections remain separate.
 
 Clinical credential verification is simulated. Record import/extraction is implemented separately in Part B; independent scheduling of multiple needs is implemented in Part C. Migration **0008_clinician_medical_tags** is additive and was tested only on a newly isolated PostgreSQL database; applying it to any existing demo/cloud environment requires separate authorization. No deployment or shared-database change is performed. [Contracts, privacy boundaries and walkthrough](docs/medical-tags.md).
 
 ## Automated priority-group notifications (Phase 7)
 
-Clinic Waitlist matches now provides **Automatic priority-group notifications**: select an opening, preview P1–P4 and exclusions, explicitly select recipients, confirm the first group and reason, then **Authorize and start automatic sequence**. Later groups send automatically at least 180 minutes after the previous actual send, including when earlier patients have not responded. One shared cross-clinic pool; no internal-clinic-first window. Use Pause / Resume / Cancel; changed recipient/priority snapshots require fresh preview and explicit reauthorization of unsent groups.
+Clinic **Waitlist Management → Notifications** provides **Automatic priority-group notifications**: select an opening, preview P1–P4 and exclusions, explicitly select recipients, confirm the first group and reason, then **Authorize and start automatic sequence**. Later groups send automatically at least 180 minutes after the previous actual send, including when earlier patients have not responded. One shared cross-clinic pool; no internal-clinic-first window. Use Pause / Resume / Cancel; changed recipient/priority snapshots require fresh preview and explicit reauthorization of unsent groups.
 
 Start a separate local worker alongside the web app:
 
@@ -65,7 +65,7 @@ Production-mode local rehearsal: `npm run build && npm start`. A persistent `SES
 2. Choose **Find Care** to enter as **Avery Morgan** (or explicitly choose Avery under Other demo personas if resuming a different patient). No questionnaire is required. **Manage My Appointments and Waitlists** shows the Harbor Medical Dermatology booking ~28 days away. Do not enter real health information.
 3. Choose **Join a waitlist** from Find care or the combined My appointments page. Select the Harbor booking under **Existing appointment to replace (optional)**, retain suitable preferences and Join waitlist. The original booking stays confirmed. Without this explicit link, a request does not replace an existing booking.
 4. In a separate browser/profile, choose **Open clinic demo** to enter as **Cedar Health staff** (or use the persona switcher in a single-browser rehearsal). In Schedule, cancel **Jordan Lee**'s booked Dermatology appointment ~7 days away.
-5. Open **Waitlist matches**. The released Dermatology slot is selected first. Review Avery's eligibility; use **Explain recommendations** to see the local rules fallback. Approve Avery and enter a review reason.
+5. Cancellation opens **Waitlist Management → Matches** with the released slot selected. Review Avery's eligibility; use **Explain recommendations** to see the local rules fallback. Expand **Legacy single-patient invitation**, approve Avery and enter a review reason; automatic groups are managed separately under **Notifications**.
 6. Switch to Avery → Notifications. Accept the earlier appointment and confirm the replacement.
 7. My appointments shows Cedar confirmed and Harbor rescheduled. My waitlist is fulfilled. Refresh, switch staff personas, or restart the app to verify persistence. Harbor's old slot is available again.
 
@@ -146,7 +146,7 @@ Search preferences and guide progress are stored only in this browser, separatel
 
 ## Four-level request priorities (R1 feature branch)
 
-In the clinic portal, open **Priorities** to review a specific waitlist request, choose **P1 — Time-Sensitive**, **P2 — High Priority**, **P3 — Routine** or **P4 — Flexible**, and enter a synthetic review reason. Save records the staff decision and history; it sends no invitation. Filter by group, reopen history, or inspect the label in Waitlist matches. Patients see each clinic's decision on their own request in My appointments. Different requests/clinics remain independent; editing preferences requires staff re-review.
+In the clinic portal, open **Waitlist Management → Priority Review** to review a specific waitlist request, choose **P1 — Time-Sensitive**, **P2 — High Priority**, **P3 — Routine** or **P4 — Flexible**, and enter a synthetic review reason. Save records the staff decision and history; it sends no invitation. Filter by group, reopen history, or inspect the label in Matches. Patients see each clinic's decision on their own request in My appointments. Different requests/clinics remain independent; editing preferences requires staff re-review.
 
 Legacy questionnaire/tag rows are retained; no score is automatically mapped to clinical urgency. R1 originally used pre-authorized synthetic sessions; this R3/R4 branch now adds individual accounts while actual hospital verification remains simulated. FIFO matching and exclusive staff-approved invitations remain unchanged; three-hour group invitations are a later feature PR.
 
@@ -179,3 +179,5 @@ PR #15 merged during development (main f5212eb, successful CI). Preserve its can
 ### Activating private demo staff invitations
 
 Use the existing administrator bootstrap and the reviewed, idempotent invitation CLI only after explicit target authorization. [Activation, privacy, approval and verification runbook](docs/demo-staff-invitations.md). Private sheets, passwords and token manifests stay outside Git; no ordinary login or startup provisions accounts or resets data.
+
+Clinic sidebar: **Schedule**, **Waitlist Management**, **Clinical Records**. [Workspace navigation, legacy URLs, context and permission contracts](docs/clinic-workspace.md).

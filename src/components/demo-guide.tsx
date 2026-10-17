@@ -13,7 +13,7 @@ export function DemoGuide({ staff, act }: { staff: boolean; act: Action }) {
     ],
     [
       "Staff reviews and approves",
-      "Open Waitlist matches. Select the released Dermatology slot, review Avery’s eligibility and approve the offer.",
+      "In Waitlist Management, review the selected opening under Matches. Use Review Priority and Back to Matches without losing context. Authorize approved recipients under Notifications, or expand Legacy single-patient invitation for the original demo offer.",
     ],
     [
       "Avery accepts earlier care",

@@ -62,11 +62,16 @@ test("two independent browsers retain shared waitlist and atomically reschedule"
       .getByRole("button", { name: "Cancel & release" })
       .click();
     await c
-      .getByRole("button", { name: "Waitlist matches", exact: true })
+      .getByRole("button", { name: "Waitlist Management", exact: true })
       .click();
     c.once("dialog", (d) =>
       d.accept("Reviewed synthetic scheduling eligibility"),
     );
+    await c
+      .locator("article.candidate")
+      .filter({ hasText: "Avery Morgan" })
+      .getByText("Legacy single-patient invitation", { exact: true })
+      .click();
     await c
       .locator("article.candidate")
       .filter({ hasText: "Avery Morgan" })
