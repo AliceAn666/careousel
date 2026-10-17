@@ -76,7 +76,11 @@ export function SearchCare({
     return {
       ...saved,
       // Start with the user's saved demo insurer, but permit comparisons.
-      plan: saved.plan || state.user?.plan || "",
+      plan:
+        saved.plan ||
+        ((PLANS as readonly string[]).includes(state.user?.plan ?? "")
+          ? (state.user!.plan as SearchPreferences["plan"])
+          : ""),
     };
   });
   const {
@@ -153,7 +157,9 @@ export function SearchCare({
   const clear = () => {
     setPreferences({
       ...defaultSearchPreferences,
-      plan: state.user?.plan || "",
+      plan: (PLANS as readonly string[]).includes(state.user?.plan ?? "")
+        ? (state.user!.plan as SearchPreferences["plan"])
+        : "",
     });
     setQuery("");
     setCategory("");
