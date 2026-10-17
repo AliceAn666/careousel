@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Anchor,
   ArrowRight,
@@ -20,6 +20,15 @@ import {
   Trees,
   type LucideIcon,
 } from "lucide-react";
+import { CoverageSummary } from "./coverage-summary";
+import { demoCoverage, type PlanType } from "@/lib/demo-coverage";
+import {
+  readSearchPreferences,
+  saveSearchPreferences,
+  defaultSearchPreferences,
+  type SearchPreferences,
+} from "@/lib/search-preferences";
+import onboarding from "./onboarding.module.css";
 import type {
   Action,
   AppState,
@@ -82,27 +91,71 @@ export function SearchCare({
   onWaitlist,
 }: {
   state: AppState;
-  onDetail: (s: SlotView) => void;
+  onDetail: (
+    s: SlotView,
+    selection: { provider: string; planType: PlanType },
+  ) => void;
   onWaitlist: () => void;
 }) {
-  const [service, setService] = useState(""),
-    [city, setCity] = useState(""),
-    [plan, setPlan] = useState(""),
-    [price, setPrice] = useState(""),
-    [date, setDate] = useState("");
+  const [preferences, setPreferences] = useState(() =>
+    readSearchPreferences(state.user?.id ?? "guest"),
+  );
+  const {
+    service,
+    city,
+    plan,
+    price,
+    date,
+    planType,
+    coveredOnly,
+    patientCost,
+  } = preferences;
+  const update = (patch: Partial<SearchPreferences>) =>
+    setPreferences((current) => ({ ...current, ...patch }));
+  const setService = (service: SearchPreferences["service"]) =>
+    update({ service });
+  const setCity = (city: string) => update({ city });
+  const setPlan = (plan: SearchPreferences["plan"]) =>
+    update({
+      plan,
+      coveredOnly: plan && plan !== "Self-pay" ? coveredOnly : false,
+      patientCost: plan ? patientCost : "",
+    });
+  const setPrice = (price: string) => update({ price });
+  const setDate = (date: string) => update({ date });
+  useEffect(() => {
+    if (state.user) saveSearchPreferences(state.user.id, preferences);
+  }, [preferences, state.user]);
   const today = pacificDate(new Date());
   const firstSlot = state.slots[0] ? pacificDate(state.slots[0].start) : today;
   const lastSlot = state.slots.length
     ? pacificDate(state.slots[state.slots.length - 1].start)
     : today;
-  const [month, setMonth] = useState(monthKey(firstSlot));
-  const filtering = !!(service || city || plan || price || date);
-  const matches = (s: SlotView) =>
-    (!service || s.service === service) &&
-    (!city || s.clinic.city === city) &&
-    (!plan || s.plans.includes(plan)) &&
-    (!price || s.price <= Number(price) * 100) &&
-    (!date || pacificDate(s.start) === date);
+  const [month, setMonth] = useState(monthKey(date || firstSlot));
+  const filtering = !!(
+    service ||
+    city ||
+    plan ||
+    price ||
+    date ||
+    coveredOnly ||
+    patientCost
+  );
+  const matches = (s: SlotView) => {
+    const benefit = demoCoverage(s, plan, planType);
+    return (
+      (!service || s.service === service) &&
+      (!city || s.clinic.city === city) &&
+      (!plan || s.plans.includes(plan)) &&
+      (!price || s.price <= Number(price) * 100) &&
+      (!date || pacificDate(s.start) === date) &&
+      (!coveredOnly ||
+        (!!plan && plan !== "Self-pay" && benefit.estimate !== null)) &&
+      (!patientCost ||
+        (benefit.estimate !== null &&
+          benefit.estimate <= Number(patientCost) * 100))
+    );
+  };
   const matchCount = state.slots.filter(matches).length;
   // Group each day's openings by clinic so one icon represents one clinic.
   const byDay = new Map<string, Map<string, SlotView[]>>();
@@ -118,13 +171,7 @@ export function SearchCare({
     year: "numeric",
     timeZone: "UTC",
   }).format(new Date(`${month}-01T12:00:00Z`));
-  const clear = () => {
-    setService("");
-    setCity("");
-    setPlan("");
-    setPrice("");
-    setDate("");
-  };
+  const clear = () => setPreferences({ ...defaultSearchPreferences });
   return (
     <>
       <section className="hero">
@@ -169,7 +216,9 @@ export function SearchCare({
           <select
             aria-label="Specialty"
             value={service}
-            onChange={(e) => setService(e.target.value)}
+            onChange={(e) =>
+              setService(e.target.value as SearchPreferences["service"])
+            }
           >
             <option value="">All specialties</option>
             {SERVICES.map((s) => (
@@ -195,7 +244,9 @@ export function SearchCare({
           <select
             aria-label="Insurance"
             value={plan}
-            onChange={(e) => setPlan(e.target.value)}
+            onChange={(e) =>
+              setPlan(e.target.value as SearchPreferences["plan"])
+            }
           >
             <option value="">All demo plans</option>
             {PLANS.map((p) => (
@@ -224,6 +275,57 @@ export function SearchCare({
             }}
           />
         </label>
+      </section>
+      <section
+        className={onboarding.benefits}
+        aria-label="Fictional insurance comparison"
+      >
+        <h3>Explore fictional PPO / HMO benefits</h3>
+        <p>
+          Compare synthetic plan scenarios, not verified coverage. Your saved
+          patient plan is {state.user?.plan}; browsing another insurer does not
+          change it. Maximum cost above is the full listed visit price.
+        </p>
+        <div className={onboarding.fields}>
+          <label>
+            Plan type
+            <select
+              aria-label="Plan type"
+              value={planType}
+              onChange={(e) => update({ planType: e.target.value as PlanType })}
+              disabled={!plan || plan === "Self-pay"}
+            >
+              <option value="PPO">PPO · demo</option>
+              <option value="HMO">HMO · demo</option>
+            </select>
+          </label>
+          <label className={onboarding.check}>
+            <input
+              type="checkbox"
+              checked={coveredOnly}
+              disabled={!plan || plan === "Self-pay"}
+              onChange={(e) => update({ coveredOnly: e.target.checked })}
+            />
+            Show only in-network demo scenarios
+          </label>
+          <label>
+            Maximum estimated patient cost ($)
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={patientCost}
+              disabled={!plan}
+              onChange={(e) => update({ patientCost: e.target.value })}
+            />
+          </label>
+        </div>
+        <p>
+          HMO examples use a narrower fictional network and exclude Cardiology.
+          PPO examples use a fictional remaining deductible plus coinsurance.
+          Select an opening for the calculation; unknown costs are never shown
+          as $0.
+        </p>
       </section>
       <div className="section-title">
         <div>
@@ -331,7 +433,7 @@ export function SearchCare({
                             <small>
                               {clinic.city} · {clinic.address}
                             </small>
-                            <ul>
+                            <ul className={onboarding.openings}>
                               {slots.map((s) => (
                                 <li key={s.id}>
                                   <button
@@ -339,7 +441,9 @@ export function SearchCare({
                                     className={
                                       matches(s) || !filtering ? "" : "dim"
                                     }
-                                    onClick={() => onDetail(s)}
+                                    onClick={() =>
+                                      onDetail(s, { provider: plan, planType })
+                                    }
                                   >
                                     <b>{timeLabel(s.start)}</b>
                                     <span>
@@ -347,6 +451,13 @@ export function SearchCare({
                                     </span>
                                     <span>{money(s.price)}</span>
                                   </button>
+                                  {plan && (
+                                    <CoverageSummary
+                                      slot={s}
+                                      provider={plan}
+                                      planType={planType}
+                                    />
+                                  )}
                                 </li>
                               ))}
                             </ul>
@@ -612,7 +723,9 @@ export function WaitlistForm({
             <select
               value={service}
               disabled={!!booking || !!existing}
-              onChange={(e) => setService(e.target.value)}
+              onChange={(e) =>
+                setService(e.target.value as SearchPreferences["service"])
+              }
             >
               {SERVICES.map((s) => (
                 <option key={s}>{s}</option>

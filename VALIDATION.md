@@ -133,3 +133,30 @@ Verification environment: existing installed dependencies copied to an independe
 - Original dirty worktree tracked/untracked source hashes unchanged. Backend/API/auth, schema, all migrations and dependency manifests/lockfile are unchanged from main.
 
 Initial new landing test failures were synchronization/label lookup problems: reloading before home navigation completed, then querying a wrapping label whose text included select options. Tests now wait for the actual home URL; the workspace selector has an explicit accessible name. No application safety assertion was deleted to obtain a pass. Limits: Chromium only, no complete screen-reader/WCAG/load audit, no real clinic/insurer/payment integrations or production healthcare compliance claim. Remote CI for this new PR is distinct from these local results.
+
+## Phase 3 — onboarding and insurance-guided calendar search
+
+Base: main **2e65bffc651c8edc834d68fc86a52ab91b726444**, after PR #8/#9 merged. Verified main [CI run 39006504739](https://github.com/AliceAn666/careousel/actions/runs/39006504739) succeeded before creating `feat/phase3-onboarding-insurance`. Selectively reviewed/adapted guided-insurance-search e6a802e; source branch unchanged. No regression-fix PR was needed because the main gate passed.
+
+Implemented optional patient/clinic walkthroughs adapted to current calendar, fictional benefits, combined appointments/waitlists, notifications and clinic priorities. Intake remains required first; guides never invoke actions/reset and only change screens/browser-local progress. Close/Escape restores focus, unfinished progress resumes by persona, and Finish allows replay. Added a patient getting-started card and compact accessible mobile launch.
+
+Reused the branch's fictional benefit rules and calculator tests. Calendar filters add PPO/HMO, optional simulated in-network/service checks and maximum estimated patient cost, retaining service/location/date/full-listed-price filters. Calendar popovers and details display cent-accurate fictional estimates, unknown/excluded cases and limitations. Browsing never modifies User.plan, session or server booking eligibility. Validated, versioned search preferences are browser-local and keyed by persona; navigation/refresh/home preserves them, identity changes remount the appropriate state, and corrupt/blocked storage falls back safely. Stale-persona detail/intake/waitlist/guide overlays close on persona switching.
+
+### Executed checks
+
+- `npm run lint`, `npm run typecheck`: passed.
+- `npm test`: **37 passed** (30 existing plus 4 adapted coverage and 3 preference validation/isolation/storage tests).
+- `npm run test:integration`: **34 PostgreSQL tests passed**, retaining scheduling concurrency, expiry/decline, ownership, intake, explicit reset and atomic history/rollback checks.
+- `npm run test:e2e`: **13 passed** in the complete rerun (all 10 Phase 1/2 tests unchanged, plus patient guide/progress/bookings, insurance filters/preferences/identity and clinic guide scenarios).
+- New browser coverage verifies intake gating, Back/Next/Finish/Escape/focus, resumed/replayed guide, 375px modal bounds, HMO Cardiology exclusion/network/location/cost rules, detail disclaimers, preference isolation across patient switches, unchanged saved plan and original booking, home/refresh continuity and clinic identity.
+- `npm run build`: passed. `npm run test:persistence`: passed; the confirmed booking and signed session survived a production-server restart against the isolated PostgreSQL database.
+- Modified-file Prettier and `git diff --check`: passed. Backend/API/auth, schema, migrations and dependency manifests/lockfile unchanged.
+- Production-mode desktop/mobile screenshots captured and inspected. Mobile horizontal overflow=false and page script errors=[]; guide fits the viewport. Scrollable calendar time lists and a compact mobile guide button preserve navigation space.
+
+Used a **new independent PostgreSQL 17 container on port 5544**, database careousel_test. Only existing unchanged migrations were applied there; all test fixture resets affect only that database. No connection/reset/reseed/migration of shared demo data. Independent copied dependencies and unchanged lockfile; Node 24.19.0 and system Chromium. Original dirty worktree is preserved.
+
+### Compatibility and limitations
+
+Old branch code assumed appointment cards, separate waitlist navigation and ungated tours. Those assumptions were adapted rather than restoring removed UI. Native bounded guide dialogs replace brittle spatial highlights; actual scheduling APIs are untouched. Original tests did not need weaker assertions or selector removals. New storage validation also rejects impossible calendar dates and invalid cost values. No dependency installation, public deployment or automatic merge.
+
+PPO/HMO rules, deductible/copay/coinsurance and referral notes are entirely fictional: no insurer API, actual benefit verification, guaranteed coverage, real payment or clinical eligibility clearance. Patient Careousel booking fee remains zero. Preferences/guide progress do not sync across devices and are not authorization. Real plan enrollment, referral/authorization review, internal-priority network release, multi-need schema, billing/deposits and production identity/compliance remain unfinished/outside this phase. Chromium-only verification is not a complete accessibility/load/security audit. PRD P3-01–04 and README/TASKS/AGENTS document the delivered scope; optional future requirements remain marked as gaps.

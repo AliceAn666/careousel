@@ -31,6 +31,10 @@ import { IntakeQuestionnaire } from "./patient-intake";
 import { ClinicSchedule, Matches, ActivityFeed } from "./clinic-portal";
 import { Priorities } from "./clinic-priorities";
 import { DemoGuide } from "./demo-guide";
+import { GuidedTour } from "./guided-tour";
+import { CoverageSummary } from "./coverage-summary";
+import type { PlanType } from "@/lib/demo-coverage";
+import onboarding from "./onboarding.module.css";
 import { LandingPage } from "./landing-page";
 // Demo guide and Activity stay reachable by URL but are hidden from navigation.
 const navPatient = [
@@ -62,6 +66,11 @@ export function CareouselApp() {
     [showWaitlist, setShowWaitlist] = useState(false),
     [detail, setDetail] = useState<SlotView | null>(null),
     [showSummary, setShowSummary] = useState(false);
+  const [tour, setTour] = useState(false);
+  const [coverage, setCoverage] = useState<{
+    provider: string;
+    planType: PlanType;
+  }>({ provider: "", planType: "PPO" });
   const path = usePathname(),
     router = useRouter();
   const load = useCallback(async () => {
@@ -85,6 +94,10 @@ export function CareouselApp() {
   }, [load]);
   // Persona changes affect only this browser session, never shared demo rows.
   async function selectPersona(id: string) {
+    setTour(false);
+    setDetail(null);
+    setShowWaitlist(false);
+    setShowSummary(false);
     setNotice("");
     setBusy(true);
     setError("");
@@ -125,6 +138,7 @@ export function CareouselApp() {
     setShowWaitlist(true);
   }
   function goHome() {
+    setTour(false);
     router.push("/");
   }
   // Public home is independent of session loading. Entering a workspace never
@@ -283,6 +297,19 @@ export function CareouselApp() {
                   {personaOptions}
                 </select>
               </label>
+              <button
+                className={`secondary tour-launch ${onboarding.launch}`}
+                aria-label="Quick tour"
+                disabled={needsIntake || busy}
+                title={
+                  needsIntake
+                    ? "Complete the synthetic intake before the guide"
+                    : "Open step-by-step guidance"
+                }
+                onClick={() => setTour(true)}
+              >
+                Quick tour
+              </button>
               <span className="timezone">Pacific time</span>
               <button
                 className="icon-button"
@@ -344,6 +371,24 @@ export function CareouselApp() {
                 </button>
               </div>
             )}
+            {!staff && !needsIntake && path === "/search" && (
+              <section
+                className={onboarding.start}
+                aria-label="Patient getting started"
+              >
+                <div>
+                  <h2>Your path to earlier care</h2>
+                  <p>
+                    1. Find a suitable opening. 2. Compare fictional benefits.
+                    3. Keep your original appointment while you wait. 4. Review
+                    a clinic-approved offer.
+                  </p>
+                </div>
+                <button className="secondary" onClick={() => setTour(true)}>
+                  Start patient guide
+                </button>
+              </section>
+            )}
             <div aria-busy={busy} className={busy ? "content busy" : "content"}>
               {needsIntake ? (
                 <IntakeQuestionnaire act={submitIntake} />
@@ -366,7 +411,11 @@ export function CareouselApp() {
               ) : (
                 <SearchCare
                   state={state}
-                  onDetail={setDetail}
+                  key={user.id}
+                  onDetail={(slot, selection) => {
+                    setDetail(slot);
+                    setCoverage(selection);
+                  }}
                   onWaitlist={() => join()}
                 />
               )}
@@ -377,6 +426,15 @@ export function CareouselApp() {
             </footer>
           </main>
         </div>
+        {tour && !needsIntake && (
+          <GuidedTour
+            key={user.id}
+            userId={user.id}
+            staff={!!staff}
+            navigate={(route) => router.push(route)}
+            onClose={() => setTour(false)}
+          />
+        )}
         {detail && (
           <Modal title="Appointment details" onClose={() => setDetail(null)}>
             <div className="detail-banner">
@@ -408,8 +466,15 @@ export function CareouselApp() {
                 <dd>{money(detail.price)}</dd>
               </div>
             </dl>
+            <CoverageSummary
+              slot={detail}
+              provider={coverage.provider}
+              planType={coverage.planType}
+            />
             <p className="demo-note">
-              Demo insurance compatibility:{" "}
+              Booking uses your saved persona plan, {user.plan}. PPO/HMO search
+              scenarios do not change that plan or verify coverage. Demo
+              insurance compatibility:{" "}
               {detail.plans.includes(user.plan)
                 ? `${user.plan} accepted`
                 : "Plan not accepted"}

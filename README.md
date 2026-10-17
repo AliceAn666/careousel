@@ -101,3 +101,11 @@ Current owner is the user working with Codex. See [docs/final-integration.md](do
 ## Phase 2: proposal and public home
 
 The October 14 business proposal is the product requirements source of truth in PRD.md, with requirement/task/acceptance traceability. TASKS.md and AGENTS.md use the user + Codex ownership model. Phase 2 selectively adapts PR #5/#6 onto the CI-verified post-PR #8 main; it does not integrate registration, group notifications, insurance tours or database changes. The current base has no registration endpoint. Public home is reachable through the workspace home buttons even with an active session; it never invokes Reset Demo.
+
+## Patient guide and fictional insurance comparison (Phase 3)
+
+Complete the synthetic first-visit intake first, then use **Start patient guide** or **Quick tour**. Next/Back visits the current calendar, insurance comparison, combined appointments/waitlists and inbox. Close or Escape to try a screen; reopen to resume. Finish resets only guide progress so it can be replayed. Clinic guidance uses schedule, matches and priorities. It never changes appointments.
+
+In Find care, choose a fictional insurer and PPO/HMO. Optionally show only in-network demo scenarios or cap the **estimated patient cost**. The existing **Maximum cost** still limits the full listed price. HMO examples have a narrower fictional network and exclude Cardiology; PPO examples apply a fictional $50 remaining deductible then 20% coinsurance. These rules are illustrative, not verified benefits. Open a calendar time for a cent-accurate estimate and exclusions/limitations. Booking uses the persona's saved demo plan; browsing another insurer does not change it or verify coverage.
+
+Search preferences and guide progress are stored only in this browser, separately for each synthetic persona. Navigation, refresh and returning home preserve identity and database state. Corrupt/blocked browser storage falls back safely; cross-device preference synchronization is not provided. No real patient information, plan identifiers or payments should be entered.
