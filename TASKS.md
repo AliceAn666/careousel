@@ -6,17 +6,28 @@ Ownership: **the user working independently with Codex**. No five-person assignm
 
 - Phase 1: PR #8 merged into main `3e49886`; main CI run 39005432827 passed before Phase 2 began. Preserve intake gate, calendar search, combined appointments/waitlists, explicit original-booking selection, atomic replacement, no-reset navigation/session behavior and isolated-test protections.
 - Phase 2 (`feat/phase2-proposal-landing`): selectively integrate PR #5 requirements and PR #6 public landing presentation. Adapt role entrances and tests to the current app, never replace current app/service snapshots wholesale. No schema or migration changes, registration implementation, batch notifications, tours, deployment or automatic merge.
-- Registration, bilingual/batch and guided-insurance branches remain future work. Current main has no registration endpoint. Inventory and migration risks remain in docs/final-integration.md.
+- Registration and bilingual/batch branches remain future work; guided-insurance functionality is selectively adapted in Phase 3, not merged wholesale. Current main has no registration endpoint. Inventory and migration risks remain in docs/final-integration.md.
 - Uncommitted original-worktree SQL-clock/history/integrity patches are reference work only; preserve their files. Their reversed history relation and alternative migration names must not be applied over main blindly.
 
-## Phase 2 completion gate
+## Phase 2 completion gate — merged in PR #9
 
 - [x] Verify PR #8 merged and exact latest-main CI successful before branching.
 - [x] Adapt PRD/AGENTS/TASKS to proposal requirements, current baseline and sole ownership.
 - [x] Integrate independent landing component/styles, patient-first hero, working anchors, patient and clinic entrances, synthetic labels and existing-session continuity.
 - [x] Retain Phase 1 tests; change only public entrance selectors where necessary. Extend landing tests for new and returning personas, intake gate, clinic scope, browser refresh, keyboard/mobile/reduced-motion and state outage/retry.
 - [x] Run lint/typecheck/unit/PostgreSQL integration/browser/build and production restart persistence; actual results are recorded in VALIDATION.md.
-- [ ] User review of the Phase 2 PR targeting main; do not merge automatically. No change to shared demo data or migration files.
+- [x] User review and merge of Phase 2 PR #9; do not merge automatically. No change to shared demo data or migration files.
+
+## Current Phase 3 — onboarding and insurance
+
+Sole owner: user + Codex. Base main 2e65bff, CI 39006504739 passed before work; adapt e6a802e selectively. Scope is P3-01–04 in PRD, supporting BP02/07/11/13 and existing T5/T6 work, not completion of every proposal requirement.
+
+- [x] Preserve first-visit intake, public home, calendar/combined page and clinic priority workflow; adapt guide routes and copy rather than old card/navigation code.
+- [x] Add optional, resumable read-only patient and clinic guides with keyboard/focus/mobile support; no automatic popup, booking or reset.
+- [x] Add fictional PPO/HMO calculator, network/service and patient-cost filters to calendar/popups/details; keep listed price and browsing comparison distinct from saved patient booking plan.
+- [x] Scope browser-local preferences/progress to persona; validate storage and handle unavailable storage. Clear transient old-persona overlays during switching.
+- [x] Run lint/typecheck/unit/PostgreSQL integration/browser/build and record actual results in VALIDATION.md; all passed, including 37 unit, 34 integration and 13 browser tests; preserve all Phase 1/2 assertions.
+- [ ] User review of Phase 3 PR targeting main; no automatic merge/deploy. No shared database changes or schema/migration work.
 
 ## Subsequent tasks and dependencies
 
@@ -37,12 +48,12 @@ Implement the following only in later authorized scopes. Cut optional AI, deposi
 
 ## Concrete milestone sequence
 
-1. **Current Phase 2:** documentation + public landing, preserving all baseline behavior. Review PR first.
+1. **Completed Phase 2:** documentation + public landing merged in PR #9. Preserve all baseline behavior. Current Phase 3 adapts onboarding and fictional insurance comparisons.
 2. **Next integration:** adapt synthetic registration/clinic notifications behind existing sessions, with honest demo identity wording and scoped tests. Preserve safe reset and intake behavior; remove any inherited automatic restart code.
 3. **Qualified internal clinic slice:** T1/T2 minimum contracts, one low-complexity service, internal queue and staff stage → offer → patient response. T5 UI and T6 tests accompany services.
 4. **Authorized network slice:** T3 explicit release/consent plus T4 atomic cross-clinic replacement. Retain independent needs, original protection, expiry, no-match and concurrency cases.
 5. **Impact and rehearsal:** T7 minimal dashboard and T6 final safety/claim/accessibility checks. Rehearse from explicitly approved fixtures with visibly synthetic short timing policies.
-6. **Optional adaptation:** separate language provider/strings from batch state semantics; port fictional insurance calculator to calendar/details before optional tour. T8 notes AI and T9 deposits remain below core.
+6. **Optional adaptation:** separate language provider/strings from batch state semantics; retain the Phase 3 fictional calculator/calendar adaptation and optional guide; integrate future coverage changes without implying real verification. T8 notes AI and T9 deposits remain below core.
 
 ## Branch and migration review gates
 

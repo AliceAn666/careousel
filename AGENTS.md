@@ -2,7 +2,7 @@
 
 ## Current authorization
 
-The user and Codex are the sole owners. Phase 2 is authorized on `feat/phase2-proposal-landing`, after PR #8 merged and main 3e49886 CI run 39005432827 passed: selectively adapt proposal requirements from PR #5 and the public landing page from PR #6. Preserve current intake, calendar, combined appointments/waitlists, clinic flows and Phase 1 no-reset/session/scheduling protections. Do not integrate registration/batch/insurance/tour branches in this phase. Do not modify schema or migrations, reset/reseed shared data, push to main, modify teammate branches, merge automatically or deploy publicly.
+The user and Codex are the sole owners. Phase 3 is authorized on `feat/phase3-onboarding-insurance` from main 2e65bff after PR #8/#9 merged and main CI run 39006504739 passed. Selectively adapt the guided-insurance-search branch to current intake, calendar, combined appointments/waitlists, public landing and clinic priorities. Preserve all Phase 1/2 no-reset/session/scheduling safeguards. Registration/batch/localization and database changes remain outside this phase. Do not reset/reseed shared data, modify teammate branches, push directly to main, merge automatically or deploy publicly.
 
 ## Read first
 
@@ -52,15 +52,23 @@ Committed changes must persist across app restarts. Ordinary startup must not re
 ## Proposal requirements and truthful scope
 
 - A unified patient account may manage independent needs; current one-active-request-per-service limit and broad offer revocation remain documented gaps. Preserve safe explicit original-booking links.
-- Internal clinic enrollment takes priority; external network release needs explicit clinic authorization, window policy, network membership and patient consent. Current clinicIds preferences do not establish permission. These mechanisms remain planned, not implemented by Phase 2.
+- Internal clinic enrollment takes priority; external network release needs explicit clinic authorization, window policy, network membership and patient consent. Current clinicIds preferences do not establish permission. These mechanisms remain planned; onboarding/insurance comparisons do not implement release authorization.
 - Future pre-screening covers exact service/duration, specific synthetic plan, referral/authorization validity, cost/time and arrival ability; required unknown evidence must not be treated as approved. Do not collect real medical records.
 - Human clinician markers and staff-selected stages are the intended priority model. Existing synthetic questionnaire scores are not validated clinical urgency or treatment approval; AI may not classify urgency, approve treatment, set priority or mutate bookings.
 - Optional administrative AI may summarize only authorized synthetic notes and identify missing information; preserve deterministic no-key/error/timeout fallback. Current AI explains eligibility only.
 - Clinic impact metrics need structured provenance and denominators; distinguish observed recovery from hypothetical incremental effects. Admin effort and financial outputs must be labeled simulated.
 - Patient Careousel booking fee is $0, separate from estimated medical-service cost. Clinic subscription/usage pricing is an assumption; real transaction-based billing requires legal review and separate approval.
 - Optional deposits remain deferred until core/fairness safeguards, waiver/refund/dispute design, legal review and approval. No real insurance verification, hospital integration, payments or production compliance claims.
-- Keep BP01–13 → T0–T9 → AT-BP01–13 traceability current, retain legacy AC01–15 protections and report partial/missing/deferred honestly. Phase 2 has no schema/migration work; do not copy old local history migrations or competing 0003 designs.
+- Keep BP01–13 → T0–T9 → AT-BP01–13 traceability current, retain legacy AC01–15 protections and report partial/missing/deferred honestly. This phase has no schema/migration work; do not copy old local history migrations or competing 0003 designs.
 - New landing CSS must stay isolated from internal dashboards. Role entrances use existing signed demo sessions; same-role navigation resumes the active persona, public home remains available, and no navigation calls a reset endpoint. Registration is absent on the current base and is not added here.
+
+## Onboarding and insurance browsing
+
+- Intake remains authoritative before first-visit scheduling. Guides are optional, manually opened and read-only; disable launch during incomplete intake. Use current calendar and combined appointments/waitlists routes, never restore removed navigation or auto-book/reset actions.
+- Search and guide progress are optional browser-local conveniences, versioned and scoped to the current synthetic persona. Validate persisted preferences, handle corrupt/blocked storage, and remount search on identity change. Never treat browser state as authorization or real clinical/insurance data.
+- PPO/HMO scenarios are fictional comparisons. Do not mutate User.plan, session identity, bookings or eligibility when browsing. Booking still checks the saved patient plan and all server safeguards; prominently explain comparison-versus-booking identity in details.
+- Keep listed medical cost and simulated out-of-pocket cost distinct. Unknown coverage is not $0; show estimates to cents, disclaim omitted benefits/charges and guarantees, and never claim real insurer verification. Referral/authorization text is simulated guidance, not approved eligibility.
+- Preserve all existing browser acceptance assertions. Add guide keyboard/focus/mobile, preferences/filtering, identity/session and original-booking-preservation tests. Use the isolated database only; include full scheduling regression suites.
 
 ## Verification after approval
 
