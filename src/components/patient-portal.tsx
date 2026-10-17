@@ -19,7 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { CoverageSummary } from "./coverage-summary";
-import { demoCoverage, type PlanType } from "@/lib/demo-coverage";
+import { demoClinicAccepts, demoCoverage, type PlanType } from "@/lib/demo-coverage";
 import {
   readSearchPreferences,
   saveSearchPreferences,
@@ -41,6 +41,7 @@ import {
   SERVICES,
   pacificDateBoundary,
   pacificDate,
+  timeLabel,
 } from "@/lib/config";
 import { Status, Empty, Modal } from "./ui";
 const CLINIC_ICONS: Record<string, LucideIcon> = {
@@ -357,12 +358,13 @@ export function SearchCare({
           />
         ) : (
           clinicOptions.map(({ slots, first, compatible }) => {
-            const defaultSlot =
-              (plan
-                ? slots.find(
-                    (slot) => demoCoverage(slot, plan, planType).estimate !== null,
-                  )
-                : undefined) ?? first;
+            const clinicInNetwork =
+              !!plan &&
+              plan !== "Self-pay" &&
+              demoClinicAccepts(first.clinicId, plan, planType, first.plans);
+            const availableDays = [
+              ...new Set(slots.map((slot) => pacificDate(slot.start))),
+            ];
             return (
               <article
                 className="card search-result clinic-availability"
@@ -380,14 +382,16 @@ export function SearchCare({
                   {plan && plan !== "Self-pay" && (
                     <p
                       className={
-                        compatible > 0
+                        clinicInNetwork && compatible > 0
                           ? "insurance-match insurance-match-good"
                           : "insurance-match insurance-match-warning"
                       }
                     >
-                      {compatible > 0
-                        ? `${compatible} opening(s) with matching fictional ${plan} ${planType} benefits`
-                        : `${plan} ${planType}: out-of-network or uncovered in this demo. Self-pay remains possible.`}
+                      {clinicInNetwork
+                        ? compatible > 0
+                          ? `Accepts ${plan} ${planType} · demo network`
+                          : `Accepts ${plan} ${planType} · ${first.service} excluded by this fictional plan`
+                        : `Does not accept ${plan} ${planType} · Self-pay available`}
                     </p>
                   )}
                   {plan === "Self-pay" && (
@@ -395,60 +399,57 @@ export function SearchCare({
                       Self-pay: full listed price, no insurance benefit applied
                     </p>
                   )}
-                  <p className="muted">Available dates and times (Pacific):</p>
-                  <div
-                    className="clinic-time-options"
-                    role="group"
-                    aria-label={`Available times at ${first.clinic.name} for ${first.service}`}
-                  >
-                    {slots.slice(0, 9).map((slot) => {
-                      const accepted =
-                        !plan ||
-                        demoCoverage(slot, plan, planType).estimate !== null;
+                  <p className="muted">
+                    Select an available time to confirm your appointment
+                    (Pacific):
+                  </p>
+                  <div className="clinic-date-groups">
+                    {availableDays.map((day) => {
+                      const daySlots = slots.filter(
+                        (slot) => pacificDate(slot.start) === day,
+                      );
                       return (
-                        <button
-                          key={slot.id}
-                          type="button"
-                          className="booking-choice clinic-time-choice"
-                          onClick={() =>
-                            onDetail(slot, {
-                              provider: plan,
-                              planType,
-                            })
-                          }
-                          title={
-                            accepted
-                              ? "View this available appointment"
-                              : "Demo insurance may not apply; self-pay can be selected"
-                          }
-                        >
-                          {dateLabel(slot.start)}
-                          {plan && !accepted && (
-                            <span className="clinic-time-warning"> · Self-pay</span>
-                          )}
-                        </button>
+                        <div key={day} className="clinic-date-group">
+                          <strong className="clinic-date-label">
+                            {new Intl.DateTimeFormat("en-US", {
+                              timeZone: "America/Los_Angeles",
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric",
+                            }).format(new Date(daySlots[0].start))}
+                          </strong>
+                          <div
+                            className="clinic-time-options"
+                            role="group"
+                            aria-label={`Available times at ${first.clinic.name} for ${first.service} on ${day}`}
+                          >
+                            {daySlots.map((slot) => (
+                              <button
+                                key={slot.id}
+                                type="button"
+                                className="booking-choice clinic-time-choice"
+                                data-slot-id={slot.id}
+                                aria-label={`Book ${first.service} at ${first.clinic.name}, ${dateLabel(slot.start)}`}
+                                onClick={() =>
+                                  onDetail(slot, {
+                                    provider: plan,
+                                    planType,
+                                  })
+                                }
+                              >
+                                {timeLabel(slot.start)}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
-                  {slots.length > 9 && (
-                    <p className="muted">
-                      +{slots.length - 9} more openings — view all in details.
-                    </p>
-                  )}
                   <p className="muted">
                     Listed visit prices from {money(Math.min(...slots.map((slot) => slot.price)))}.
                     Demo insurers are not verified.
                   </p>
                 </div>
-                <button
-                  className="primary"
-                  data-slot-id={defaultSlot.id}
-                  onClick={() =>
-                    onDetail(defaultSlot, { provider: plan, planType })
-                  }
-                >
-                  View details &amp; book
-                </button>
               </article>
             );
           })
