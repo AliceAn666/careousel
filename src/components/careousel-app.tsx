@@ -24,7 +24,7 @@ import type {
   SlotView,
   Booking,
 } from "@/lib/types";
-import { dateLabel, money, pacificDate, timeLabel, PLANS, VISIT_TYPES } from "@/lib/config";
+import { dateLabel, money, PLANS, VISIT_TYPES } from "@/lib/config";
 import { demoCoverage } from "@/lib/demo-coverage";
 import { request } from "@/lib/api";
 import { FeedbackContext, Modal } from "./ui";
@@ -255,25 +255,6 @@ export function CareouselApp() {
   const user = state.user,
     staff = user?.role === "STAFF",
     unread = state.notifications.filter((n) => !n.read).length;
-  // Offer real opening choices for the same clinic, specialty and clinician.
-  // Booking still submits the exact selected slot ID, preserving server validation.
-  const appointmentChoices = detail
-    ? state.slots
-        .filter(
-          (slot) =>
-            slot.clinicId === detail.clinicId &&
-            slot.service === detail.service,
-        )
-        .sort(
-          (a, b) =>
-            +new Date(a.start) - +new Date(b.start) ||
-            a.id.localeCompare(b.id),
-        )
-    : [];
-  const appointmentDates = [
-    ...new Set(appointmentChoices.map((slot) => pacificDate(slot.start))),
-  ];
-  const selectedDay = detail ? pacificDate(detail.start) : "";
   const appointmentInsurer = coverage.provider || state.user?.plan || "";
   const selectedBenefit = detail
     ? demoCoverage(detail, appointmentInsurer, coverage.planType)
@@ -575,54 +556,10 @@ export function CareouselApp() {
               </div>
             </div>
             <p>{detail.clinic.description}</p>
-            <section className="booking-choices" aria-label="Choose appointment time">
-              <h3>Choose your date and time</h3>
-              <p className="muted">
-                {appointmentChoices.length} available{" "}
-                {appointmentChoices.length === 1 ? "opening" : "openings"} for
-                this service at this clinic. All times are Pacific.
-              </p>
-              <div className="booking-choice-group" role="group" aria-label="Available appointment dates">
-                {appointmentDates.map((day) => {
-                  const first = appointmentChoices.find(
-                    (slot) => pacificDate(slot.start) === day,
-                  )!;
-                  return (
-                    <button
-                      key={day}
-                      type="button"
-                      className="booking-choice"
-                      aria-pressed={day === selectedDay}
-                      disabled={busy}
-                      onClick={() => setDetail(first)}
-                    >
-                      {new Intl.DateTimeFormat("en-US", {
-                        timeZone: "America/Los_Angeles",
-                        weekday: "short",
-                        month: "short",
-                        day: "numeric",
-                      }).format(new Date(first.start))}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="booking-choice-group" role="group" aria-label="Available appointment times">
-                {appointmentChoices
-                  .filter((slot) => pacificDate(slot.start) === selectedDay)
-                  .map((slot) => (
-                    <button
-                      key={slot.id}
-                      type="button"
-                      className="booking-choice"
-                      aria-pressed={detail.id === slot.id}
-                      disabled={busy}
-                      onClick={() => setDetail(slot)}
-                    >
-                      {timeLabel(slot.start)} · {slot.provider}
-                    </button>
-                  ))}
-              </div>
-            </section>
+            <p className="demo-note">
+              Please confirm the appointment time you selected. To choose a
+              different opening, close this window and select another time.
+            </p>
             <dl className="detail-grid">
               <div>
                 <dt>Service</dt>
