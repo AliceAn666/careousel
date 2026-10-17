@@ -146,3 +146,45 @@
     flex: 1 1 150px;
   }
 }
+
+/* Keep password visibility controls comfortably tappable without obscuring input. */
+.passwordField {
+  display: block;
+  position: relative;
+  width: 100%;
+}
+
+.passwordField input {
+  display: block;
+  width: 100%;
+  padding-right: 58px;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #334d47;
+  cursor: pointer;
+}
+
+.passwordToggle:hover {
+  background: #edf6f2;
+}
+
+.passwordToggle:focus-visible {
+  outline: 3px solid #155e4a;
+  outline-offset: 2px;
+}
