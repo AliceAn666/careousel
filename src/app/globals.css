@@ -2228,6 +2228,126 @@ textarea {
   border-color: var(--teal);
 }
 
+/* Clinic-first appointment results and insurance-first demo workflow. */
+.insurance-selection {
+  margin-bottom: 18px;
+  padding: 22px 24px;
+}
+.insurance-selection > h3 {
+  margin-bottom: 8px;
+}
+.insurance-selection > p {
+  margin-bottom: 12px;
+}
+.insurance-selection-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 14px 0;
+}
+.clinic-availability {
+  align-items: stretch;
+}
+.clinic-availability > .primary {
+  align-self: center;
+  flex: 0 0 auto;
+}
+.clinic-time-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.clinic-time-choice {
+  font-weight: 600;
+  white-space: normal;
+  text-align: left;
+}
+.clinic-time-warning {
+  color: #995a16;
+}
+.insurance-match {
+  display: inline-block;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  margin: 10px 0 4px;
+  background: #f6f8f6;
+}
+.insurance-match-good {
+  border-color: #b5d9c7;
+  color: #205c3d;
+  background: #ebf6ee;
+}
+.insurance-match-warning,
+.insurance-booking-warning {
+  border-color: #eacda6;
+  color: #875014;
+  background: #fff6e8;
+}
+.insurance-booking-warning {
+  border: 1px solid #eacda6;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 15px 0;
+  font-size: 13px;
+}
+@media (max-width: 680px) {
+  .insurance-selection-fields {
+    grid-template-columns: 1fr;
+  }
+  .clinic-availability > .primary {
+    align-self: stretch;
+  }
+}
+
+/* Keep clinic-first search within the viewport on compact phones. */
+.insurance-selection,
+.filter-card,
+.search-intro,
+.clinic-availability,
+.clinic-availability .grow,
+.clinic-time-options,
+.section-title {
+  min-width: 0;
+  max-width: 100%;
+}
+.section-title {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.section-title > div {
+  min-width: 0;
+  max-width: 100%;
+}
+.section-title h2 {
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.section-title .result-count {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.clinic-time-choice {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 680px) {
+  .section-title {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .section-title .button-row {
+    flex-wrap: wrap;
+  }
+  .clinic-availability .grow {
+    width: 100%;
+  }
+}
+
 /* Second readability pass: space and real text hierarchy, not only font sizes. */
 .sidebar {
   width: 275px;
@@ -2474,5 +2594,33 @@ fieldset {
   .request-card,
   .notification {
     gap: 18px;
+  }
+}
+/* Preserve PR #27 clinic-first booking while making its new labels readable. */
+.insurance-match {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  padding: 10px 14px;
+}
+.insurance-booking-warning {
+  font-size: 1rem;
+  line-height: 1.65;
+  padding: 17px 20px;
+}
+.insurance-selection {
+  padding: 30px;
+  margin-bottom: 26px;
+}
+.insurance-selection-fields {
+  gap: 22px;
+  margin: 22px 0;
+}
+.clinic-time-options {
+  gap: 12px;
+  margin: 20px 0;
+}
+@media (max-width: 680px) {
+  .insurance-selection {
+    padding: 24px;
   }
 }
