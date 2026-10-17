@@ -73,7 +73,7 @@
 .fieldError {
   margin: -12px 0 0;
   color: #b42318;
-  font-size: 13px;
+  font-size: 0.875rem;
   line-height: 1.45;
 }
 
@@ -84,14 +84,14 @@
   border-radius: 9px;
   background: #fff1f2;
   color: #a61b1b;
-  font-size: 14px;
+  font-size: 1rem;
   line-height: 1.45;
 }
 
 .hint {
   margin: -12px 0 0;
   color: #51665c;
-  font-size: 12px;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 

@@ -38,6 +38,8 @@ Keep UI in `src/app`/`src/components`, domain behavior in `src/server/services`,
 
 ## Coding conventions
 
+- Readable typography: use 1rem body and form controls (16px at the standard browser setting), approximately 0.9375rem labels and 0.875rem supporting text. Do not shrink functional mobile copy back to 9–12px. Prefer rem, allow text/navigation wrapping and check narrow screens and enlarged text. Decorative illustration lettering is separate from operational UI.
+
 - Strict TypeScript; avoid `any`, unchecked assertions and ignored errors. Use explicit domain types and validated request schemas.
 - PascalCase components/types, camelCase functions/variables, clear route and file names following framework conventions. Favor small focused modules over generic abstraction.
 - Reuse shared form, status, money and date components. Centralize state enums, offer lifetime and demo configuration.
@@ -141,7 +143,6 @@ At the R1 baseline, staff used server-authorized, pre-authorized synthetic sessi
 ### Latest-main PR #15 compatibility
 
 PR #15 merged during development (main f5212eb, successful CI). Preserve its canonical service identifiers Vaccination, Blood test and Routine examination, existing-booking prefilled earlier-request shortcut and /patient, /earlier, /needs, /health-information routes. The task hub remains accessible; normal login opens search directly. The health-information page preserves historical self-report, adds approved clinician tags in Phase 8 Part A, and leaves imports for PR2: PR #15's optional questionnaire is explicitly superseded by the latest user requirement and removed. Patient task labels use the three standardized appointment/waitlist activities. Existing/new PR #15 safety tests remain, adapted only for this intentionally removed optional questionnaire and search interface.
-
 
 ## Phase 8 Part B — record privacy and clinical review
 
