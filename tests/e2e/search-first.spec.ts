@@ -41,26 +41,26 @@ test("clinic-first service grouping, selectable times, and optional waitlist pre
     expect(state.slots.some((s: { id: string }) => s.id === id)).toBe(true);
   for (const card of await cards.all()) {
     await expect(card.getByRole("heading")).toBeVisible();
+    await expect(card.locator(".clinic-time-choice").first()).toBeVisible();
     await expect(
       card.getByRole("button", { name: "View details & book" }),
-    ).toBeVisible();
+    ).toHaveCount(0);
   }
-  // The details dialog must offer the real available dates at the selected clinic.
+  // Every opening is visible and opens confirmation for that exact time.
   const cedarCard = cards
     .filter({ hasText: "Cedar Health" })
     .filter({ hasText: "Cardiology" })
     .first();
-  await cedarCard.getByRole("button", { name: "View details & book" }).click();
-  const bookingDialog = page.getByRole("dialog");
-  const availableDates = bookingDialog
-    .getByRole("group", { name: "Available appointment dates" })
-    .getByRole("button");
-  await expect.poll(() => availableDates.count()).toBeGreaterThan(1);
-  await availableDates.nth(1).click();
-  await expect(availableDates.nth(1)).toHaveAttribute("aria-pressed", "true");
+  const choices = cedarCard.locator("button[data-slot-id]");
+  await expect.poll(() => choices.count()).toBeGreaterThan(3);
+  const chosenId = await choices.nth(2).getAttribute("data-slot-id");
+  const chosenSlot = state.slots.find((s: { id: string }) => s.id === chosenId);
+  await choices.nth(2).click();
+  const bookingDialog = page.getByRole("dialog", { name: "Appointment details" });
+  await expect(bookingDialog).toContainText(chosenSlot.provider);
   await expect(
     bookingDialog.getByRole("group", { name: "Available appointment times" }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await bookingDialog.getByRole("button", { name: "Close dialog" }).click();
   await page.getByLabel("Medical service or specialty").fill("cardiology");
   await expect.poll(() => cards.count()).toBeGreaterThan(0);
