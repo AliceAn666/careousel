@@ -160,8 +160,52 @@ try {
     throw new Error(
       "Staff request priority/history did not survive server restart.",
     );
+  // Phase 7: seed ONLY the explicitly guarded test database. Authorize a
+  // sequence with controlled past time, stop the web server, execute a fresh
+  // worker process, then inspect persisted actual sends after another restart.
+  await stop();
+  process.env.DATABASE_URL = url;
+  process.env.DEMO_MODE = "true";
+  const { notificationScenario, startScenario } =
+    await import("../tests/helpers/notification-scenario");
+  const { GROUP_INTERVAL_MS } =
+    await import("../src/server/services/notification-sequences");
+  const { db } = await import("../src/server/db");
+  const simulated = new Date(Date.now() - GROUP_INTERVAL_MS - 1000);
+  await notificationScenario(simulated);
+  await startScenario(simulated);
+  await db.$disconnect();
+  const worker = spawn(
+    process.execPath,
+    ["--import", "tsx", "scripts/notification-worker.ts", "--once"],
+    {
+      stdio: "inherit",
+      env: { ...process.env, DATABASE_URL: url!, DEMO_MODE: "true" },
+    },
+  );
+  const workerCode = await new Promise<number | null>((resolve) =>
+    worker.once("exit", resolve),
+  );
+  if (workerCode !== 0) throw new Error("Restarted worker failed.");
+  await start();
+  const scheduledState = await (
+    await fetch(base + "/api/state", { headers: { cookie: staffCookie } })
+  ).json();
+  const scheduled = scheduledState.sequences.find(
+    (s: { slotId: string }) => s.slotId === "earlier",
+  );
+  if (
+    !scheduled ||
+    scheduled.groups.filter((g: { status: string }) => g.status === "SENT")
+      .length !== 2 ||
+    !scheduled.nextSendAt
+  )
+    throw new Error(
+      "Authorized sequence failed to recover overdue P2 after worker/server restart.",
+    );
+  await stop();
   console.log(
-    "PASS: confirmed booking, signed demo sessions, individual account session and request priority/history survived a production-server restart against PostgreSQL.",
+    "PASS: booking, account/demo sessions, request priority/history and authorized automatic sequence survived production restart; independent restarted worker sent overdue P2 with no browser/web server running.",
   );
 } finally {
   await stop();

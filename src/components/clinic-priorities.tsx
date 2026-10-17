@@ -23,6 +23,12 @@ function RequestPriority({
   act: Action;
 }) {
   const current = request.priorities[0];
+  const [referralApproved, setReferralApproved] = useState(
+    current?.referralApproved ?? false,
+  );
+  const [authorizationApproved, setAuthorizationApproved] = useState(
+    current?.authorizationApproved ?? false,
+  );
   const [level, setLevel] = useState<PriorityLevel | "">(""),
     [reason, setReason] = useState(""),
     [saving, setSaving] = useState(false);
@@ -65,6 +71,8 @@ function RequestPriority({
                 level,
                 reason: reason.trim(),
                 expectedVersion: current?.version ?? 0,
+                referralApproved,
+                authorizationApproved,
               })
             ) {
               setReason("");
@@ -100,6 +108,22 @@ function RequestPriority({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />
+        </label>
+        <label className="sequence-recipient">
+          <input
+            type="checkbox"
+            checked={referralApproved}
+            onChange={(e) => setReferralApproved(e.target.checked)}
+          />
+          Referral reviewed and approved (synthetic)
+        </label>
+        <label className="sequence-recipient">
+          <input
+            type="checkbox"
+            checked={authorizationApproved}
+            onChange={(e) => setAuthorizationApproved(e.target.checked)}
+          />
+          Authorization reviewed and approved (synthetic)
         </label>
         <button
           className="primary"

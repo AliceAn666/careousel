@@ -1,8 +1,24 @@
 # Careousel proposal-aligned development roadmap
 
+## Phase 7 — current authoritative notification policy
+
+This section supersedes ALL older internal-clinic-first/release-stage plans and requirements for a separate manual send per group below. Historical proposal comparisons and validation records are retained as history, not active acceptance criteria. Base: PR #13 merged main `0de5aaaf175b10fe86bed5cb7c8cbaa44e598192`; [main CI 39013494376](https://github.com/AliceAn666/careousel/actions/runs/39013494376) succeeded before the feature branch.
+
+- One shared cross-clinic eligible candidate pool, with no internal-clinic-first preference, window or extra network release stage.
+- Exact P1 Time-Sensitive, P2 High Priority, P3 Routine, P4 Flexible, human-approved for each request at the offering clinic. No missing-level default, patient-assigned level or AI clinical inference.
+- Staff preview eligibility/exclusions, explicitly select recipients and the first group, and authorize the complete sequence once. The first eligible selected group sends immediately. Only the saved recipient snapshot can be sent automatically later; newly arriving/changed patients need explicit review.
+- Next actual group send is at least **180 minutes after the previous server-recorded actual send**, even after restart, delay, cancellation/restart or pause/resume. Empty/invalid groups are skipped without send timestamps or interval reset. Delayed processing sends one group, then schedules from that actual send; it never catches up in bursts.
+- Durable PostgreSQL sequences/groups, independent supervised worker (`npm run worker:notifications`), transaction-scoped advisory lock and idempotent persisted group status. No browser or read request drives automatic sends. Worker outage delays delivery; restart safely recovers overdue work. Do not confuse durable scheduling with a guarantee of exact wall-clock delivery.
+- All sent groups compete for one slot. Group invitations expire after 12 hours or appointment start, whichever is earlier; prior unexpired invitations remain valid when the next group sends. Legacy exclusive invitations retain their ten-minute hold and cannot mix with group invitations.
+- Successful committed acceptance atomically books, safely replaces only a linked original appointment, fulfills that request, terminates the sequence, cancels future groups, revokes competing invitations and persists audit/notifications. Failed acceptance rolls back and leaves scheduling/original bookings intact. Direct booking cannot bypass active/paused/scheduled groups or pending competitive invitations.
+- Changed request/priority snapshot pauses the sequence for explicit reauthorization of remaining groups. Inactive/withdrawn/ineligible recipients are skipped, never replaced automatically. Revoked author authority pauses; revoked priority-assigner authority excludes affected recipients. Staff receive durable in-app warnings and audit entries. Pause stops future sends but does not revoke invitations already sent; Cancel does revoke them. Resume reuses the same approved snapshot; fresh preview + authorization can replace only unsent groups, preserving prior send times/history.
+- Slot referral/authorization requirements fail closed until staff explicitly approve synthetic request/clinic clearance; accept rechecks it. Existing low-complexity slots default to not requiring these flags. No claim of actual insurer/referral verification or clinical screening.
+
+Implemented code and operational details: [Phase 7 guide](docs/automated-notifications.md). Shared migration rollout remains separately authorized; no shared data migration/reset/reseed, automatic merge, impact dashboard or deployment in this phase.
+
 Ownership: **the user working independently with Codex**. No five-person assignments, teammate requests or agent delegation. October 14, 2026 business proposal is the product source of truth; see PRD.md for source fingerprint, current-state gaps and BP01–BP13 → tasks → AT-BP01–AT-BP13 traceability. A planned task is not an implemented feature.
 
-## Current integration boundary
+## Historical Phase 1–3 integration boundary
 
 - Phase 1: PR #8 merged into main `3e49886`; main CI run 39005432827 passed before Phase 2 began. Preserve intake gate, calendar search, combined appointments/waitlists, explicit original-booking selection, atomic replacement, no-reset navigation/session behavior and isolated-test protections.
 - Phase 2 (`feat/phase2-proposal-landing`): selectively integrate PR #5 requirements and PR #6 public landing presentation. Adapt role entrances and tests to the current app, never replace current app/service snapshots wholesale. No schema or migration changes, registration implementation, batch notifications, tours, deployment or automatic merge.
@@ -29,18 +45,18 @@ Sole owner: user + Codex. Base main 2e65bff, CI 39006504739 passed before work; 
 - [x] Run lint/typecheck/unit/PostgreSQL integration/browser/build and record actual results in VALIDATION.md; all passed, including 37 unit, 34 integration and 13 browser tests; preserve all Phase 1/2 assertions.
 - [x] User reviewed and merged Phase 3 PR #10; no automatic merge/deploy. No shared database changes or schema/migration work.
 
-## October 17 roadmap and current R1 implementation
+## Historical October 17 roadmap (superseded by Phase 7 above)
 
 - [x] Inspect main 74e6c90 after PR #10 and require successful main CI run 39007746312 before branching.
 - [x] Review batch 51fcedc and registration 37189f7 without wholesale integration; record reusable work and rejected assumptions in docs/priority-account-integration.md.
 - [x] Add PRD R1–R4 contracts and AT-R0/R1/R2a/R2b/R3/R4/R5 acceptance mapping; update agent instructions.
 - [x] Verify PR #11 merged and main 842c156 CI 39008257784 passed before the R1 feature branch.
-- [x] Implement R1 request/clinic-scoped P1–P4 priorities, history/backfill and authorized UI/API merged in PR #12. Validation evidence is recorded in VALIDATION.md; group notifications remain unimplemented and the account slice is described below.
+- [x] Implement R1 request/clinic-scoped P1–P4 priorities, history/backfill and authorized UI/API merged in PR #12. Historical R1 validation is in VALIDATION.md; Phase 7 now implements group notifications.
 - [x] Implement R3/R4 on feat/accounts-clinic-access (pending review): persisted accounts/session/logout, explicit Demo Mode, trusted mock admin bootstrap, invited staff approval/revocation and transaction-level clinic access checks. Main 1ac6f91 CI 39009829055 passed before branching.
-- [ ] Implement R2a/R2b manual simultaneous group invitations with 180-minute timing and complete competitive capacity invariants.
+- [x] Phase 7 supersedes manual R2: implement authorized automatic P1–P4 sequences, durable scheduling, clinic management, competitive acceptance and interval guards. Review PR pending.
 - [x] Execute R1 slice of R5: isolated upgrade/SQL/concurrency, 39 unit, 38 PostgreSQL and 14 browser tests, lint/typecheck/build and production restart persistence; see VALIDATION.md.
 - [x] R3/R4 checks: 41 unit / 45 PostgreSQL / 17 browser tests, lint/typecheck/build, account/demo session and booking/priority restart persistence; see VALIDATION.md.
-- [ ] Repeat R5 for the subsequent R2 group notification feature PR.
+- [x] Phase 7 regression: 43 unit, 63 PostgreSQL integration and 18 browser tests, lint/typecheck/build/format and production/worker restart persistence passed.
 
 Sole owner is user + Codex. Feature PRs follow the dependency order in the PRD October 17 table. Documentation tests do not establish that runtime requirements pass. No shared migration, reset/reseed or account provisioning in this PR.
 
@@ -83,3 +99,17 @@ Canonical requirement/status/task/test table: PRD section 3; acceptance definiti
 Each PR states concrete behavior, related task/BP/acceptance IDs, actual tests and limitations, screenshots for visible changes, API compatibility and later migration rollout if relevant. Done requires persisted usable behavior, tested authorization/invariants, failure states and truthful synthetic labels. Only user and Codex handle work. No direct main pushes, automatic merges, force-push/history rewriting or public deployment.
 
 See PRD October 17 R1–R4 requirements and incremental PR/AT-R* table for the superseding priority, account and group contracts. T1/T3/T4/T5/T6 must implement these together with existing BP requirements; old single-exclusive and 30-minute proposals do not apply to the new group path. Internal-before-network authorization remains a distinct gate, not automatically implemented by this roadmap.
+
+## Phase 7 review checklist
+
+- [x] Successful latest-main Actions gate verified; dedicated feature branch.
+- [x] Shared candidate preview, human-approved request/clinic groups, exact authorized recipient snapshots.
+- [x] Durable automatic scheduling, actual-send timestamps, empty-group skip, overdue recovery, no catch-up burst, pause/resume/cancel/reauthorize.
+- [x] Atomic committed fill termination, competitor revocation, safe original replacement and blocked direct-booking bypass.
+- [x] Staff controls/history/warnings, real in-app patient notifications and truthful competition/expiry text.
+- [x] Additive migrations only, preserved legacy pending exclusive offers, independent isolated fixtures and tests.
+- [ ] User review and merge of Phase 7 PR; no automatic merge.
+- [ ] Separately authorize shared-database migration and supervised worker rollout. No shared migration/reset/reseed was performed.
+- [ ] Later impact dashboard: explicitly not started; wait for Phase 7 review/merge.
+
+See VALIDATION.md for executed checks and limitations; documentation acceptance tables from older phases do not establish Phase 7 test results.

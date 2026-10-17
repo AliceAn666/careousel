@@ -2,6 +2,22 @@
 
 Better care, sooner. A functional synthetic cross-clinic appointment and waitlist prototype built from scratch. No previous HTML/CSS/JavaScript frontend is used.
 
+## Automated priority-group notifications (Phase 7)
+
+Clinic Waitlist matches now provides **Automatic priority-group notifications**: select an opening, preview P1–P4 and exclusions, explicitly select recipients, confirm the first group and reason, then **Authorize and start automatic sequence**. Later groups send automatically at least 180 minutes after the previous actual send, including when earlier patients have not responded. One shared cross-clinic pool; no internal-clinic-first window. Use Pause / Resume / Cancel; changed recipient/priority snapshots require fresh preview and explicit reauthorization of unsent groups.
+
+Start a separate local worker alongside the web app:
+
+```sh
+npm run worker:notifications
+# Alternatively invoke one durable processing pass from a supervised scheduler:
+npm run worker:notifications -- --once
+```
+
+The worker polls PostgreSQL every 15 seconds; use a process supervisor/cron in the chosen runtime. Sequences persist through restarts and overdue work recovers after the worker returns; app startup alone does not start a worker. No browser must remain open. Group invitations are real in-app database notifications, not external email/SMS. All groups compete for one remaining appointment; only a committed acceptance fills it, terminates scheduled sends and preserves losing patients' originals.
+
+Apply reviewed new migrations **0006_automated_notifications** and **0007_notification_sequence_history** only to a separately authorized target; existing applied migrations are unchanged. No shared demo rollout is performed by this PR. [Operational guide and isolated demonstration](docs/automated-notifications.md) · [Verification](VALIDATION.md).
+
 ## Run locally
 
 Requirements: Node.js 22.12+ (Node 24 tested), npm, Docker with Compose. Ports 3000 and 5432 should be available.
@@ -126,4 +142,4 @@ Clinic staff need a mock institution-controlled invitation and administrator app
 
 Additive migration: 0005_accounts_clinic_access; no automatic accounts/roles or existing-record rewrites. Review/apply it only to an explicitly approved database before running this branch. Initial mock clinic administrator setup is a trusted local operation (no public signup): set ADMIN_BOOTSTRAP_CLINIC, ADMIN_BOOTSTRAP_USERNAME, ADMIN_BOOTSTRAP_EMAIL, ADMIN_BOOTSTRAP_NAME and ADMIN_BOOTSTRAP_PASSWORD in the shell, then run `node --import tsx scripts/provision-mock-admin.ts --confirm-mock-bootstrap` against the reviewed target DATABASE_URL with DEMO_MODE=true. Do not run against shared data without separate authorization; do not paste credentials in chat or commit them. Existing clinic bookings are untouched.
 
-Prototype limits: one role/clinic per staff account, no password recovery/MFA/admin transfer UI or real institution verification. Group invitations with a three-hour manual interval are a later PR; current staff-approved exclusive invitations and atomic replacement remain functional. Confirmed Demo Mode Reset clears synthetic registered accounts and sessions as well as other demo actions; it is not available to normal account sessions and is never automatic.
+Prototype limits: one role/clinic per staff account, no password recovery/MFA/admin transfer UI or real institution verification. Phase 7 adds automatic three-hour group invitations after one staff authorization; legacy exclusive invitations and atomic replacement remain functional. Confirmed Demo Mode Reset clears synthetic registered accounts and sessions as well as other demo actions; it is not available to normal account sessions and is never automatic.

@@ -16,7 +16,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:test:prepare": "tsx scripts/prepare-test-db.ts",
     "format:check": "prettier --check src scripts tests prisma/seed*.ts *.ts *.mjs",
-    "test:persistence": "tsx scripts/check-persistence.ts"
+    "test:persistence": "tsx scripts/check-persistence.ts",
+    "worker:notifications": "tsx scripts/notification-worker.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "6.19.2",

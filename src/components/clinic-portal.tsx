@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { NotificationManager } from "./notification-manager";
 import {
   ArrowDownLeft,
   ArrowRight,
@@ -165,6 +166,9 @@ export function ClinicSchedule({
                   service: f.get("service"),
                   start: new Date(String(f.get("start"))).toISOString(),
                   price: Math.round(Number(f.get("price")) * 100),
+                  requiresReferral: f.get("requiresReferral") === "on",
+                  requiresAuthorization:
+                    f.get("requiresAuthorization") === "on",
                 })
               )
                 setShow(false);
@@ -193,6 +197,14 @@ export function ClinicSchedule({
                 required
               />
             </label>
+            <label className="sequence-recipient">
+              <input type="checkbox" name="requiresReferral" />
+              Referral required (synthetic review)
+            </label>
+            <label className="sequence-recipient">
+              <input type="checkbox" name="requiresAuthorization" />
+              Authorization required (synthetic review)
+            </label>
             <p className="demo-note">
               30-minute visit with Dr. Maya Lin. All demo plans accepted.
             </p>
@@ -204,6 +216,14 @@ export function ClinicSchedule({
   );
 }
 export function Matches({ state, act }: { state: AppState; act: Action }) {
+  return (
+    <>
+      <NotificationManager state={state} />
+      <LegacyMatches state={state} act={act} />
+    </>
+  );
+}
+function LegacyMatches({ state, act }: { state: AppState; act: Action }) {
   const [selected, setSelected] = useState(""),
     [summary, setSummary] = useState<{
       source: string;
@@ -225,9 +245,11 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
           <strong>Intelligent matching. Human decisions.</strong>
           <p>
             Eligibility is checked automatically. Candidates are ordered by
-            waitlist join time. Severity scores are hints from patient
-            questionnaires or your clinic&apos;s priorities; they do not change
-            the order. Clinic staff make every final offer.
+            waitlist join time within the shared pool. P1–P4 labels require
+            explicit clinic staff review; patient questionnaires and AI never
+            assign urgency. Clinic staff authorize each notification sequence.
+            Legacy single-patient offers remain available for openings outside a
+            group workflow.
           </p>
         </div>
       </div>

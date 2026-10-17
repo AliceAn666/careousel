@@ -47,6 +47,8 @@ model Slot {
   clinicId String
   clinic Clinic @relation(fields: [clinicId], references: [id])
   service String
+  requiresReferral Boolean @default(false)
+  requiresAuthorization Boolean @default(false)
   provider String
   start DateTime
   end DateTime
@@ -56,6 +58,7 @@ model Slot {
   bookings Booking[]
   offers Offer[]
   suggestions Suggestion[]
+  sequences NotificationSequence[]
   @@index([clinicId, start])
 }
 model Booking {
@@ -107,6 +110,8 @@ model Suggestion {
   @@unique([slotId, waitlistId])
 }
 model Offer {
+  groupId String?
+  group NotificationGroup? @relation(fields: [groupId], references: [id])
   id String @id @default(cuid())
   slotId String
   slot Slot @relation(fields: [slotId], references: [id])
@@ -165,6 +170,8 @@ model WaitlistPriority {
   clinicId String
   clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
   level String?
+  referralApproved Boolean @default(false)
+  authorizationApproved Boolean @default(false)
   reviewState String @default("UNREVIEWED")
   assignedById String?
   assignedBy User? @relation("PriorityAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
@@ -244,4 +251,31 @@ model LoginThrottle {
  bucket String @id
  attempts Int
  windowStart DateTime
+}
+
+model NotificationSequence {
+  id String @id @default(cuid())
+  slotId String
+  slot Slot @relation(fields: [slotId], references: [id])
+  authorizedById String
+  state String @default("DRAFT")
+  nextSendAt DateTime?
+  lastSentAt DateTime?
+  firstGroup Int
+  reason String
+  createdAt DateTime @default(now())
+  groups NotificationGroup[]
+  @@index([state, nextSendAt])
+}
+model NotificationGroup {
+  id String @id @default(cuid())
+  sequenceId String
+  sequence NotificationSequence @relation(fields: [sequenceId], references: [id])
+  level String
+  status String @default("APPROVED")
+  recipients Json
+  sentAt DateTime?
+  note String @default("")
+  offers Offer[]
+  @@unique([sequenceId, level])
 }

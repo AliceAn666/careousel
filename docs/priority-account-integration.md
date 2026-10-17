@@ -1,3 +1,5 @@
+> Phase 7 supersedes the historical manual-per-group and internal-first plans in this document. Current requirements and working paths are in [automated-notifications.md](automated-notifications.md): one staff-authorized cross-clinic P1–P4 sequence, durable automatic sends at least 180 minutes apart, committed-fill termination. Branch reviews below are retained as history.
+
 # Priority, group invitations and account integration review
 
 This review originated in documentation PR #11. The current R1 feature branch implements request-scoped four-level priorities, history, UI and tests as detailed in PRD R1 implementation boundary; account/group mechanisms below remain planned. Explicit October 17 requirements supersede earlier proposals. Sole owner: user + Codex.

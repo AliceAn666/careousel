@@ -2061,3 +2061,14 @@ span.cal-icon {
   width: 100%;
   margin-bottom: 14px;
 }
+
+.sequence-recipient {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-block: 0.75rem;
+}
+.sequence-recipient input {
+  width: auto;
+  flex-shrink: 0;
+}
