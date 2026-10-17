@@ -2234,3 +2234,48 @@ span.cal-icon {
     align-self: stretch;
   }
 }
+
+/* Keep clinic-first search within the viewport on compact phones. */
+.insurance-selection,
+.filter-card,
+.search-intro,
+.clinic-availability,
+.clinic-availability .grow,
+.clinic-time-options,
+.section-title {
+  min-width: 0;
+  max-width: 100%;
+}
+.section-title {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.section-title > div {
+  min-width: 0;
+  max-width: 100%;
+}
+.section-title h2 {
+  flex-wrap: wrap;
+  overflow-wrap: anywhere;
+}
+.section-title .result-count {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.clinic-time-choice {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 680px) {
+  .section-title {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .section-title .button-row {
+    flex-wrap: wrap;
+  }
+  .clinic-availability .grow {
+    width: 100%;
+  }
+}
