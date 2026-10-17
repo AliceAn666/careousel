@@ -5,6 +5,10 @@ on:
     # UTC; staggered to avoid GitHub Actions' top-of-hour congestion.
     - cron: "13,43 * * * *"
   workflow_dispatch:
+  # Run once immediately on initial setup or scheduler-file updates.
+  push:
+    branches: [main]
+    paths: ['.github/workflows/notification-cron.yml']
 
 permissions:
   contents: read
