@@ -7,6 +7,8 @@ const slot: Slot & { clinic: { city: string; timezone: string } } = {
   id: "s",
   clinicId: "c",
   service: "Dermatology",
+  requiresReferral: false,
+  requiresAuthorization: false,
   provider: "Dr. Demo",
   start: new Date("2030-01-07T18:00:00Z"),
   end: new Date("2030-01-07T18:30:00Z"),

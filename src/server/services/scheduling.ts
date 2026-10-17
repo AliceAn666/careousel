@@ -1,3 +1,8 @@
+import {
+  finishSequence,
+  requirementsMet,
+  validateGroupInvitation,
+} from "./notification-sequences";
 import { Prisma, type User } from "@prisma/client";
 import { z } from "zod";
 import { db } from "../db";
@@ -57,6 +62,8 @@ export const actionSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("read"), notificationId: id }),
   z.object({
     type: z.literal("createSlot"),
+    requiresReferral: z.boolean().default(false),
+    requiresAuthorization: z.boolean().default(false),
     service: z.enum(SERVICES),
     start: z.coerce.date(),
     price: z.number().int().min(0).max(1000000),
@@ -89,6 +96,8 @@ export const actionSchema = z.discriminatedUnion("type", [
   z
     .object({
       type: z.literal("setWaitlistPriority"),
+      referralApproved: z.boolean().default(false),
+      authorizationApproved: z.boolean().default(false),
       waitlistId: id,
       clinicId: id,
       level: z.enum(PRIORITY_LEVELS),
@@ -124,11 +133,17 @@ export async function locked<T>(
 }
 async function releaseOffer(
   tx: Prisma.TransactionClient,
-  offer: { id: string; slotId: string; status: string },
+  offer: {
+    id: string;
+    slotId: string;
+    status: string;
+    groupId?: string | null;
+  },
   status: string,
 ) {
   if (offer.status !== "PENDING") return;
   await tx.offer.update({ where: { id: offer.id }, data: { status } });
+  if (offer.groupId) return;
   await tx.slot.updateMany({
     where: { id: offer.slotId, status: "HELD" },
     data: { status: "AVAILABLE" },
@@ -141,7 +156,14 @@ export async function expireOffers(tx: Prisma.TransactionClient, now: Date) {
   for (const o of expired) {
     await releaseOffer(tx, o, "EXPIRED");
     const s = await tx.slot.findUniqueOrThrow({ where: { id: o.slotId } });
-    await audit(tx, s.clinicId, "System", "Invitation expired; slot released");
+    await audit(
+      tx,
+      s.clinicId,
+      "System",
+      o.groupId
+        ? "Competitive invitation expired; other invitations and original booking preserved"
+        : "Invitation expired; slot released",
+    );
   }
 }
 export async function refreshMatches(tx: Prisma.TransactionClient, now: Date) {
@@ -266,6 +288,29 @@ export async function performAction(
           false,
           now,
         );
+        const sequence = await tx.notificationSequence.findFirst({
+          where: { slotId: s.id },
+          orderBy: { createdAt: "desc" },
+        });
+        if (
+          sequence &&
+          sequence.state !== "CANCELLED" &&
+          (sequence.state !== "COMPLETED" ||
+            (await tx.offer.count({
+              where: {
+                slotId: s.id,
+                status: "PENDING",
+                groupId: { not: null },
+              },
+            })))
+        )
+          fail(
+            "This opening is in a priority-group workflow. Respond to your authorized invitation instead.",
+          );
+        if (s.requiresReferral || s.requiresAuthorization)
+          fail(
+            "This opening requires staff-reviewed referral/authorization clearance through a waitlist invitation.",
+          );
         if (!s.plans.includes(user.plan))
           fail("Your demo insurance plan is not accepted.");
         await tx.booking.create({ data: { patientId: user.id, slotId: s.id } });
@@ -432,6 +477,12 @@ export async function performAction(
         });
         if (!s) fail("Slot not found.", 404);
         staff(s.clinicId);
+        const sequence = await tx.notificationSequence.findFirst({
+          where: { slotId: s.id },
+          orderBy: { createdAt: "desc" },
+        });
+        if (sequence && sequence.state !== "CANCELLED")
+          fail("Use the notification sequence controls for this opening.");
         const duplicate = await tx.offer.findFirst({
           where: {
             slotId: s.id,
@@ -455,6 +506,15 @@ export async function performAction(
         });
         if (!w || !eligibility(w, s, bookings, now))
           fail("This patient no longer meets the eligibility requirements.");
+        const clearance = await tx.waitlistPriority.findUnique({
+          where: {
+            waitlistId_clinicId: { waitlistId: w.id, clinicId: s.clinicId },
+          },
+        });
+        if (!requirementsMet(s, clearance))
+          fail(
+            "Required referral or authorization is not approved by this clinic.",
+          );
         const declined = await tx.offer.findFirst({
           where: { slotId: s.id, waitlistId: w.id, status: "DECLINED" },
         });
@@ -508,6 +568,25 @@ export async function performAction(
           fail(
             "This invitation is no longer active. Your original appointment is unchanged.",
           );
+        if (input.accept) {
+          const clearance = await tx.waitlistPriority.findUnique({
+            where: {
+              waitlistId_clinicId: {
+                waitlistId: o.waitlistId,
+                clinicId: o.slot.clinicId,
+              },
+            },
+          });
+          if (!requirementsMet(o.slot, clearance))
+            fail("Required referral or authorization is no longer approved.");
+          if (o.groupId)
+            await validateGroupInvitation(
+              tx,
+              o.groupId,
+              o.waitlist,
+              o.slot.clinicId,
+            );
+        }
         if (!input.accept) {
           await releaseOffer(tx, o, "DECLINED");
           await audit(
@@ -533,7 +612,7 @@ export async function performAction(
           user.id,
           o.slotId,
           o.waitlist.bookingId ?? undefined,
-          true,
+          !o.groupId,
           now,
         );
         const replacement = await tx.booking.create({
@@ -570,10 +649,14 @@ export async function performAction(
           where: { id: o.waitlistId },
           data: { status: "FULFILLED" },
         });
+        if (o.groupId) await finishSequence(tx, o.slotId, "COMPLETED", now);
         const others = await tx.offer.findMany({
           where: { patientId: user.id, status: "PENDING" },
+          include: { slot: true },
         });
-        for (const other of others) await releaseOffer(tx, other, "REVOKED");
+        for (const other of others)
+          if (other.waitlistId === o.waitlistId || overlaps(other.slot, o.slot))
+            await releaseOffer(tx, other, "REVOKED");
         await tx.notification.create({
           data: {
             patientId: user.id,
@@ -622,6 +705,8 @@ export async function performAction(
             end,
             price: input.price,
             plans: [...PLANS],
+            requiresReferral: input.requiresReferral,
+            requiresAuthorization: input.requiresAuthorization,
           },
         });
         await audit(
@@ -673,6 +758,8 @@ export async function performAction(
           current.level === input.level &&
           current.assignedById === user.id &&
           current.reason === input.reason &&
+          current.referralApproved === input.referralApproved &&
+          current.authorizationApproved === input.authorizationApproved &&
           (current.version === input.expectedVersion ||
             current.version === input.expectedVersion + 1)
         )
@@ -684,6 +771,8 @@ export async function performAction(
         const data = {
           level: input.level,
           reviewState: "APPROVED",
+          referralApproved: input.referralApproved,
+          authorizationApproved: input.authorizationApproved,
           assignedById: user.id,
           assignedAt: now,
           reason: input.reason,
@@ -699,6 +788,25 @@ export async function performAction(
           create: { waitlistId: request.id, clinicId: input.clinicId, ...data },
           update: data,
         });
+        const staleGroupOffers = await tx.offer.findMany({
+          where: {
+            waitlistId: request.id,
+            slot: { clinicId: input.clinicId },
+            status: "PENDING",
+            groupId: { not: null },
+          },
+        });
+        for (const offer of staleGroupOffers) {
+          await releaseOffer(tx, offer, "REVOKED");
+          await tx.notification.create({
+            data: {
+              patientId: offer.patientId,
+              title: "Invitation requires new review",
+              body: "Your clinic's request decision changed. This invitation is no longer actionable; your original appointment is unchanged.",
+              createdAt: now,
+            },
+          });
+        }
         await tx.priorityHistory.create({
           data: {
             priorityId: priority.id,
@@ -717,7 +825,7 @@ export async function performAction(
           `Assigned ${input.level} to waitlist request ${request.id}: ${input.reason}`,
         );
         message =
-          "Request priority saved. No appointment or invitation was changed.";
+          "Request priority saved. Original appointments are unchanged; affected competitive invitations require new review.";
         break;
       }
       case "reset": {
@@ -819,6 +927,7 @@ export async function getState(
         activity: [],
         myTags: [],
         priorityRequests: [],
+        sequences: [],
       };
     const staff = user.role === "STAFF";
     const [bookings, waitlists, offers, notifications, suggestions, activity] =
@@ -852,12 +961,10 @@ export async function getState(
           include: { slot: { include: { clinic: true } } },
           orderBy: { createdAt: "desc" },
         }),
-        staff
-          ? Promise.resolve([])
-          : tx.notification.findMany({
-              where: { patientId: user.id },
-              orderBy: { createdAt: "desc" },
-            }),
+        tx.notification.findMany({
+          where: { patientId: user.id },
+          orderBy: { createdAt: "desc" },
+        }),
         staff
           ? tx.suggestion.findMany({
               where: { slot: { clinicId: user.clinicId! } },
@@ -965,6 +1072,13 @@ export async function getState(
         intakeCompleted: !!intake,
       },
       myTags,
+      sequences: staff
+        ? await tx.notificationSequence.findMany({
+            where: { slot: { clinicId: user.clinicId! } },
+            orderBy: { createdAt: "desc" },
+            include: { groups: { orderBy: { level: "asc" } } },
+          })
+        : [],
       priorityRequests,
       clinics,
       slots: slots.filter((s) =>

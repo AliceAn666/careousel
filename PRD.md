@@ -1,6 +1,22 @@
 # Careousel product requirements — proposal alignment
 
-Status: R1 merged in PR #12; R3/R4 account and authorization implementation on a review branch, October 17, 2026. The business proposal and later explicit user requirements are authoritative. R1 feature branch implements four-level request priority with additive migration 0004_waitlist_priority_levels and current signed synthetic staff authorization; individual accounts and clinic-admin authorization are implemented within the synthetic scope below; manual three-hour group invitations remain planned. Preserve all Phase 1–3 behavior and shared data.
+## Phase 7 — current authoritative notification policy
+
+This section supersedes ALL older internal-clinic-first/release-stage plans and requirements for a separate manual send per group below. Historical proposal comparisons and validation records are retained as history, not active acceptance criteria. Base: PR #13 merged main `0de5aaaf175b10fe86bed5cb7c8cbaa44e598192`; [main CI 39013494376](https://github.com/AliceAn666/careousel/actions/runs/39013494376) succeeded before the feature branch.
+
+- One shared cross-clinic eligible candidate pool, with no internal-clinic-first preference, window or extra network release stage.
+- Exact P1 Time-Sensitive, P2 High Priority, P3 Routine, P4 Flexible, human-approved for each request at the offering clinic. No missing-level default, patient-assigned level or AI clinical inference.
+- Staff preview eligibility/exclusions, explicitly select recipients and the first group, and authorize the complete sequence once. The first eligible selected group sends immediately. Only the saved recipient snapshot can be sent automatically later; newly arriving/changed patients need explicit review.
+- Next actual group send is at least **180 minutes after the previous server-recorded actual send**, even after restart, delay, cancellation/restart or pause/resume. Empty/invalid groups are skipped without send timestamps or interval reset. Delayed processing sends one group, then schedules from that actual send; it never catches up in bursts.
+- Durable PostgreSQL sequences/groups, independent supervised worker (`npm run worker:notifications`), transaction-scoped advisory lock and idempotent persisted group status. No browser or read request drives automatic sends. Worker outage delays delivery; restart safely recovers overdue work. Do not confuse durable scheduling with a guarantee of exact wall-clock delivery.
+- All sent groups compete for one slot. Group invitations expire after 12 hours or appointment start, whichever is earlier; prior unexpired invitations remain valid when the next group sends. Legacy exclusive invitations retain their ten-minute hold and cannot mix with group invitations.
+- Successful committed acceptance atomically books, safely replaces only a linked original appointment, fulfills that request, terminates the sequence, cancels future groups, revokes competing invitations and persists audit/notifications. Failed acceptance rolls back and leaves scheduling/original bookings intact. Direct booking cannot bypass active/paused/scheduled groups or pending competitive invitations.
+- Changed request/priority snapshot pauses the sequence for explicit reauthorization of remaining groups. Inactive/withdrawn/ineligible recipients are skipped, never replaced automatically. Revoked author authority pauses; revoked priority-assigner authority excludes affected recipients. Staff receive durable in-app warnings and audit entries. Pause stops future sends but does not revoke invitations already sent; Cancel does revoke them. Resume reuses the same approved snapshot; fresh preview + authorization can replace only unsent groups, preserving prior send times/history.
+- Slot referral/authorization requirements fail closed until staff explicitly approve synthetic request/clinic clearance; accept rechecks it. Existing low-complexity slots default to not requiring these flags. No claim of actual insurer/referral verification or clinical screening.
+
+Implemented code and operational details: [Phase 7 guide](docs/automated-notifications.md). Shared migration rollout remains separately authorized; no shared data migration/reset/reseed, automatic merge, impact dashboard or deployment in this phase.
+
+Status: PR #12 priorities and PR #13 individual accounts/clinic authorization are merged. Phase 7 automated priority-group notifications are implemented on `feat/automated-priority-notifications` for review. The policy above and docs/automated-notifications.md are authoritative; older roadmap mechanisms below are historical and superseded where they conflict. Preserve all baseline functionality and shared data.
 
 ## 1. Source of truth and evidence boundaries
 
@@ -192,7 +208,7 @@ The user's explicit requirements establish the mechanisms; do not re-ask whether
 
 These additions supplement BP02/BP07/BP11/BP13 and legacy AC01–15. They do not implement real coverage verification, enrollment, clinical/referral/authorization clearance, internal/network release, multi-need schema, deposits or billing.
 
-## October 17 update — request priority, staff groups and account authorization
+## Historical October 17 update — request priority, staff groups and account authorization
 
 Status: R1 priority functionality is implemented on the current review branch; R2/R3/R4 are implemented in the synthetic scope below; R2 group functionality remains planned. These explicit user requirements supersede older proposed defaults in sections 5–10. Existing Phase 1–3 behavior remains the compatibility baseline until each feature PR passes its gate.
 
@@ -256,7 +272,7 @@ R1 delivers exact P1–P4 labels on a WaitlistPriority keyed by request and targ
 
 Editing a request's preferences invalidates its approved clinic labels, records the previous level and patient edit event, and requires fresh staff approval. This conservative policy protects against a service/eligibility change inheriting a stale priority. It never cancels the original appointment. A priority assignment never changes bookings, offers or medical eligibility.
 
-Apply reviewed additive migrations before running this branch against a chosen database; do not run migration/seed commands against the shared demo until separately authorized. R3/R4 now add account authentication and administrator memberships/invitations as described below. R2 manual timed groups remain a later PR. Demo persona switching is now isolated explicitly; real account staff access is rechecked against current memberships inside the scheduling transaction, in addition to the retained R1 SQL actor safeguard.
+Apply reviewed additive migrations before running this branch against a chosen database; do not run migration/seed commands against the shared demo until separately authorized. R3/R4 now add account authentication and administrator memberships/invitations as described below. Phase 7 implements the superseding automatic timed-group policy. Demo persona switching is now isolated explicitly; real account staff access is rechecked against current memberships inside the scheduling transaction, in addition to the retained R1 SQL actor safeguard.
 
 ## R3/R4 implementation boundary — individual accounts and clinic authorization
 
@@ -274,4 +290,4 @@ Security mechanics: random-salt Node scrypt, bounded input sizes, 256-bit opaque
 
 The explicit trusted CLI needs ADMIN_BOOTSTRAP_CLINIC/USERNAME/EMAIL/NAME/PASSWORD and --confirm-mock-bootstrap. It is never called on app startup or navigation. A shared database migration/bootstrap needs separate explicit authorization; this implementation only applies migrations and creates fixture accounts in its isolated test database. The separately authorized, confirmed Demo Mode Reset warns that it clears all synthetic account/session data too; normal account sessions are forbidden from resetting. Login, registration, public home, refresh and identity navigation never reset/reseed.
 
-Acceptance mapping: AT-R3 covers patient signup/login/logout/expiry, no silent identity switch, normal vs explicit Demo Mode, invalid credentials, origin checks and persistence; AT-R4 covers mock invitations, exact email, single-use/same-account replay, pending approval, revocation, last-admin guard and clinic boundaries. Original AC01–15 and P3 onboarding/insurance checks continue via explicit Demo Mode fixtures. R2 simultaneous groups/180-minute manual-send guards remain unimplemented and exclusive offer invariants remain unchanged.
+Acceptance mapping: AT-R3 covers patient signup/login/logout/expiry, no silent identity switch, normal vs explicit Demo Mode, invalid credentials, origin checks and persistence; AT-R4 covers mock invitations, exact email, single-use/same-account replay, pending approval, revocation, last-admin guard and clinic boundaries. Original AC01–15 and P3 onboarding/insurance checks continue via explicit Demo Mode fixtures. Phase 7 now implements automatic groups/180-minute actual-send guards with competitive capacity safety and retained exclusive legacy offers; see the current policy above.

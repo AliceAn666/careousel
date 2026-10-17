@@ -925,6 +925,35 @@ export function Inbox({ state, act }: { state: AppState; act: Action }) {
                         {money(offer.slot.price)} estimated
                       </p>
                       <Status value={offer.status} />
+                      <p>
+                        Referral:{" "}
+                        {offer.slot.requiresReferral
+                          ? "required; clinic-reviewed"
+                          : "not required for this opening"}
+                        . Authorization:{" "}
+                        {offer.slot.requiresAuthorization
+                          ? "required; clinic-reviewed"
+                          : "not required for this opening"}
+                        . Your saved fictional plan and scheduling restrictions
+                        are checked again before confirmation.
+                      </p>
+                      {offer.groupId && (
+                        <p>
+                          Competitive invitation: other eligible patients may
+                          also receive this opening. Only the first successfully
+                          committed booking confirms it. Your original booking
+                          stays confirmed until replacement succeeds.
+                          Eligibility: {offer.slot.service}, saved demo plan and
+                          waitlist restrictions are rechecked on acceptance.
+                        </p>
+                      )}
+                      {offer.status === "REVOKED" && (
+                        <p>
+                          This opening was filled, withdrawn, or your
+                          eligibility changed. Your original appointment is
+                          unchanged unless you already successfully replaced it.
+                        </p>
+                      )}
                       {offer.status === "PENDING" && (
                         <>
                           <p>

@@ -10,6 +10,8 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
   await tx.waitlistPriority.deleteMany();
   await tx.notification.deleteMany();
   await tx.offer.deleteMany();
+  await tx.notificationGroup.deleteMany();
+  await tx.notificationSequence.deleteMany();
   await tx.suggestion.deleteMany();
   await tx.waitlist.deleteMany();
   await tx.booking.updateMany({ data: { replacementId: null } });
