@@ -2,7 +2,7 @@
 
 ## Current authorization
 
-The user and Codex are the sole owners. Phase 3 is authorized on `feat/phase3-onboarding-insurance` from main 2e65bff after PR #8/#9 merged and main CI run 39006504739 passed. Selectively adapt the guided-insurance-search branch to current intake, calendar, combined appointments/waitlists, public landing and clinic priorities. Preserve all Phase 1/2 no-reset/session/scheduling safeguards. Registration/batch/localization and database changes remain outside this phase. Do not reset/reseed shared data, modify teammate branches, push directly to main, merge automatically or deploy publicly.
+The user and Codex are the sole owners. Phase 3 is merged in PR #10. The October 17 requirements authorize an incremental roadmap for request-scoped P1–P4 priority, manual group invitations at least 180 minutes apart, persisted individual accounts and clinic-admin approved staff. PRD R1–R4 and docs/priority-account-integration.md supersede older single-exclusive stage, 30-minute interval and public demo-registration proposals. This initial slice is documentation-only; subsequent behavioral PRs implement the mapped gates from latest successful main. Preserve all Phase 1–3 safeguards, onboarding, calendar and insurance work. Do not modify shared data or applied migrations, push to main, auto-merge or deploy.
 
 ## Read first
 
@@ -32,7 +32,7 @@ Keep UI in `src/app`/`src/components`, domain behavior in `src/server/services`,
 
 The PRD state model is authoritative. All booking, cancellation, approval, expiry and offer acceptance transitions belong in domain services with transactions and database constraints. The current demo deliberately serializes all scheduling reads/writes with PostgreSQL advisory lock 728194. Do not remove or bypass this lock without replacing it with tested patient/slot serialization.
 
-- At most one confirmed booking or active hold per slot. Prevent patient overlap across slots with patient-level transactional serialization.
+- Current legacy path permits at most one confirmed booking or exclusive pending offer per slot. Planned group mode may have several competitive invitations within one authorized sequence, never extra capacity; do not relax the unique index until every writer and replacement SQL invariant is tested. Prevent patient overlap across slots with patient-level transactional serialization.
 - Recheck eligibility, ownership, current state and server-time expiry at mutation time.
 - Accepting a replacement must atomically confirm the new booking, reschedule the old booking, fulfill the waitlist, update offers/slots and record notifications/audit; rollback preserves the old booking.
 - Retries and double clicks must be idempotent. Acquire locks consistently and test races against actual PostgreSQL.
@@ -59,8 +59,8 @@ Committed changes must persist across app restarts. Ordinary startup must not re
 - Clinic impact metrics need structured provenance and denominators; distinguish observed recovery from hypothetical incremental effects. Admin effort and financial outputs must be labeled simulated.
 - Patient Careousel booking fee is $0, separate from estimated medical-service cost. Clinic subscription/usage pricing is an assumption; real transaction-based billing requires legal review and separate approval.
 - Optional deposits remain deferred until core/fairness safeguards, waiver/refund/dispute design, legal review and approval. No real insurance verification, hospital integration, payments or production compliance claims.
-- Keep BP01–13 → T0–T9 → AT-BP01–13 traceability current, retain legacy AC01–15 protections and report partial/missing/deferred honestly. This phase has no schema/migration work; do not copy old local history migrations or competing 0003 designs.
-- New landing CSS must stay isolated from internal dashboards. Role entrances use existing signed demo sessions; same-role navigation resumes the active persona, public home remains available, and no navigation calls a reset endpoint. Registration is absent on the current base and is not added here.
+- Keep BP01–13 → T0–T9 → AT-BP01–13 traceability current, retain legacy AC01–15 protections and report partial/missing/deferred honestly. This roadmap slice has no schema/migration work; do not copy old local history migrations or competing 0003 designs.
+- New landing CSS must stay isolated from internal dashboards. Role entrances use existing signed demo sessions; same-role navigation resumes the active persona, public home remains available, and no navigation calls a reset endpoint. Credentialed registration is absent on the current base; implement persisted accounts and invitation-based staff authorization in separate feature slices, never reuse public staff self-registration.
 
 ## Onboarding and insurance browsing
 
@@ -99,3 +99,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Four-level priority, group sends and account safeguards
+
+- Exactly P1 Time-Sensitive, P2 High Priority, P3 Routine, P4 Flexible, attached to a waitlist request with target-clinic provenance. Staff assignment/approval only. Never derive a clinical level from symptom scoring, patient input or AI; preserve historical raw rows and mark legacy assignments UNREVIEWED until human review.
+- All eligible approved members of one group get durable invitations atomically on an explicit staff send. Enforce at least 180 minutes from the previous actual send under the scheduling lock using post-lock execution time. No early sends after decline/expiry, no automatic next group from reads/workers/timers. Preview shows timestamps, eligibility, statuses, capacity and appointment-start warning. Internal/network release permission is separate and cannot reset the same release's clock.
+- One seat per current Slot; first valid acceptance is atomic and revokes competitors. Preserve original bookings on loss/failure/expiry. Do not treat each group offer as a guaranteed reservation; keep legacy exclusive and group modes mutually exclusive. Test races, direct booking, repeated sends and raw SQL integrity before relaxing legacy uniqueness.
+- Normal UI authenticates individual persisted accounts, shows name/role/clinic and requires logout before another account login. Server gates arbitrary persona switching to explicit Demo Mode; retain planned compatibility for existing sessions without silent identity/data reset. Do not trust browser-selected roles, userId or clinicId as authorization.
+- Public signup is patient-only. Only authorized clinic administrator bootstrap/invitations can grant active staff membership; work email/institution invitation uses explicitly mock verification. Employee ID alone grants nothing. Check current membership on every read/mutation, including revocation, notifications and AI; deny cross-clinic patient data without explicit minimal network authority. No fixed staff quotas by default. No actual employment verification, email delivery or production healthcare compliance claims.
+- Use fresh additive migrations with isolated clean/upgrade/backfill tests; never copy conflicting 0003/0004/0005 branch migrations wholesale. Shared rollout/bootstrap requires separate explicit authorization. Each feature PR runs full relevant unit/PostgreSQL/browser/lint/typecheck/build gates and records actual results; planned AT-R* IDs are not passed tests.

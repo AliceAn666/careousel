@@ -160,3 +160,13 @@ Used a **new independent PostgreSQL 17 container on port 5544**, database careou
 Old branch code assumed appointment cards, separate waitlist navigation and ungated tours. Those assumptions were adapted rather than restoring removed UI. Native bounded guide dialogs replace brittle spatial highlights; actual scheduling APIs are untouched. Original tests did not need weaker assertions or selector removals. New storage validation also rejects impossible calendar dates and invalid cost values. No dependency installation, public deployment or automatic merge.
 
 PPO/HMO rules, deductible/copay/coinsurance and referral notes are entirely fictional: no insurer API, actual benefit verification, guaranteed coverage, real payment or clinical eligibility clearance. Patient Careousel booking fee remains zero. Preferences/guide progress do not sync across devices and are not authorization. Real plan enrollment, referral/authorization review, internal-priority network release, multi-need schema, billing/deposits and production identity/compliance remain unfinished/outside this phase. Chromium-only verification is not a complete accessibility/load/security audit. PRD P3-01–04 and README/TASKS/AGENTS document the delivered scope; optional future requirements remain marked as gaps.
+
+## October 17 priority/group/account roadmap review
+
+Documentation-only branch from main 74e6c903f32b227da721d51055f73c4bd7af2aeb after PR #10 merged. GitHub Actions main run 39007746312 completed successfully before branching. Reviewed batch branch 51fcedc and registration branch 37189f7, including their services, schema/migrations and changed-file inventory.
+
+- Updated PRD/TASKS/AGENTS and added docs/priority-account-integration.md with R1–R4 requirements, incremental PR dependencies and planned AT-R* tests. Removed conflicting normative 30-minute/sequential-exclusive defaults; retained descriptions of current legacy behavior as evidence.
+- Documentation formatting, diff whitespace, requirement/traceability consistency and documentation-only file boundary checks passed.
+- No application tests rerun: no application, fixture, dependency, schema or migration change in this slice. Prior 37 unit / 34 PostgreSQL integration / 13 browser passing results are Phase 3 historical evidence, not tests of the new roadmap mechanisms.
+- No database connection, migration, reset/reseed, account provisioning or external invitation delivery performed; shared data and all existing worktrees preserved.
+- Four-level priority, manual three-hour group sends, individual account authentication and admin invitations are planned, not implemented by this documentation PR.
