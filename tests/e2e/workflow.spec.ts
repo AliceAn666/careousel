@@ -107,7 +107,7 @@ test("search filters keep clinics visible, prioritize insurer matches and suppor
     .first()
     .click();
   await expectImmediateSearchAccess(page);
-  const openings = page.locator(".appointment-results button[data-slot-id]");
+  const openings = page.locator(".appointment-results .search-result");
   await expect(
     page.getByRole("region", { name: "Appointment results" }),
   ).toBeVisible();
@@ -134,14 +134,16 @@ test("search filters keep clinics visible, prioritize insurer matches and suppor
   await expect(
     page.locator(".appointment-results .insurance-match-warning").first(),
   ).toBeVisible();
-  const id = await openings.first().getAttribute("data-slot-id");
+  const selectedTime = openings.first().locator(".clinic-time-choice").first();
+  const id = await selectedTime.getAttribute("data-slot-id");
   const snapshot = await (await page.request.get("/api/state")).json();
   const slot = snapshot.slots.find((s: { id: string }) => s.id === id);
   expect(slot.plans).toContain("Blue Horizon");
-  await openings.first().click();
+  await selectedTime.click();
   const details = page.getByRole("dialog", { name: "Appointment details" });
+  await expect(details).toContainText("Please confirm the appointment time");
   await expect(details.getByRole("group", { name: "Available appointment times" }))
-    .toBeVisible();
+    .toHaveCount(0);
   await details.getByRole("button", { name: "Confirm appointment" }).click();
   await expect(page.getByRole("status")).toContainText("Appointment confirmed");
   await page.setViewportSize({ width: 375, height: 812 });
