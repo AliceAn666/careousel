@@ -32,9 +32,9 @@ test("two independent browsers retain shared waitlist and atomically reschedule"
       .getByRole("button", { name: "Find Care", exact: true })
       .first()
       .click();
-    await p.getByLabel("Skin problem", { exact: true }).check();
-    await p.getByRole("button", { name: "Submit questionnaire" }).click();
-    await p.getByRole("button", { name: "Continue to find care" }).click();
+    await p
+      .getByRole("button", { name: "Book an Appointment", exact: true })
+      .click();
     await p
       .getByRole("button", { name: "Join a waitlist", exact: true })
       .click();
@@ -56,7 +56,7 @@ test("two independent browsers retain shared waitlist and atomically reschedule"
     expect(
       retained.waitlists.some((w: { id: string }) => w.id === need.id),
     ).toBe(true);
-    expect(retained.user.intakeCompleted).toBe(true);
+    expect(retained.user.intakeCompleted).toBe(false);
     c.once("dialog", (d) => d.accept());
     await c
       .getByRole("row")

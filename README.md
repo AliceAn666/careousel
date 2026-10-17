@@ -2,6 +2,16 @@
 
 Better care, sooner. A functional synthetic cross-clinic appointment and waitlist prototype built from scratch. No previous HTML/CSS/JavaScript frontend is used.
 
+## Patient entry without a symptom gate
+
+Patient login / Demo Mode entry opens `/patient` with **Book an Appointment**, **Find an Earlier Appointment**, and **Manage My Medical Needs**. Search and eligible bookings/waitlists work without a symptom questionnaire, including Vaccination, Blood test, Routine examination and Primary care. Availability depends on actual staff-created openings; this change does not reseed any database.
+
+Use **Find an earlier time** on an existing appointment to prefill its protected linked waitlist request, or register an unlinked need for care booked outside Careousel. External bookings are not imported or cancelled. Manage needs retains appointments, preferences and clinic-reviewed P1–P4. The existing one-active-request-per-service limit remains.
+
+**View optional health information** opens the separate optional self-report page. Saved questionnaires remain unchanged and readable by their owner. Navigation and tours are always available. Emergency guidance is informational, never automated triage. Phase 8 clinician tags and patient-authorized record imports are labeled future UI; no real upload/import is enabled.
+
+No migration is required. Keep all existing database content. Historical mandatory-intake instructions below are superseded by this section.
+
 ## Automated priority-group notifications (Phase 7)
 
 Clinic Waitlist matches now provides **Automatic priority-group notifications**: select an opening, preview P1–P4 and exclusions, explicitly select recipients, confirm the first group and reason, then **Authorize and start automatic sequence**. Later groups send automatically at least 180 minutes after the previous actual send, including when earlier patients have not responded. One shared cross-clinic pool; no internal-clinic-first window. Use Pause / Resume / Cancel; changed recipient/priority snapshots require fresh preview and explicit reauthorization of unsent groups.
@@ -44,7 +54,7 @@ Production-mode local rehearsal: `npm run build && npm start`. A persistent `SES
 ## Five-minute demonstration
 
 1. Use an already initialized synthetic database. Only when deliberately starting a new rehearsal, open `/demo` as staff → Reset demo data → type `RESET`. This clears shared demo actions: never do it while another browser is presenting. Startup, homepage entry, login and persona switching preserve data.
-2. Choose **Find Care** to enter as **Avery Morgan** (or explicitly choose Avery under Other demo personas if resuming a different patient). On first entry, complete the synthetic intake (e.g. Skin problem), submit, then Continue to find care. My appointments becomes enabled and shows the Harbor Medical Dermatology booking ~28 days away. Do not enter real health information.
+2. Choose **Find Care** to enter as **Avery Morgan** (or explicitly choose Avery under Other demo personas if resuming a different patient). Choose Book an Appointment to search, Find an Earlier Appointment to register a request, or Manage My Medical Needs. No symptom form is required. My appointments shows the Harbor Medical Dermatology booking ~28 days away. Do not enter real health information.
 3. Choose **Join a waitlist** from Find care or the combined My appointments page. Select the Harbor booking under **Existing appointment to replace (optional)**, retain suitable preferences and Join waitlist. The original booking stays confirmed. Without this explicit link, a request does not replace an existing booking.
 4. In a separate browser/profile, choose **Open clinic demo** to enter as **Cedar Health staff** (or use the persona switcher in a single-browser rehearsal). In Schedule, cancel **Jordan Lee**'s booked Dermatology appointment ~7 days away.
 5. Open **Waitlist matches**. The released Dermatology slot is selected first. Review Avery's eligibility; use **Explain recommendations** to see the local rules fallback. Approve Avery and enter a review reason.

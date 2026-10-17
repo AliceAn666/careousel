@@ -2,6 +2,8 @@
 
 ## Current authorization
 
+The latest patient UX correction authorizes a new review PR removing the generic symptom questionnaire gate in UI and backend. Patient entry offers booking, earlier appointment and medical-needs paths. Preserve historical intake verbatim, staff-reviewed P1–P4 and all scheduling/permission restrictions. Optional symptoms and emergency guidance are informational; Phase 8 tag/import UI must clearly remain unconnected, with no real records collected. No shared reset/reseed or automatic merge.
+
 The user and Codex are the sole owners. Phase 7 authorizes functional automated priority-group notifications from successful PR #13 main 0de5aaa. Read docs/automated-notifications.md. One shared cross-clinic pool supersedes internal-clinic-first/release stages. Staff explicitly authorize the full approved P1–P4 recipient sequence once; an independent durable worker sends later groups at least 180 minutes after the previous actual send. Preserve accounts, explicit Demo Mode, request/clinic priorities, intake, calendar, fictional insurance, audit and atomic replacement. Do not change shared data or applied migration bytes, push to main, auto-merge, start the impact dashboard or publicly deploy.
 
 ## Read first
@@ -64,7 +66,7 @@ Committed changes must persist across app restarts. Ordinary startup must not re
 
 ## Onboarding and insurance browsing
 
-- Intake remains authoritative before first-visit scheduling. Guides are optional, manually opened and read-only; disable launch during incomplete intake. Use current calendar and combined appointments/waitlists routes, never restore removed navigation or auto-book/reset actions.
+- Generic intake is optional and must never block search, basic booking, waitlist registration, valid acceptance, navigation or guides. Service-specific eligibility remains server-authoritative. Guides are optional, manually opened and read-only; they are available without intake. Use current calendar and combined appointments/waitlists routes, never restore removed navigation or auto-book/reset actions.
 - Search and guide progress are optional browser-local conveniences, versioned and scoped to the current synthetic persona. Validate persisted preferences, handle corrupt/blocked storage, and remount search on identity change. Never treat browser state as authorization or real clinical/insurance data.
 - PPO/HMO scenarios are fictional comparisons. Do not mutate User.plan, session identity, bookings or eligibility when browsing. Booking still checks the saved patient plan and all server safeguards; prominently explain comparison-versus-booking identity in details.
 - Keep listed medical cost and simulated out-of-pocket cost distinct. Unknown coverage is not $0; show estimates to cents, disclaim omitted benefits/charges and guarantees, and never claim real insurer verification. Referral/authorization text is simulated guidance, not approved eligibility.

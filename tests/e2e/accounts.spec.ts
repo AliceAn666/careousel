@@ -80,17 +80,20 @@ test("patient individual account, onboarding, logout and navigation never switch
   await page.getByLabel("Username", { exact: true }).fill("patient.one");
   await page.getByLabel("Password (at least 12 characters)").fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/search$/);
+  await expect(page).toHaveURL(/\/patient$/);
   await expect(
     page.getByText("Synthetic New Patient", { exact: true }),
   ).toBeVisible();
   await expect(page.getByLabel("Switch demo persona")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "My appointments", exact: true }),
-  ).toBeDisabled();
-  await page.getByLabel("Skin problem", { exact: true }).check();
-  await page.getByRole("button", { name: "Submit questionnaire" }).click();
-  await page.getByRole("button", { name: "Continue to find care" }).click();
+  ).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "Book an Appointment", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Book an Appointment", exact: true })
+    .click();
   await page.setViewportSize({ width: 375, height: 812 });
   expect(
     await page.evaluate(
