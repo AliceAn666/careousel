@@ -38,7 +38,7 @@ async function verifyGitHubIdentity(request: Request): Promise<boolean> {
       claims.ref !== "refs/heads/main" ||
       claims.sub !== "repo:AliceAn666/careousel:ref:refs/heads/main" ||
       claims.workflow_ref !== WORKFLOW_REF ||
-      !["schedule", "workflow_dispatch"].includes(claims.event_name ?? "") ||
+      !["schedule", "workflow_dispatch", "push"].includes(claims.event_name ?? "") ||
       typeof claims.iat !== "number" || typeof claims.exp !== "number" ||
       claims.iat > now + 60 || claims.exp < now ||
       claims.exp - claims.iat > 600 ||
