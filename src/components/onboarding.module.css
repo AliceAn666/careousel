@@ -10,12 +10,12 @@
   border-radius: 18px;
 }
 .start h2 {
-  font-size: 19px;
+  font-size: 1.1875rem;
   margin-bottom: 6px;
 }
 .start p {
   max-width: 620px;
-  font-size: 13px;
+  font-size: 1rem;
 }
 .start button {
   flex-shrink: 0;
@@ -31,7 +31,7 @@
   margin-bottom: 8px;
 }
 .benefits p {
-  font-size: 12px;
+  font-size: 1rem;
 }
 .fields {
   display: flex;
@@ -44,7 +44,7 @@
   display: grid;
   gap: 7px;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 0.9375rem;
 }
 .fields input[type="checkbox"] {
   width: 18px;
@@ -70,7 +70,7 @@
   margin: 12px 0;
 }
 .summary p {
-  font-size: 12px;
+  font-size: 1rem;
   margin-top: 6px;
 }
 .summary small {
@@ -94,11 +94,11 @@
   overflow-wrap: anywhere;
 }
 .bubble h2 {
-  font-size: 24px;
+  font-size: 1.5rem;
   margin: 12px 0;
 }
 .bubble p {
-  font-size: 14px;
+  font-size: 1rem;
   line-height: 1.8;
 }
 .progress {
@@ -116,7 +116,7 @@
   height: 29px;
   color: #42654c;
   background: #eaf0e3;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .progress li[aria-current="step"] {
   background: #1d6253;
@@ -125,7 +125,7 @@
   outline-offset: 3px;
 }
 .bubble .note {
-  font-size: 12px;
+  font-size: 0.875rem;
   padding: 12px;
   background: #f1f5e9;
   border-radius: 9px;
@@ -180,7 +180,7 @@
 }
 .openings .summary p,
 .openings .summary small {
-  font-size: 10px;
+  font-size: 1rem;
 }
 .launch {
   white-space: nowrap;
@@ -195,6 +195,6 @@
   }
   .launch::before {
     content: "?";
-    font-size: 16px;
+    font-size: 1rem;
   }
 }

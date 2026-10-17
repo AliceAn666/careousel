@@ -38,6 +38,8 @@ Keep UI in `src/app`/`src/components`, domain behavior in `src/server/services`,
 
 ## Coding conventions
 
+- Readable typography: use 1rem body and form controls (16px at the standard browser setting), approximately 0.9375rem labels and 0.875rem supporting text. Do not shrink functional mobile copy back to 9–12px. Prefer rem, allow text/navigation wrapping and check narrow screens and enlarged text. Decorative illustration lettering is separate from operational UI.
+
 - Strict TypeScript; avoid `any`, unchecked assertions and ignored errors. Use explicit domain types and validated request schemas.
 - PascalCase components/types, camelCase functions/variables, clear route and file names following framework conventions. Favor small focused modules over generic abstraction.
 - Reuse shared form, status, money and date components. Centralize state enums, offer lifetime and demo configuration.

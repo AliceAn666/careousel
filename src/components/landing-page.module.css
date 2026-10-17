@@ -4,7 +4,7 @@
   --cream: #faf9f3;
   color: var(--forest);
   background: var(--cream);
-  font-size: 16px;
+  font-size: 1rem;
 }
 .page p {
   color: var(--soft-ink);
@@ -45,7 +45,7 @@
   align-items: center;
   gap: 7px;
   font-weight: 800;
-  font-size: 27px;
+  font-size: 1.6875rem;
   letter-spacing: -1.3px;
   line-height: 1;
 }
@@ -57,13 +57,13 @@
 .logo > span {
   color: #a55536;
   margin-left: 1px;
-  font-size: 22px;
+  font-size: 1.375rem;
 }
 .header nav {
   margin-left: auto;
   display: flex;
   gap: 32px;
-  font-size: 14px;
+  font-size: 1rem;
   font-weight: 600;
 }
 .header nav a:hover,
@@ -88,7 +88,7 @@
 .navCta {
   min-height: 44px;
   padding: 10px 20px;
-  font-size: 14px;
+  font-size: 1rem;
 }
 .primary:hover:not(:disabled),
 .navCta:hover:not(:disabled) {
@@ -108,7 +108,7 @@
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  font-size: 10px;
+  font-size: 0.875rem;
   font-weight: 800;
   letter-spacing: 1.7px;
   line-height: 1.6;
@@ -139,12 +139,12 @@
   margin-left: 22px;
   vertical-align: middle;
   color: #b36d45;
-  font-size: 59px;
+  font-size: 3.6875rem;
   font-weight: 400;
 }
 .heroCopy > p {
   max-width: 430px;
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.85;
 }
 .actions {
@@ -166,7 +166,7 @@
   min-height: 48px;
   padding: 10px 23px;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 1rem;
 }
 .secondary:hover {
   background: #e8ede2;
@@ -176,10 +176,10 @@
   align-items: center;
   gap: 7px;
   color: #42624d;
-  font-size: 12px;
+  font-size: 0.875rem;
 }
 .heroCopy > .demoHint {
-  font-size: 11px;
+  font-size: 0.875rem;
   line-height: 1.7;
   margin-top: 17px;
   max-width: 405px;
@@ -212,7 +212,7 @@
   position: absolute;
   top: 1px;
   right: 20px;
-  font-size: 110px;
+  font-size: 6.875rem;
   line-height: 1;
   color: #e6bc81;
   transform: rotate(12deg);
@@ -233,7 +233,7 @@
   align-items: center;
   justify-content: space-between;
   color: #61725e;
-  font-size: 8px;
+  font-size: 0.5rem;
   letter-spacing: 1px;
   border-bottom: 1px solid #e1e7db;
   padding-bottom: 14px;
@@ -264,7 +264,7 @@
 }
 .week {
   color: #6c7867;
-  font-size: 9px;
+  font-size: 0.5625rem;
   margin-bottom: 8px;
 }
 .days > span {
@@ -272,7 +272,7 @@
   display: grid;
   place-items: center;
   color: #697361;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 .days > .selectedDay {
   border-radius: 50%;
@@ -288,7 +288,7 @@
   border-top: 1px solid #e1e7db;
   padding-top: 14px;
   margin-top: 15px;
-  font-size: 8px;
+  font-size: 0.5rem;
   color: #5f735b;
   display: flex;
   align-items: center;
@@ -322,10 +322,10 @@
   display: block;
 }
 .invitation strong {
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 .invitation div > span {
-  font-size: 10px;
+  font-size: 0.625rem;
   color: #63725d;
   margin-top: 2px;
 }
@@ -336,7 +336,7 @@
   position: absolute;
   bottom: 28px;
   left: 15px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   line-height: 1.6;
 }
 .protected > svg {
@@ -349,7 +349,7 @@
   position: absolute;
   bottom: 0;
   right: 0;
-  font-size: 7px;
+  font-size: 0.4375rem;
   color: #67715f;
   letter-spacing: 1px;
 }
@@ -366,7 +366,7 @@
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  font-size: 12px;
+  font-size: 0.875rem;
   color: #46624d;
 }
 .trustStrip svg {
@@ -393,7 +393,7 @@
   position: absolute;
   right: 0;
   bottom: 5px;
-  font-size: 14px;
+  font-size: 1rem;
   line-height: 1.8;
 }
 .steps {
@@ -431,14 +431,14 @@
   color: #3e6d50;
 }
 .steps h3 {
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 1.4;
   font-weight: 650;
   letter-spacing: -0.4px;
 }
 .steps p {
   margin-top: 13px;
-  font-size: 13px;
+  font-size: 1rem;
   line-height: 1.85;
 }
 .stepTag {
@@ -446,7 +446,7 @@
   gap: 7px;
   align-items: center;
   padding-top: 23px;
-  font-size: 10px;
+  font-size: 0.875rem;
   color: #43604a;
 }
 .clinics {
@@ -466,13 +466,13 @@
 }
 .clinics p {
   margin: 22px 0 25px;
-  font-size: 14px;
+  font-size: 1rem;
   line-height: 1.85;
 }
 .clinicHint {
   display: block;
   margin-top: 11px;
-  font-size: 10px;
+  font-size: 0.875rem;
   color: #52694f;
 }
 .clinicVisual {
@@ -497,7 +497,7 @@
   padding: 16px;
   border: 1px solid #d5dfcc;
   border-radius: 10px;
-  font-size: 11px;
+  font-size: 0.875rem;
 }
 .clinicLine > span {
   display: flex;
@@ -512,7 +512,7 @@
 }
 .visualCaption {
   margin-top: 8px;
-  font-size: 7px;
+  font-size: 0.4375rem;
   letter-spacing: 0.8px;
   color: #526c4c;
 }
@@ -525,11 +525,11 @@
   gap: 80px;
 }
 .demoSection h2 {
-  font-size: 25px;
+  font-size: 1.5625rem;
   letter-spacing: -0.7px;
 }
 .demoSection p {
-  font-size: 12px;
+  font-size: 1rem;
   max-width: 510px;
   margin-top: 15px;
   line-height: 1.85;
@@ -545,13 +545,13 @@
 }
 .demoControls summary {
   cursor: pointer;
-  font-size: 13px;
+  font-size: 0.875rem;
   font-weight: 600;
   padding: 5px 0;
 }
 .demoControls label {
   display: block;
-  font-size: 12px;
+  font-size: 0.9375rem;
   margin-top: 12px;
 }
 .demoControls select {
@@ -585,11 +585,11 @@
   gap: 35px;
 }
 .footer > .logo {
-  font-size: 23px;
+  font-size: 1.4375rem;
 }
 .footer > span,
 .footer > a:not(.logo) {
-  font-size: 11px;
+  font-size: 0.875rem;
   color: #5a705a;
 }
 .footer > a:not(.logo) {
@@ -621,7 +621,7 @@
     gap: 20px;
   }
   .hero h1 {
-    font-size: 66px;
+    font-size: 4.125rem;
   }
   .scene {
     min-height: 420px;
@@ -643,7 +643,7 @@
     gap: 8px;
   }
   .flower {
-    font-size: 80px;
+    font-size: 5rem;
     right: 0;
     top: 8px;
   }
@@ -686,7 +686,7 @@
     flex-wrap: wrap;
   }
   .header .logo {
-    font-size: 24px;
+    font-size: 1.5rem;
   }
   .header nav {
     order: 3;
@@ -711,13 +711,13 @@
   }
   .heroCopy > p {
     max-width: 500px;
-    font-size: 15px;
+    font-size: 1rem;
   }
   .heroCopy > .demoHint {
-    font-size: 11px;
+    font-size: 0.875rem;
   }
   .hero .eyebrow {
-    font-size: 9px;
+    font-size: 0.875rem;
     letter-spacing: 1.3px;
   }
   .scene {
@@ -742,7 +742,7 @@
   }
   .sceneCaption {
     bottom: 0;
-    font-size: 6px;
+    font-size: 0.375rem;
   }
   .trustStrip {
     flex-wrap: wrap;
@@ -751,7 +751,7 @@
     gap: 15px 25px;
   }
   .trustStrip > span {
-    font-size: 11px;
+    font-size: 0.875rem;
   }
   .how {
     padding: 55px 22px;
@@ -823,6 +823,14 @@
 }
 .connectionError p {
   color: #763a29;
-  font-size: 13px;
+  font-size: 1rem;
   margin-bottom: 10px;
+}
+
+/* Illustration captions are still readable supporting copy. */
+.sceneCaption,
+.visualCaption {
+  font-size: 0.875rem;
+  letter-spacing: 0.4px;
+  max-width: 100%;
 }
