@@ -336,7 +336,7 @@ function LegacyMatches({ state, act }: { state: AppState; act: Action }) {
               {!candidates.length ? (
                 <Empty
                   title="No eligible candidates yet"
-                  body="The opening remains available for direct booking. Candidates must match all required preferences."
+                  body="The opening remains available for eligible clinic-reviewed candidates. Only approved basic services allow direct booking. All candidates must match required preferences."
                 />
               ) : (
                 <div className="stack">

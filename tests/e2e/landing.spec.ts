@@ -82,7 +82,7 @@ test("public anchors, both role entrances, immediate patient access and existing
   await findCare(page).click();
   await expect(page).toHaveURL(/\/search$/);
   await expect(
-    page.getByRole("heading", { name: "Book an appointment", exact: true }),
+    page.getByRole("heading", { name: "Book Basic Care", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", {

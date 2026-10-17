@@ -123,3 +123,26 @@ it("converts Pacific date boundaries across daylight-saving changes", () => {
     "2030-07-11T06:59:59.000Z",
   );
 });
+it("gives an equal eligible specialist match regardless of the original booking's clinic", () => {
+  const original = {
+    ...slot,
+    start: new Date("2030-01-20T18:00:00Z"),
+    end: new Date("2030-01-20T18:30:00Z"),
+  };
+  const candidate = (clinicId: string): RequestWithBooking => ({
+    ...req,
+    bookingId: "original",
+    booking: {
+      id: "original",
+      patientId: req.patientId,
+      status: "CONFIRMED",
+      slot: { ...original, clinicId },
+    },
+  });
+  expect(eligibility(candidate(slot.clinicId), slot, [], now)).toEqual(
+    eligibility(candidate("unrelated-clinic"), slot, [], now),
+  );
+  expect(
+    eligibility(candidate("unrelated-clinic"), slot, [], now),
+  ).not.toBeNull();
+});

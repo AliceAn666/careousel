@@ -1,3 +1,7 @@
+import {
+  canDirectBook,
+  REVIEWED_WAITLIST_MESSAGE,
+} from "../../lib/service-eligibility";
 import { patientNeedActions } from "../../lib/patient-needs";
 import {
   checkedNeed,
@@ -305,6 +309,13 @@ export async function performAction(
       }
       case "book": {
         patient();
+        const requestedSlot = await tx.slot.findUnique({
+          where: { id: input.slotId },
+          select: { service: true },
+        });
+        if (!requestedSlot) fail("Appointment opening not found.", 404);
+        if (!canDirectBook(requestedSlot.service))
+          fail(REVIEWED_WAITLIST_MESSAGE, 403);
         const need = input.needId
           ? await checkedNeed(tx, user, input.needId, input.expectedNeedVersion)
           : null;

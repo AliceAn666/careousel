@@ -5,7 +5,7 @@ const patientSteps = [
   {
     route: "/search",
     title: "Find care that fits",
-    body: "Choose a service, location and available date. Clinics with matching fictional insurance are shown first. Other clinics remain visible with warnings. Choose a clinic and one of its real demo appointment dates or times. Maximum cost is the full listed visit price.",
+    body: "Book Basic Care only for Vaccination, Blood test and Routine examination. Specialist and Primary care consultations require clinic-reviewed waitlist invitations, with or without an original appointment. Choose a service, location and available date. Clinics with matching fictional insurance are shown first. Other clinics remain visible with warnings. For basic care, choose a clinic and a real demo appointment time; specialist search shows clinic information and shared waitlist actions only. Maximum cost is the full listed visit price.",
   },
   {
     route: "/search",

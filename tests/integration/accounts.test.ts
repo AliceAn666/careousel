@@ -339,7 +339,14 @@ it("runs booking, earlier waitlist and atomic replacement for an individual acco
     symptoms: [{ area: "skin", pain: 3, duration: "week", worsening: false }],
     warningSigns: [],
   });
-  await performAction(account.userId, { type: "book", slotId: "slot-36" });
+  // Historical specialist booking fixture; new specialist bookings require an invitation.
+  await db.booking.create({
+    data: { patientId: account.userId, slotId: "slot-36" },
+  });
+  await db.slot.update({
+    where: { id: "slot-36" },
+    data: { status: "BOOKED" },
+  });
   const original = await db.booking.findFirstOrThrow({
       where: { patientId: account.userId, status: "CONFIRMED" },
     }),

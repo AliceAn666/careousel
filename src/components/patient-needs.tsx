@@ -1,4 +1,8 @@
 "use client";
+import {
+  canDirectBook,
+  REVIEWED_WAITLIST_MESSAGE,
+} from "@/lib/service-eligibility";
 import { useCallback, useEffect, useState } from "react";
 import type { patientNeedsDashboard } from "@/server/services/patient-needs";
 import { needPreferences } from "@/lib/patient-needs";
@@ -529,7 +533,9 @@ export function PatientNeeds({ act }: { act: Action }) {
                         setSearching(searching === need.id ? null : need.id)
                       }
                     >
-                      Browse appointments for this need
+                      {canDirectBook(need.service)
+                        ? "Browse appointments for this need"
+                        : "How to find reviewed care"}
                     </button>
                     <button
                       onClick={() =>
@@ -677,7 +683,12 @@ export function PatientNeeds({ act }: { act: Action }) {
                   className="stack"
                   aria-label={`Appointments for ${need.title}`}
                 >
-                  <h4>{need.service} openings — earliest first</h4>
+                  <h4>
+                    {need.service} ·{" "}
+                    {canDirectBook(need.service)
+                      ? "openings — earliest first"
+                      : "clinic-reviewed pathway"}
+                  </h4>
                   <p>
                     Potentially incompatible clinics remain visible.
                     Requirements and insurance must pass server checks; warnings
@@ -689,8 +700,18 @@ export function PatientNeeds({ act }: { act: Action }) {
                       waitlist active.
                     </p>
                   )}
+                  {!canDirectBook(need.service) && (
+                    <p>
+                      {REVIEWED_WAITLIST_MESSAGE} Use “Find earlier — join this
+                      need’s waitlist” above.
+                    </p>
+                  )}
                   {data.openings
-                    .filter((s) => s.service === need.service)
+                    .filter(
+                      (s) =>
+                        s.service === need.service &&
+                        canDirectBook(need.service),
+                    )
                     .map((s) => {
                       const p = needPreferences.parse(need.preferences);
                       const selfPay =

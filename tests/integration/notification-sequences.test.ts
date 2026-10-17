@@ -184,7 +184,7 @@ it("pause/resume preserves actual-send interval; cancel revokes pending and cann
   expect((await state()).nextSendAt).toEqual(later(GROUP_INTERVAL_MS));
   await expect(
     performAction("patient-5", { type: "book", slotId: "earlier" }, { now }),
-  ).rejects.toThrow("priority-group");
+  ).rejects.toThrow("clinic-reviewed waitlist invitations");
   await expect(
     performAction(
       "staff-cedar",
@@ -507,4 +507,75 @@ it("failed notification creation rolls back the whole group and retries exactly 
   await processNotificationSequences({ now: later(GROUP_INTERVAL_MS) });
   await processNotificationSequences({ now: later(GROUP_INTERVAL_MS) });
   expect(await db.offer.count({ where: { slotId: "earlier" } })).toBe(2);
+});
+
+it("also blocks basic-service direct booking while an authorized shared notification sequence owns the opening", async () => {
+  const slot = await db.slot.create({
+    data: {
+      id: "basic-sequence-opening",
+      clinicId: "cedar",
+      service: "Vaccination",
+      provider: "Synthetic",
+      start: later(5 * 86400000),
+      end: later(5 * 86400000 + 1800000),
+      price: 10000,
+      plans: ["Blue Horizon"],
+      status: "AVAILABLE",
+    },
+  });
+  await performAction(
+    "avery",
+    {
+      type: "waitlist",
+      service: "Vaccination",
+      plan: "Blue Horizon",
+      city: "",
+      clinicIds: ["cedar"],
+      maxPrice: 20000,
+      earliest: now,
+      latest: later(10 * 86400000),
+      startHour: 0,
+      endHour: 24,
+      weekdays: [0, 1, 2, 3, 4, 5, 6],
+    },
+    { now },
+  );
+  const w = await db.waitlist.findFirstOrThrow({
+    where: { patientId: "avery", service: "Vaccination", status: "ACTIVE" },
+  });
+  await performAction(
+    "staff-cedar",
+    {
+      type: "setWaitlistPriority",
+      waitlistId: w.id,
+      clinicId: "cedar",
+      level: "P3",
+      expectedVersion: 0,
+      reason: "Staff approved basic-service recipient",
+    },
+    { now },
+  );
+  const preview = await locked((tx) =>
+    previewSequence(tx, "staff-cedar", slot.id, now),
+  );
+  await sequenceAction(
+    "staff-cedar",
+    {
+      operation: "start",
+      slotId: slot.id,
+      previewToken: preview.previewToken,
+      firstGroup: 3,
+      approvedWaitlistIds: [w.id],
+      reason: "Staff authorized shared sequence",
+    },
+    { now },
+  );
+  await expect(
+    performAction(
+      "patient-1",
+      { type: "book", slotId: slot.id, selfPayAcknowledged: true },
+      { now },
+    ),
+  ).rejects.toThrow("priority-group");
+  expect(await db.booking.count({ where: { slotId: slot.id } })).toBe(0);
 });

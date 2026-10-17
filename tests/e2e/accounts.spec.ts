@@ -138,8 +138,8 @@ test("patient individual account, onboarding, logout and navigation never switch
   });
   expect((await stale.json()).user).toBeNull();
   const after = await (await request.get("/api/state")).json();
-  expect(after.slots.map((s: { id: string }) => s.id)).toEqual(
-    before.slots.map((s: { id: string }) => s.id),
+  expect(after.slots.map((s: { id: string }) => s.id).sort()).toEqual(
+    before.slots.map((s: { id: string }) => s.id).sort(),
   );
   await page
     .getByRole("button", { name: "Enter Demo Mode", exact: true })
@@ -319,9 +319,7 @@ test("account forms show email validation beside the field and failed login belo
   page,
 }) => {
   await page.goto("/login/patient");
-  await page
-    .getByRole("button", { name: "Create patient account" })
-    .click();
+  await page.getByRole("button", { name: "Create patient account" }).click();
   await page.getByLabel("Username", { exact: true }).fill("form.patient");
   await page
     .getByLabel("Display name (fictional)")
@@ -329,9 +327,9 @@ test("account forms show email validation beside the field and failed login belo
   await page.getByLabel("Email (fictional)").fill("person@gmail.com");
   await page.getByLabel("Password (at least 12 characters)").fill(password);
   await page.getByRole("button", { name: "Register patient" }).click();
-  await expect(
-    page.locator("form").getByRole("alert"),
-  ).toContainText("Only fictional example/test email addresses");
+  await expect(page.locator("form").getByRole("alert")).toContainText(
+    "Only fictional example/test email addresses",
+  );
   await expect(page.getByLabel("Email (fictional)")).toHaveAttribute(
     "aria-invalid",
     "true",
@@ -347,15 +345,13 @@ test("account forms show email validation beside the field and failed login belo
     .getByLabel("Password (at least 12 characters)")
     .fill("IncorrectPassword!123");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(
-    page.locator("form").getByRole("alert"),
-  ).toHaveText("Invalid username or password.");
+  await expect(page.locator("form").getByRole("alert")).toHaveText(
+    "Invalid username or password.",
+  );
   await expect(
     page.getByLabel("Password (at least 12 characters)"),
   ).toHaveAttribute("aria-invalid", "true");
-  await page
-    .getByLabel("Password (at least 12 characters)")
-    .fill(password);
+  await page.getByLabel("Password (at least 12 characters)").fill(password);
   await expect(page.locator("form").getByRole("alert")).toHaveCount(0);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/search$/);

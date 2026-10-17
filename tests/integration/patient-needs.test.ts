@@ -23,18 +23,26 @@ const external = (reference = "OUT-1", start = "2030-02-10T18:00:00Z") => ({
   reference,
   reportedConfirmed: true,
 });
-const create = (title: string, original: unknown = { type: "NONE" }) => ({
+const create = (
+  title: string,
+  original: unknown = { type: "NONE" },
+  service = "Dermatology",
+) => ({
   type: "createNeed",
   title,
-  service: "Dermatology",
+  service,
   preferences,
   requiresReferral: false,
   requiresAuthorization: false,
   tagIds: [],
   original,
 });
-async function need(title: string, original: unknown = { type: "NONE" }) {
-  await performAction("avery", create(title, original), { now });
+async function need(
+  title: string,
+  original: unknown = { type: "NONE" },
+  service = "Dermatology",
+) {
+  await performAction("avery", create(title, original, service), { now });
   return db.patientNeed.findFirstOrThrow({ where: { title } });
 }
 async function request(id: string) {
@@ -272,13 +280,23 @@ it("preserves an existing legacy replacement request until the patient explicitl
   ).toBe(1);
 });
 it("prevents time conflicts with another reported confirmed external appointment and requires fresh review after correcting a report", async () => {
-  const a = await need("Request without an original"),
-    b = await need("Conflicting outside booking", {
-      type: "EXTERNAL",
-      appointment: external("CONFLICT", "2030-01-08T18:00:00Z"),
-    });
+  const a = await need(
+      "Request without an original",
+      { type: "NONE" },
+      "Vaccination",
+    ),
+    b = await need(
+      "Conflicting outside booking",
+      {
+        type: "EXTERNAL",
+        appointment: external("CONFLICT", "2030-01-08T18:00:00Z"),
+      },
+      "Vaccination",
+    );
   const wa = await request(a.id);
-  await slot("external-conflict");
+  await slot("external-conflict", "2030-01-08T18:00:00Z", {
+    service: "Vaccination",
+  });
   await expect(offer(wa.id, "external-conflict")).rejects.toThrow(
     /eligibility/,
   );
@@ -315,7 +333,7 @@ it("enforces need-specific referral/authorization even when the slot itself has 
   await performAction(
     "avery",
     {
-      ...create("Special requirements"),
+      ...create("Special requirements", { type: "NONE" }, "Vaccination"),
       requiresReferral: true,
       requiresAuthorization: true,
     },
@@ -325,7 +343,9 @@ it("enforces need-specific referral/authorization even when the slot itself has 
     where: { title: "Special requirements" },
   });
   const w = await request(n.id);
-  await slot("requirements-slot");
+  await slot("requirements-slot", "2030-01-08T18:00:00Z", {
+    service: "Vaccination",
+  });
   await expect(
     performAction(
       "avery",
@@ -485,9 +505,15 @@ it("edits and closes only the selected need, uses optimistic versions and preser
   ).rejects.toThrow(/not found/);
 });
 it("books an appropriate basic opening for one need without replacing or retargeting another need", async () => {
-  const a = await need("Basic booking"),
-    b = await need("Another independent booking");
-  await slot("direct-need-slot");
+  const a = await need("Basic booking", { type: "NONE" }, "Vaccination"),
+    b = await need(
+      "Another independent booking",
+      { type: "NONE" },
+      "Vaccination",
+    );
+  await slot("direct-need-slot", "2030-01-08T18:00:00Z", {
+    service: "Vaccination",
+  });
   await performAction(
     "avery",
     {
@@ -515,8 +541,13 @@ it("books an appropriate basic opening for one need without replacing or retarge
   ).toMatchObject({ state: "OPEN", currentBookingId: null });
 });
 it("does not book an incompatible insurance plan and rejects forged patient or automatic priority fields", async () => {
-  const a = await need("Insurance compatibility");
+  const a = await need(
+    "Insurance compatibility",
+    { type: "NONE" },
+    "Vaccination",
+  );
   await slot("not-covered", "2030-01-08T18:00:00Z", {
+    service: "Vaccination",
     plans: ["Aster Health"],
   });
   await expect(

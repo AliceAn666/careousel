@@ -1,5 +1,11 @@
 # Careousel
 
+## Final appointment pathways
+
+**Book Basic Care** directly for Vaccination, Blood test and Routine examination only. **Find an Earlier Appointment** or **Join Waitlist** for specialist and Primary care consultations, with or without an original appointment. Specialist cards show clinic/service information without ordinary time selection; the server enforces the same exact service allowlist. Approved invitations can still confirm specialist care.
+
+One universal cross-clinic pool has no internal-first preference, waiting/exhaustion requirement or external-release stage. Staff approve P1–P4 and recipients, then authorize automatic three-hour notifications. Internal originals remain protected until atomic replacement; external bookings remain patient-managed and unrelated needs remain independent. No symptom questionnaire, migration, shared reset/reseed, real insurer/hospital integration or payment is introduced. [Current contracts and verification](docs/booking-policy.md).
+
 Better care, sooner. A functional synthetic cross-clinic appointment and waitlist prototype built from scratch. No previous HTML/CSS/JavaScript frontend is used.
 
 ## Independent medical needs and external appointments (Phase 8 Part C)
@@ -166,7 +172,7 @@ Prototype limits: one role/clinic per staff account, no password recovery/MFA/ad
 
 This user-approved UX requirement supersedes all earlier instructions to require first-visit symptom intake or use a monthly clinic-icon calendar for patient search. No symptom questionnaire is shown in normal patient UI, including optional onboarding. No intake-completion gate applies to search, direct booking, waitlist registration, acceptance or guides. Existing Intake/SymptomTag rows and historical API compatibility are retained without deletion, migration or automatic backfill. Clinician-authored tags are implemented in Phase 8 Part A; patient-authorized synthetic record import and clinician-reviewed extraction are implemented in Part B. Do not invent clinical information.
 
-Patient navigation centers on Book an Appointment, Find an Earlier Appointment, and Manage My Appointments and Waitlists, plus the durable notification inbox. Search includes a service/specialty text field, categories (Vaccinations, Blood Tests, Routine Checkups mapped to Primary care / Routine examination, Specialist Visits), service/location/insurance/date/listed-cost and fictional estimated-patient-cost filters. Only matching labeled appointment cards appear, earliest first; details/booking and waitlist actions remain available. Vaccination, Blood test and Routine examination are supported request service strings, but current synthetic fixtures may have no matching openings; display an honest empty state. Never relabel a specialist appointment as another service. Clinic operational schedules are preserved.
+Patient navigation centers on Book Basic Care, Find an Earlier Appointment, and Manage My Appointments and Waitlists, plus the durable notification inbox. Search includes a service/specialty text field, categories (Vaccinations, Blood Tests, Routine Checkups mapped to Routine examination only, Specialist Visits), service/location/insurance/date/listed-cost and fictional estimated-patient-cost filters. Only matching labeled appointment cards appear, earliest first; details/booking and waitlist actions remain available. Vaccination, Blood test and Routine examination are supported request service strings, but current synthetic fixtures may have no matching openings; display an honest empty state. Never relabel a specialist appointment as another service. Clinic operational schedules are preserved.
 
 Service-specific referral/authorization, saved-plan eligibility, availability, request/clinic human-approved P1–P4, account/clinic scope, atomic replacement, occupancy constraints and authorized automatic 180-minute group sequences remain enforced. No shared database reset/reseed, automatic migration, clinical inference or real insurance-verification claim.
 

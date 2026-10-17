@@ -1,5 +1,9 @@
 "use client";
 import Link from "next/link";
+import {
+  canDirectBook,
+  REVIEWED_WAITLIST_MESSAGE,
+} from "@/lib/service-eligibility";
 import { priorityLabel } from "@/lib/waitlist-priority";
 import { useEffect, useState } from "react";
 import {
@@ -94,7 +98,10 @@ export function SearchCare({
   const setDate = (date: string) => update({ date });
   useEffect(() => {
     if (state.user)
-      saveSearchPreferences(state.user.id, { ...preferences, plan: state.user.plan as SearchPreferences["plan"] });
+      saveSearchPreferences(state.user.id, {
+        ...preferences,
+        plan: state.user.plan as SearchPreferences["plan"],
+      });
   }, [preferences, state.user]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -102,14 +109,14 @@ export function SearchCare({
   const matches = (s: SlotView) => {
     return (
       (!query ||
-        `${s.service} ${["Primary care", "Routine examination"].includes(s.service) ? "Routine Checkups" : ["Cardiology", "Dermatology"].includes(s.service) ? "Specialist Visits" : ""} ${s.clinic.name} ${s.provider}`
+        `${s.service} ${s.service === "Routine examination" ? "Routine Checkups" : ["Cardiology", "Dermatology"].includes(s.service) ? "Specialist Visits" : ""} ${s.clinic.name} ${s.provider}`
           .toLowerCase()
           .includes(query.toLowerCase().trim())) &&
       (!category ||
         (category === "Specialist Visits"
           ? ["Dermatology", "Cardiology"].includes(s.service)
           : category === "Routine examination"
-            ? ["Primary care", "Routine examination"].includes(s.service)
+            ? s.service === "Routine examination"
             : s.service === category)) &&
       (!service || s.service === service) &&
       (!city || s.clinic.city === city) &&
@@ -118,6 +125,7 @@ export function SearchCare({
     );
   };
   const results = state.slots
+    .filter((s) => !canDirectBook(s.service) || s.status === "AVAILABLE")
     .filter(matches)
     .sort(
       (a, b) =>
@@ -147,7 +155,7 @@ export function SearchCare({
         +new Date(a.first.start) - +new Date(b.first.start) ||
         a.first.clinic.name.localeCompare(b.first.clinic.name),
     );
-  const matchCount = results.length;
+  const matchCount = results.filter((s) => canDirectBook(s.service)).length;
   const clear = () => {
     setPreferences({
       ...defaultSearchPreferences,
@@ -159,10 +167,12 @@ export function SearchCare({
   return (
     <>
       <section className="card search-intro" aria-label="Appointment search">
-        <h2>Book an appointment</h2>
+        <h2>Book Basic Care</h2>
         <p>
-          Search by service and choose an opening directly. Clinics where your
-          insurance may not apply will be labeled; you can still book.
+          Book vaccinations, blood tests and routine examinations directly. For
+          specialist consultations, find participating clinics and join our
+          shared, clinic-reviewed waitlist. Recover cancelled capacity and
+          receive care sooner.
         </p>
         <label className="field">
           Medical service or specialty
@@ -207,7 +217,10 @@ export function SearchCare({
           Find an earlier appointment · Join a waitlist
         </button>
       </section>
-      <section className="insurance-account-note" aria-label="Insurance from your account">
+      <section
+        className="insurance-account-note"
+        aria-label="Insurance from your account"
+      >
         <span>
           Your insurance: <strong>{plan || "Not provided"}</strong>
           <span className="muted"> · from your account</span>
@@ -227,8 +240,9 @@ export function SearchCare({
         )}
         <p className="muted">
           We will highlight clinics where your demo coverage does not apply. All
-          clinics remain bookable; you may need to pay the listed self-pay price.
-          Plan benefits are simulated, not verified.
+          clinics remain visible. Eligible basic care may be booked with
+          explicit self-pay acknowledgment; specialist care requires a reviewed
+          invitation. Plan benefits are simulated, not verified.
         </p>
       </section>
       <section className="filter-card">
@@ -290,14 +304,15 @@ export function SearchCare({
       <div className="section-title">
         <div>
           <h2>
-            Available appointments{" "}
+            Care options{" "}
             <span className="result-count">
               {clinicOptions.length} clinic/service options · {matchCount}{" "}
-              openings
+              basic-care openings
             </span>
           </h2>
           <p>
-            Clinic options for your saved insurance · Book any available time · Pacific time.
+            Clinic options for your saved insurance · Basic care times or
+            reviewed waitlist · Pacific time.
           </p>
         </div>
         <div className="button-row">
@@ -356,74 +371,103 @@ export function SearchCare({
                   <div className="clinic-title-row">
                     <h3>{first.clinic.name}</h3>
                     {needsCoverageWarning && (
-                      <p className="insurance-match insurance-match-warning" role="status">
+                      <p
+                        className="insurance-match insurance-match-warning"
+                        role="status"
+                      >
                         {networkAccepted
-                          ? `Your ${plan} ${planType} does not cover this service · You can still book (self-pay)`
-                          : `Your ${plan} ${planType} is not accepted at this clinic · You can still book (self-pay)`}
+                          ? `Your ${plan} ${planType} does not cover this service · ${canDirectBook(first.service) ? "Self-pay available for basic care" : "Clinic review required"}`
+                          : `Your ${plan} ${planType} is not accepted at this clinic · ${canDirectBook(first.service) ? "Self-pay available for basic care" : "Clinic review required"}`}
                       </p>
                     )}
                   </div>
                   <p>
                     {first.clinic.address}, {first.clinic.city}
                   </p>
-                  <p>
-                    {slots.length} available appointment{" "}
-                    {slots.length === 1 ? "time" : "times"} ·{" "}
-                    {[...new Set(slots.map((slot) => slot.provider))].join(
-                      ", ",
-                    )}
-                  </p>
-                  <p className="muted">
-                    Select an available time to confirm your appointment
-                    (Pacific):
-                  </p>
-                  <div className="clinic-date-groups">
-                    {availableDays.map((day) => {
-                      const daySlots = slots.filter(
-                        (slot) => pacificDate(slot.start) === day,
-                      );
-                      return (
-                        <div key={day} className="clinic-date-group">
-                          <strong className="clinic-date-label">
-                            {new Intl.DateTimeFormat("en-US", {
-                              timeZone: "America/Los_Angeles",
-                              weekday: "short",
-                              month: "short",
-                              day: "numeric",
-                            }).format(new Date(daySlots[0].start))}
-                          </strong>
-                          <div
-                            className="clinic-time-options"
-                            role="group"
-                            aria-label={`Available times at ${first.clinic.name} for ${first.service} on ${day}`}
-                          >
-                            {daySlots.map((slot) => (
-                              <button
-                                key={slot.id}
-                                type="button"
-                                className="booking-choice clinic-time-choice"
-                                data-slot-id={slot.id}
-                                aria-label={`Book ${first.service} at ${first.clinic.name}, ${dateLabel(slot.start)}`}
-                                onClick={() =>
-                                  onDetail(slot, {
-                                    provider: plan,
-                                    planType,
-                                  })
-                                }
+                  {canDirectBook(first.service) ? (
+                    <>
+                      <p>
+                        {slots.length} available appointment{" "}
+                        {slots.length === 1 ? "time" : "times"} ·{" "}
+                        {[...new Set(slots.map((slot) => slot.provider))].join(
+                          ", ",
+                        )}
+                      </p>
+                      <p className="muted">
+                        Select an available time to confirm your appointment
+                        (Pacific):
+                      </p>
+                      <div className="clinic-date-groups">
+                        {availableDays.map((day) => {
+                          const daySlots = slots.filter(
+                            (slot) => pacificDate(slot.start) === day,
+                          );
+                          return (
+                            <div key={day} className="clinic-date-group">
+                              <strong className="clinic-date-label">
+                                {new Intl.DateTimeFormat("en-US", {
+                                  timeZone: "America/Los_Angeles",
+                                  weekday: "short",
+                                  month: "short",
+                                  day: "numeric",
+                                }).format(new Date(daySlots[0].start))}
+                              </strong>
+                              <div
+                                className="clinic-time-options"
+                                role="group"
+                                aria-label={`Available times at ${first.clinic.name} for ${first.service} on ${day}`}
                               >
-                                {timeLabel(slot.start)}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <p className="muted">
-                    Listed visit prices from{" "}
-                    {money(Math.min(...slots.map((slot) => slot.price)))}. Demo
-                    insurers are not verified.
-                  </p>
+                                {daySlots.map((slot) => (
+                                  <button
+                                    key={slot.id}
+                                    type="button"
+                                    className="booking-choice clinic-time-choice"
+                                    data-slot-id={slot.id}
+                                    aria-label={`Book ${first.service} at ${first.clinic.name}, ${dateLabel(slot.start)}`}
+                                    onClick={() =>
+                                      onDetail(slot, {
+                                        provider: plan,
+                                        planType,
+                                      })
+                                    }
+                                  >
+                                    {timeLabel(slot.start)}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="muted">
+                        Listed visit prices from{" "}
+                        {money(Math.min(...slots.map((slot) => slot.price)))}.
+                        Demo insurers are not verified.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p>
+                        {[...new Set(slots.map((slot) => slot.provider))].join(
+                          ", ",
+                        )}
+                      </p>
+                      <p>{REVIEWED_WAITLIST_MESSAGE}</p>
+                      <p>
+                        Join with or without an existing appointment. Original
+                        bookings stay protected until replacement succeeds.
+                      </p>
+                      <button
+                        className="primary"
+                        onClick={() => onWaitlist(first.service)}
+                      >
+                        Join Waitlist
+                      </button>
+                      <button onClick={() => onWaitlist(first.service)}>
+                        Find an Earlier Appointment
+                      </button>
+                    </>
+                  )}
                 </div>
               </article>
             );

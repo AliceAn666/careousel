@@ -36,7 +36,13 @@ export function DemoGuide({ staff, act }: { staff: boolean; act: Action }) {
             <br />
             into an opportunity.
           </h2>
-          <p>Two clinics. One patient. Care that arrives sooner.</p>
+          <p>
+            One universal cross-clinic pool. No internal-clinic-first wait,
+            home-clinic preference or external-release stage. Staff review P1–P4
+            and authorize notifications; patients accept specialist invitations.
+            Book Basic Care directly only for vaccinations, blood tests and
+            routine examinations.
+          </p>
         </div>
         <div className="hero-art" aria-hidden="true">
           <div className="art-cross">✚</div>
