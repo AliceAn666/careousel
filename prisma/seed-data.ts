@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { OFFER_MINUTES, PLANS, SERVICES } from "../src/lib/config";
+import { demoClinicPlans } from "../src/lib/demo-coverage";
 export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
   await tx.$executeRaw`SELECT set_config('careousel.synthetic_reset', 'on', true)`;
   await tx.patientNeedEvidence.deleteMany();
@@ -120,7 +121,7 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
         start,
         end: new Date(+start + 1800000),
         price: 9000 + (i % 4) * 2500,
-        plans: i % 3 === 0 ? [...PLANS] : [PLANS[i % 4], "Self-pay"],
+        plans: demoClinicPlans(clinic),
       },
     });
   }
@@ -138,13 +139,7 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
   const demoSlots: Prisma.SlotCreateManyInput[] = [];
   for (let clinicIndex = 0; clinicIndex < clinics.length; clinicIndex++) {
     for (let serviceIndex = 0; serviceIndex < SERVICES.length; serviceIndex++) {
-      const group = (clinicIndex + serviceIndex) % 3;
-      const plans =
-        group === 0
-          ? ["Blue Horizon", "Aster Health", "Self-pay"]
-          : group === 1
-            ? ["Aster Health", "United Demo", "Self-pay"]
-            : ["Pacific Care", "Blue Horizon", "Self-pay"];
+      const plans = demoClinicPlans(clinics[clinicIndex][0]);
       for (let day = 0; day < 2; day++)
         for (let time = 0; time < 3; time++) {
           const start = date(3 + day * 7, 17 + time * 2);
@@ -177,7 +172,7 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
         start,
         end: new Date(+start + 1800000),
         price: 12000,
-        plans: [...PLANS],
+        plans: demoClinicPlans(clinicId),
         status: "BOOKED",
       },
     });
@@ -234,7 +229,7 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
         end: new Date(+slot.start + 1800000),
         provider: "Dr. Kira Bell",
         price: 12000,
-        plans: [...PLANS],
+        plans: demoClinicPlans(slot.clinicId),
       },
     });
   await tx.booking.create({

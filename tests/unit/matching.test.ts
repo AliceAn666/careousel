@@ -55,6 +55,20 @@ describe("eligibility", () => {
   ])("excludes incompatible preferences %j", (patch) =>
     expect(eligibility({ ...req, ...patch }, slot, [], now)).toBeNull(),
   );
+  it("uses clinic insurance rather than stale per-slot acceptance for waitlist eligibility", () => {
+    const historicalSlot = {
+      ...slot,
+      clinicId: "cedar",
+      plans: ["Aster Health"],
+    };
+    expect(eligibility(req, historicalSlot, [], now)).not.toBeNull();
+    expect(
+      eligibility({ ...req, plan: "Aster Health" }, historicalSlot, [], now),
+    ).toBeNull();
+    expect(
+      eligibility({ ...req, plan: "Self-pay" }, historicalSlot, [], now),
+    ).not.toBeNull();
+  });
   it("excludes past openings", () =>
     expect(eligibility(req, slot, [], new Date("2031-01-01"))).toBeNull());
   it("requires a replacement to be strictly earlier", () => {

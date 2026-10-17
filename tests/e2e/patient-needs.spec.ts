@@ -334,6 +334,12 @@ test("incompatible clinic stays visible with a warning while booking remains pro
   process.env.DATABASE_URL = url;
   process.env.DEMO_MODE = "true";
   const { db } = await import("../../src/server/db");
+  const current = await (await page.request.get("/api/state")).json();
+  // Cedar excludes Aster at clinic level even if historical slot metadata lists it.
+  await db.user.update({
+    where: { id: current.user.id },
+    data: { plan: "Aster Health" },
+  });
   await db.slot.create({
     data: {
       id: "incompatible-need-opening",
@@ -343,12 +349,12 @@ test("incompatible clinic stays visible with a warning while booking remains pro
       start: new Date(Date.now() + 7 * 86400000),
       end: new Date(Date.now() + 7 * 86400000 + 1800000),
       price: 1000,
-      plans: ["Other Plan"],
+      plans: ["Aster Health"],
       status: "AVAILABLE",
     },
   });
   const preferences = {
-    plan: "Blue Horizon",
+    plan: "Aster Health",
     city: "",
     clinicIds: [],
     maxPrice: 30000,

@@ -89,6 +89,57 @@ describe("real PostgreSQL scheduling", () => {
     ).toBe("FULFILLED");
     expect(await db.audit.count()).toBeGreaterThan(2);
   });
+  it("accepts a replacement using the clinic network despite legacy per-slot insurance", async () => {
+    await db.slot.update({
+      where: { id: "earlier" },
+      data: { plans: ["Aster Health"] },
+    });
+    const o = await offer();
+    await performAction("avery", {
+      type: "respond",
+      offerId: o.id,
+      accept: true,
+    });
+    expect(
+      (await db.offer.findUniqueOrThrow({ where: { id: o.id } })).status,
+    ).toBe("ACCEPTED");
+    expect(
+      (await db.booking.findUniqueOrThrow({ where: { id: "avery-original" } }))
+        .status,
+    ).toBe("RESCHEDULED");
+    expect(
+      await db.booking.count({
+        where: { patientId: "avery", slotId: "earlier", status: "CONFIRMED" },
+      }),
+    ).toBe(1);
+  });
+  it("rejects an invitation after a saved-plan change outside the clinic network, preserving the original", async () => {
+    const o = await offer();
+    await db.user.update({
+      where: { id: "avery" },
+      data: { plan: "Aster Health" },
+    });
+    // Historical per-slot metadata must not grant a clinic-level network benefit.
+    await db.slot.update({
+      where: { id: "earlier" },
+      data: { plans: ["Aster Health", "Self-pay"] },
+    });
+    await expect(
+      performAction("avery", { type: "respond", offerId: o.id, accept: true }),
+    ).rejects.toThrow("saved insurance plan is not accepted");
+    expect(
+      (await db.offer.findUniqueOrThrow({ where: { id: o.id } })).status,
+    ).toBe("PENDING");
+    expect(
+      (await db.booking.findUniqueOrThrow({ where: { id: "avery-original" } }))
+        .status,
+    ).toBe("CONFIRMED");
+    expect(
+      await db.booking.count({
+        where: { slotId: "earlier", status: "CONFIRMED" },
+      }),
+    ).toBe(0);
+  });
   it("allows only one winner for competing direct bookings", async () => {
     const results = await Promise.allSettled(
       ["avery", "patient-4"].map((id) =>

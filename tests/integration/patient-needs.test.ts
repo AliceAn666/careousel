@@ -525,12 +525,18 @@ it("does not book an incompatible insurance plan and rejects forged patient or a
       {
         type: "book",
         slotId: "not-covered",
+        // Clinic-level Cedar network excludes Aster, regardless of old slot metadata.
+        insuranceProvider: "Aster Health",
         needId: a.id,
         expectedNeedVersion: 1,
       },
       { now },
     ),
   ).rejects.toThrow(/insurance/);
+  expect(await db.booking.count({ where: { slotId: "not-covered" } })).toBe(0);
+  expect(
+    await db.patientNeed.findUniqueOrThrow({ where: { id: a.id } }),
+  ).toMatchObject({ state: "OPEN", currentBookingId: null, version: 1 });
   await expect(
     performAction(
       "avery",
