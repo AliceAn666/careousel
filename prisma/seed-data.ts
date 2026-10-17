@@ -224,7 +224,7 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
         end: new Date(+slot.start + 1800000),
         provider: "Dr. Kira Bell",
         price: 12000,
-        plans: demoClinicPlans(clinicId),
+        plans: demoClinicPlans(slot.clinicId),
       },
     });
   await tx.booking.create({
