@@ -128,7 +128,9 @@ test("basic vaccination booking skips symptoms, health-history route stays read-
     .click();
   await expect(page).toHaveURL(/\/health-information$/);
   await expect(
-    page.getByText("Planned for Phase 8.", { exact: false }).first(),
+    page.getByRole("heading", {
+      name: "Patient-authorized synthetic medical records",
+    }),
   ).toBeVisible();
   await page.reload();
   await expect(

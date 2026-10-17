@@ -19,6 +19,7 @@ model User {
   priorityHistory PriorityHistory[] @relation("PriorityActor")
   account Account?
   verifiedMemberships ClinicMembership[] @relation("MembershipVerifier")
+  recordImports MedicalRecordImport[]
   sentInvitations StaffInvitation[] @relation("InvitationSender")
   intake Intake?
   tags SymptomTag[]
@@ -34,6 +35,7 @@ model Clinic {
   address String
   description String
   timezone String @default("America/Los_Angeles")
+  recordImports MedicalRecordImport[]
   users User[]
   slots Slot[]
   memberships ClinicMembership[]
@@ -285,11 +287,13 @@ model MedicalNeed {
   id String @id @default(cuid())
   patientId String
   clinicId String
-  sourceBookingId String
+  sourceBookingId String?
+  sourceImportId String?
   title String
   service String
   createdById String
   createdAt DateTime @default(now())
+  sourceImport MedicalRecordImport? @relation("ImportNeeds", fields: [sourceImportId, patientId, clinicId], references: [id, patientId, clinicId])
   tags MedicalTag[]
   @@unique([id, patientId, clinicId])
 }
@@ -299,11 +303,16 @@ model MedicalTag {
   patientId String
   clinicId String
   need MedicalNeed @relation(fields: [needId, patientId, clinicId], references: [id, patientId, clinicId])
-  sourceBookingId String
+  sourceBookingId String?
+  sourceImportId String?
   authorId String
   updatedById String
   reviewedById String?
   reviewedAt DateTime?
+  sourceImport MedicalRecordImport? @relation("ImportTags", fields: [sourceImportId, patientId, clinicId], references: [id, patientId, clinicId])
+  sourceRecordId String?
+  sourceExcerpt String?
+  sourceRecord ImportedMedicalRecord? @relation(fields: [sourceRecordId, sourceImportId], references: [id, importId])
   sourceType String @default("CLINICIAN_VISIT")
   kind String
   label String
@@ -331,4 +340,69 @@ model MedicalTagRevision {
   snapshot Json
   createdAt DateTime @default(now())
   @@unique([tagId, version])
+}
+
+model MedicalRecordImport {
+  id String @id @default(cuid())
+  patientId String
+  patient User @relation(fields: [patientId], references: [id])
+  clinicId String
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+  requestId String
+  source String @default("CAREOUSEL_SYNTHETIC_FHIR_V1")
+  consentVersion String @default("SYNTHETIC_V1")
+  state String @default("ACTIVE")
+  version Int @default(1)
+  consentedAt DateTime @default(now())
+  revokedAt DateTime?
+  records ImportedMedicalRecord[]
+  suggestions ImportedTagSuggestion[]
+  audits MedicalRecordAudit[]
+  needs MedicalNeed[] @relation("ImportNeeds")
+  tags MedicalTag[] @relation("ImportTags")
+  @@unique([patientId, requestId])
+  @@unique([id, patientId, clinicId])
+}
+model ImportedMedicalRecord {
+  id String @id @default(cuid())
+  importId String
+  recordImport MedicalRecordImport @relation(fields: [importId], references: [id])
+  resourceId String
+  resourceType String
+  text String
+  resource Json
+  contentHash String
+  tags MedicalTag[]
+  suggestion ImportedTagSuggestion?
+  @@unique([id, importId])
+  @@unique([importId, resourceId])
+}
+model ImportedTagSuggestion {
+  id String @id @default(cuid())
+  importId String
+  recordImport MedicalRecordImport @relation(fields: [importId], references: [id])
+  recordId String @unique
+  @@unique([recordId, importId])
+  record ImportedMedicalRecord @relation(fields: [recordId, importId], references: [id, importId])
+  excerpt String
+  originalFields Json
+  fields Json
+  method String
+  explanation String
+  state String @default("PENDING")
+  version Int @default(1)
+  reviewedById String?
+  reviewedAt DateTime?
+  tagId String? @unique
+  createdAt DateTime @default(now())
+}
+model MedicalRecordAudit {
+  id String @id @default(cuid())
+  importId String
+  recordImport MedicalRecordImport @relation(fields: [importId], references: [id])
+  actorId String
+  action String
+  details Json
+  createdAt DateTime @default(now())
+  @@index([importId, createdAt])
 }

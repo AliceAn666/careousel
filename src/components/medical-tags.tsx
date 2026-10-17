@@ -308,11 +308,17 @@ export function MedicalTags({ patient = false }: { patient?: boolean }) {
             Requirements still need staff verification.
           </p>
           <p>
-            Source: clinician visit {tag.sourceBookingId} ·{" "}
-            {data.clinics.find((c) => c.id === tag.clinicId)?.name}. Author:{" "}
+            Source:{" "}
+            {tag.sourceType === "SYNTHETIC_RECORD_REVIEW"
+              ? `clinician-reviewed synthetic record import ${tag.sourceImportId}`
+              : `clinician visit ${tag.sourceBookingId}`}{" "}
+            · {data.clinics.find((c) => c.id === tag.clinicId)?.name}. Author:{" "}
             {data.authors.find((a) => a.id === tag.authorId)?.name}. Version{" "}
             {tag.version} · {dateLabel(tag.updatedAt)}
           </p>
+          {"sourceExcerpt" in tag && tag.sourceExcerpt && (
+            <blockquote>{tag.sourceExcerpt}</blockquote>
+          )}
           {tag.reviewedAt && (
             <p>
               Reviewed by{" "}

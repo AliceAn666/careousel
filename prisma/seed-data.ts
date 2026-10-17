@@ -2,9 +2,13 @@ import { Prisma } from "@prisma/client";
 import { OFFER_MINUTES, PLANS, SERVICES } from "../src/lib/config";
 export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
   await tx.$executeRaw`SELECT set_config('careousel.synthetic_reset', 'on', true)`;
+  await tx.medicalRecordAudit.deleteMany();
+  await tx.importedTagSuggestion.deleteMany();
   await tx.medicalTagRevision.deleteMany();
   await tx.medicalTag.deleteMany();
   await tx.medicalNeed.deleteMany();
+  await tx.importedMedicalRecord.deleteMany();
+  await tx.medicalRecordImport.deleteMany();
   await tx.accountSession.deleteMany();
   await tx.staffInvitation.deleteMany();
   await tx.clinicMembership.deleteMany();

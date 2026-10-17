@@ -2,11 +2,17 @@
 
 Better care, sooner. A functional synthetic cross-clinic appointment and waitlist prototype built from scratch. No previous HTML/CSS/JavaScript frontend is used.
 
+## Patient-authorized synthetic records (Phase 8 Part B)
+
+Patients can explicitly authorize a clinic-specific synthetic FHIR-compatible sample import, search records and generate unconfirmed local suggestions. Permitted clinicians use **Record review** to correct, approve or reject evidence; only approved tags reach Part A's scheduling evidence. Patients can revoke access immediately while retaining their private source/audit archive. Booking never requires an import. No hospital connection or external AI API is needed; optional loopback AI reliably falls back to local rules. [Walkthrough, API, privacy, retention and limitations](docs/medical-record-import.md).
+
+Migrations **0009_patient_record_import** and **0010_record_review_integrity** are additive and tested in a new isolated database only. No deployment/shared database changes are performed. External bookings and independent multi-need scheduling remain Part C after this PR's review and merge.
+
 ## Clinician-authored medical tags (Phase 8 Part A)
 
 Authorized clinicians can create visit-linked medical needs and tags, edit drafts, explicitly approve or retire them, and inspect immutable version history under **Medical tags**. Administrators explicitly grant clinical author permission; staff/admin roles alone do not grant it. Patients see their own approved follow-up information under **Health information**. Priority review shows approved same-clinic scheduling evidence without private clinical notes; human-approved P1–P4 and existing scheduling protections remain separate.
 
-Clinical credential verification is simulated. Record import/extraction and independent scheduling of multiple needs are follow-up PRs. Migration **0008_clinician_medical_tags** is additive and was tested only on a newly isolated PostgreSQL database; applying it to any existing demo/cloud environment requires separate authorization. No deployment or shared-database change is performed. [Contracts, privacy boundaries and walkthrough](docs/medical-tags.md).
+Clinical credential verification is simulated. Record import/extraction is implemented separately in Part B; independent scheduling of multiple needs remains Part C. Migration **0008_clinician_medical_tags** is additive and was tested only on a newly isolated PostgreSQL database; applying it to any existing demo/cloud environment requires separate authorization. No deployment or shared-database change is performed. [Contracts, privacy boundaries and walkthrough](docs/medical-tags.md).
 
 ## Automated priority-group notifications (Phase 7)
 
@@ -152,7 +158,7 @@ Prototype limits: one role/clinic per staff account, no password recovery/MFA/ad
 
 ## Patient search-first redesign — October 17, 2026
 
-This user-approved UX requirement supersedes all earlier instructions to require first-visit symptom intake or use a monthly clinic-icon calendar for patient search. No symptom questionnaire is shown in normal patient UI, including optional onboarding. No intake-completion gate applies to search, direct booking, waitlist registration, acceptance or guides. Existing Intake/SymptomTag rows and historical API compatibility are retained without deletion, migration or automatic backfill. Clinician-authored tags are implemented in Phase 8 Part A; patient-authorized record import remains separate future work. Do not invent clinical information.
+This user-approved UX requirement supersedes all earlier instructions to require first-visit symptom intake or use a monthly clinic-icon calendar for patient search. No symptom questionnaire is shown in normal patient UI, including optional onboarding. No intake-completion gate applies to search, direct booking, waitlist registration, acceptance or guides. Existing Intake/SymptomTag rows and historical API compatibility are retained without deletion, migration or automatic backfill. Clinician-authored tags are implemented in Phase 8 Part A; patient-authorized synthetic record import and clinician-reviewed extraction are implemented in Part B. Do not invent clinical information.
 
 Patient navigation centers on Book an Appointment, Find an Earlier Appointment, and Manage My Appointments and Waitlists, plus the durable notification inbox. Search includes a service/specialty text field, categories (Vaccinations, Blood Tests, Routine Checkups mapped to Primary care / Routine examination, Specialist Visits), service/location/insurance/date/listed-cost and fictional estimated-patient-cost filters. Only matching labeled appointment cards appear, earliest first; details/booking and waitlist actions remain available. Vaccination, Blood test and Routine examination are supported request service strings, but current synthetic fixtures may have no matching openings; display an honest empty state. Never relabel a specialist appointment as another service. Clinic operational schedules are preserved.
 

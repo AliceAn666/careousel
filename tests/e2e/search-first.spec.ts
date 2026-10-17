@@ -45,6 +45,23 @@ test("search-first categories, text, earliest ordering and no-questionnaire wait
       card.getByRole("button", { name: "View details & book" }),
     ).toBeVisible();
   }
+  // The details dialog must offer the real available dates at the selected clinic.
+  const cedarCard = cards
+    .filter({ hasText: "Cedar Health" })
+    .filter({ hasText: "Cardiology" })
+    .first();
+  await cedarCard.getByRole("button", { name: "View details & book" }).click();
+  const bookingDialog = page.getByRole("dialog");
+  const availableDates = bookingDialog
+    .getByRole("group", { name: "Available appointment dates" })
+    .getByRole("button");
+  await expect.poll(() => availableDates.count()).toBeGreaterThan(1);
+  await availableDates.nth(1).click();
+  await expect(availableDates.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    bookingDialog.getByRole("group", { name: "Available appointment times" }),
+  ).toBeVisible();
+  await bookingDialog.getByRole("button", { name: "Close dialog" }).click();
   await page.getByLabel("Medical service or specialty").fill("cardiology");
   await expect.poll(() => cards.count()).toBeGreaterThan(0);
   for (const card of await cards.all())

@@ -2195,3 +2195,33 @@ textarea {
     min-height: 44px;
   }
 }
+
+/* Real appointment choices; compact and keyboard accessible on desktop/mobile. */
+.booking-choices {
+  margin-top: 20px;
+}
+.booking-choices h3 {
+  margin-bottom: 4px;
+  font-size: 1.125rem;
+}
+.booking-choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.booking-choice {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 700;
+}
+.booking-choice[aria-pressed="true"] {
+  color: var(--white);
+  background: var(--teal);
+  border-color: var(--teal);
+}
