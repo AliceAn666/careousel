@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { NotificationManager } from "./notification-manager";
 import {
@@ -292,6 +292,7 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
   );
 }
 function LegacyMatches({ state, act }: { state: AppState; act: Action }) {
+  const routed = useRef(false);
   const [selected, setSelected] = useState(""),
     [summary, setSummary] = useState<{
       source: string;
@@ -300,6 +301,12 @@ function LegacyMatches({ state, act }: { state: AppState; act: Action }) {
     [loading, setLoading] = useState(false),
     [aiError, setAiError] = useState("");
   const slots = state.slots.filter((s) => s.status === "AVAILABLE");
+  useEffect(() => {
+    if (routed.current) return;
+    routed.current = true;
+    const linked = new URLSearchParams(window.location.search).get("slotId");
+    if (linked && slots.some((s) => s.id === linked)) setSelected(linked);
+  }, [slots]);
   const slot =
     slots.find((s) => s.id === selected) ??
     slots.find((s) => s.id === "earlier") ??
