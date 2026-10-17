@@ -32,12 +32,22 @@ const clinicSteps = [
   {
     route: "/clinic/waitlists",
     title: "Review before sending",
-    body: "Review eligibility, human-approved P1–P4 groups and recipients, then authorize the automatic sequence once. Matching and booking decisions stay with staff; this guide never creates offers or changes appointments.",
+    body: "Choose Review Waitlist Matches on a Schedule opening. In Waitlist Management, Matches, Priority Review and Notifications keep the same selected opening. Review a candidate priority, return to Matches, then explicitly select recipients and authorize Notifications. Matching and booking decisions stay with staff; this guide never creates offers or changes appointments.",
   },
   {
-    route: "/clinic/priorities",
+    route: "/clinic/waitlists?tab=priorities",
     title: "Review request priorities",
-    body: "Review P1–P4 levels for individual waitlist requests at your clinic. Authorized staff approve each assignment; patients and AI cannot set priority. Historical questionnaire scores are not clinical urgency. Candidate order remains FIFO. Approved medical evidence supports your review without setting priority. Explicitly authorized clinicians can create, edit and review visit tags under Medical tags; clinical credential verification is simulated. Record review shows explicitly authorized synthetic imports and unconfirmed extraction suggestions; clinicians must correct, approve or reject them before any tag becomes scheduling evidence.",
+    body: "Review P1–P4 levels for individual waitlist requests at your clinic. Authorized staff approve each assignment; patients and AI cannot set priority. Historical questionnaire scores are not clinical urgency. Candidate order remains FIFO. Approved medical evidence supports your review without setting priority. Explicitly authorized clinicians can create, edit and review visit tags under Clinical Records → Medical Tags; clinical credential verification is simulated. Clinical Records → Record Review shows explicitly authorized synthetic imports and unconfirmed extraction suggestions; clinicians must correct, approve or reject them before any tag becomes scheduling evidence.",
+  },
+  {
+    route: "/clinic/waitlists?tab=notifications",
+    title: "Authorize and monitor notifications",
+    body: "Preview eligible staff-approved P1–P4 recipients, select patients and explicitly authorize. Groups remain at least 180 minutes apart. Monitor acceptance, Pause, Resume or Cancel here; navigating this guide never sends invitations.",
+  },
+  {
+    route: "/clinic/records",
+    title: "Keep clinical evidence separate",
+    body: "Clinical Records contains Record Review and Medical Tags. Only explicitly authorized clinical users can review consented synthetic records or manage restricted tags. Ordinary staff see approved scheduling evidence only. Clinical evidence approval and P1–P4 priority approval are separate human decisions.",
   },
 ];
 export function GuidedTour({
@@ -63,6 +73,10 @@ export function GuidedTour({
   });
   const dialog = useRef<HTMLDialogElement>(null);
   const navigation = useRef(navigate);
+  const clinicContext = useRef<{
+    slotId: string | null;
+    requestId: string | null;
+  } | null>(null);
   useEffect(() => {
     navigation.current = navigate;
   }, [navigate]);
@@ -83,13 +97,31 @@ export function GuidedTour({
   }, []);
   const step = steps[index];
   useEffect(() => {
-    navigation.current(step.route);
+    let route = step.route;
+    if (staff) {
+      if (!clinicContext.current) {
+        const params = new URLSearchParams(window.location.search);
+        clinicContext.current = {
+          slotId: params.get("slotId"),
+          requestId: params.get("requestId"),
+        };
+      }
+      if (route.startsWith("/clinic/waitlists")) {
+        const params = new URLSearchParams(route.split("?")[1]);
+        if (clinicContext.current.slotId)
+          params.set("slotId", clinicContext.current.slotId);
+        if (clinicContext.current.requestId)
+          params.set("requestId", clinicContext.current.requestId);
+        route = `/clinic/waitlists${params.size ? `?${params}` : ""}`;
+      }
+    }
+    navigation.current(route);
     try {
       localStorage.setItem(storageKey, String(index));
     } catch {
       /* Optional browser-local progress. */
     }
-  }, [index, step.route, storageKey]);
+  }, [index, step.route, storageKey, staff]);
   const finish = () => {
     try {
       localStorage.removeItem(storageKey);

@@ -9,6 +9,8 @@ import {
   type PriorityLevel,
 } from "@/lib/waitlist-priority";
 import { dateLabel } from "@/lib/config";
+import Link from "next/link";
+import { waitlistHref } from "@/lib/clinic-navigation";
 import { Empty } from "./ui";
 import styles from "./request-priority.module.css";
 
@@ -202,12 +204,23 @@ function RequestPriority({
     </article>
   );
 }
-export function Priorities({ state, act }: { state: AppState; act: Action }) {
+export function Priorities({
+  state,
+  act,
+  requestId,
+  slotId,
+}: {
+  state: AppState;
+  act: Action;
+  requestId?: string;
+  slotId?: string;
+}) {
   const [filter, setFilter] = useState("ALL");
-  const requests = state.priorityRequests.filter(
-    (request) =>
-      filter === "ALL" ||
-      (request.priorities[0]?.level ?? "UNREVIEWED") === filter,
+  const requests = state.priorityRequests.filter((request) =>
+    requestId
+      ? request.id === requestId
+      : filter === "ALL" ||
+        (request.priorities[0]?.level ?? "UNREVIEWED") === filter,
   );
   return (
     <>
@@ -228,22 +241,32 @@ export function Priorities({ state, act }: { state: AppState; act: Action }) {
           </p>
         </div>
       </div>
-      <label className={styles.filter}>
-        Show priority group
-        <select
-          aria-label="Show priority group"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        >
-          <option value="ALL">All requests</option>
-          <option value="UNREVIEWED">Awaiting staff review</option>
-          {PRIORITY_LEVELS.map((level) => (
-            <option key={level} value={level}>
-              {priorityLabel(level)}
-            </option>
-          ))}
-        </select>
-      </label>
+      {requestId && (
+        <p>
+          Selected request: {requestId}.{" "}
+          <Link href={waitlistHref("priorities", slotId)} scroll={false}>
+            Show all requests
+          </Link>
+        </p>
+      )}
+      {!requestId && (
+        <label className={styles.filter}>
+          Show priority group
+          <select
+            aria-label="Show priority group"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          >
+            <option value="ALL">All requests</option>
+            <option value="UNREVIEWED">Awaiting staff review</option>
+            {PRIORITY_LEVELS.map((level) => (
+              <option key={level} value={level}>
+                {priorityLabel(level)}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {!requests.length ? (
         <Empty
           title="No requests in this group"

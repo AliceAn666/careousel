@@ -81,7 +81,7 @@ test("staff reviews one request, patient sees it across refresh and original boo
     const c = await staff.newPage();
     await c.goto("/clinic/priorities");
     await expect(
-      c.getByRole("heading", { name: "Request priorities." }),
+      c.getByRole("heading", { name: "Waitlist Management." }),
     ).toBeVisible();
     const card = c.getByRole("article", {
       name: "Avery Morgan Dermatology request",

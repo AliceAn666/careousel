@@ -178,3 +178,13 @@ Implementation is approved. Cloud deployment, Neon initialization, Vercel and Cl
 - [ ] Separately authorized shared database rollout/public deployment. No shared database was modified during implementation.
 
 Contracts: docs/patient-needs.md. Application implementation is approved; deployment remains separate.
+
+## Clinic workspace navigation refactor
+
+- [x] Start isolated feature branch from latest main; preserve clinic overview drilldowns.
+- [x] Three primary sections, distinct Lucide icons, compact readable desktop/mobile navigation.
+- [x] One waitlist workspace with slot/request context, candidate priority links, return navigation, automatic notification controls and contextual legacy invitations.
+- [x] Permission-aware Clinical Records sections with existing clinical APIs and privacy boundaries.
+- [x] Legacy routes, guided tour, synthetic-only browser coverage and navigation contracts updated.
+- [x] Lint/typecheck, 74 unit, 119 PostgreSQL integration, 41 Chromium plus 4 focused browser checks, production build and restart/worker persistence passed; results recorded in VALIDATION.md.
+- [ ] Human review/merge; no automatic merge or deployment. PR #38 booking-policy review remains separate.
