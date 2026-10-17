@@ -17,7 +17,7 @@ SEED_CONFIRM=RESET_SYNTHETIC_DATA npm run db:seed
 npm run dev
 ```
 
-Open http://localhost:3000. Choose Avery for the patient portal or Cedar Health staff for the clinic portal. The switcher exposes four demo personas (Avery, Jordan, Cedar staff and Harbor staff). Other synthetic records remain in the database.
+Open http://localhost:3000. Use **Find Care** for the patient demo (Avery by default), or **For Clinics / Open clinic demo** for the clinic workspace (Cedar by default). A same-role entrance resumes this browser's existing identity. The switcher exposes four demo personas (Avery, Jordan, Cedar staff and Harbor staff). Other synthetic records remain in the database.
 
 `--ignore-scripts` avoids Prisma's unnecessary Rust engine download in restricted environments. `db:generate` invokes the **pinned** Prisma 6.19.2 JavaScript generator through `@prisma/internals`, with no native engine download. Runtime uses Prisma's PostgreSQL driver adapter. SQL migrations run with `pg`, a transaction, a migration lock and checksum tracking. Do not run `prisma migrate dev`, `db push`, or silently edit applied SQL; add a numbered migration and update the schema together. Review generator integration when upgrading Prisma.
 
@@ -28,9 +28,9 @@ Production-mode local rehearsal: `npm run build && npm start`. A persistent `SES
 ## Five-minute demonstration
 
 1. Use an already initialized synthetic database. Only when deliberately starting a new rehearsal, open `/demo` as staff → Reset demo data → type `RESET`. This clears shared demo actions: never do it while another browser is presenting. Startup, homepage entry, login and persona switching preserve data.
-2. Enter as **Avery Morgan**. On first entry, complete the synthetic intake (e.g. Skin problem), submit, then Continue to find care. My appointments becomes enabled and shows the Harbor Medical Dermatology booking ~28 days away. Do not enter real health information.
+2. Choose **Find Care** to enter as **Avery Morgan** (or explicitly choose Avery under Other demo personas if resuming a different patient). On first entry, complete the synthetic intake (e.g. Skin problem), submit, then Continue to find care. My appointments becomes enabled and shows the Harbor Medical Dermatology booking ~28 days away. Do not enter real health information.
 3. Choose **Join a waitlist** from Find care or the combined My appointments page. Select the Harbor booking under **Existing appointment to replace (optional)**, retain suitable preferences and Join waitlist. The original booking stays confirmed. Without this explicit link, a request does not replace an existing booking.
-4. In a separate browser/profile, enter as **Cedar Health staff** (or use the persona switcher in a single-browser rehearsal). In Schedule, cancel **Jordan Lee**'s booked Dermatology appointment ~7 days away.
+4. In a separate browser/profile, choose **Open clinic demo** to enter as **Cedar Health staff** (or use the persona switcher in a single-browser rehearsal). In Schedule, cancel **Jordan Lee**'s booked Dermatology appointment ~7 days away.
 5. Open **Waitlist matches**. The released Dermatology slot is selected first. Review Avery's eligibility; use **Explain recommendations** to see the local rules fallback. Approve Avery and enter a review reason.
 6. Switch to Avery → Notifications. Accept the earlier appointment and confirm the replacement.
 7. My appointments shows Cedar confirmed and Harbor rescheduled. My waitlist is fulfilled. Refresh, switch staff personas, or restart the app to verify persistence. Harbor's old slot is available again.
@@ -97,3 +97,7 @@ UI uses original CSS and Lucide icons rather than adding Tailwind/shadcn during 
 ## Final integration
 
 Current owner is the user working with Codex. See [docs/final-integration.md](docs/final-integration.md) for actual CI diagnosis, inspected branch heads, safe migration convergence and subsequent integration gates. No optional branch has been merged by Phase 1.
+
+## Phase 2: proposal and public home
+
+The October 14 business proposal is the product requirements source of truth in PRD.md, with requirement/task/acceptance traceability. TASKS.md and AGENTS.md use the user + Codex ownership model. Phase 2 selectively adapts PR #5/#6 onto the CI-verified post-PR #8 main; it does not integrate registration, group notifications, insurance tours or database changes. The current base has no registration endpoint. Public home is reachable through the workspace home buttons even with an active session; it never invokes Reset Demo.

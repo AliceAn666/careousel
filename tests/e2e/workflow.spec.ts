@@ -29,7 +29,10 @@ test("complete patient → cancellation → staff approval → accepted replacem
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Continue as Avery" }).click();
+  await page
+    .getByRole("button", { name: "Find Care", exact: true })
+    .first()
+    .click();
   await completeIntake(page);
   await page
     .getByRole("button", { name: "My appointments", exact: true })
@@ -91,7 +94,10 @@ test("search filters, detail review, direct booking and mobile layout", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Continue as Avery" }).click();
+  await page
+    .getByRole("button", { name: "Find Care", exact: true })
+    .first()
+    .click();
   await completeIntake(page);
   const openings = page.locator(".cal-pop li button[data-slot-id]");
   await expect(
@@ -251,7 +257,10 @@ test("declining through the inbox preserves the original appointment", async ({
 }) => {
   await prepareInvitation(request);
   await page.goto("/");
-  await page.getByRole("button", { name: "Continue as Avery" }).click();
+  await page
+    .getByRole("button", { name: "Find Care", exact: true })
+    .first()
+    .click();
   await page.getByRole("button", { name: /^Notifications/ }).click();
   await page.getByRole("button", { name: "Decline", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Invitation declined");
@@ -280,7 +289,10 @@ test("expired invitation is visibly inactive after refresh", async ({
     await pool.end();
   }
   await page.goto("/");
-  await page.getByRole("button", { name: "Continue as Avery" }).click();
+  await page
+    .getByRole("button", { name: "Find Care", exact: true })
+    .first()
+    .click();
   await page.getByRole("button", { name: /^Notifications/ }).click();
   await expect(page.locator(".offer-box")).toContainText("expired");
   await expect(

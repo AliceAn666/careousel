@@ -53,3 +53,7 @@ Preserve any applied SQL/name/checksum. First inspect the actual target migratio
 7. Localization and fictional coverage/tour can be integrated independently after basic interfaces stabilize. Optional authorized-note AI needs privacy/access checks and deterministic missing-info fallback; current AI explains eligibility only. Deposits remain deferred with waiver/refund/fairness/legal gates. No real insurer, hospital or payment connections, or production compliance claims.
 
 Each next step is performed by the user with Codex, one tested PR at a time. Do not integrate optional branches in this Phase 1 PR. No deployment or automatic merge.
+
+## Phase 2 integration record
+
+PR #8 merged as main 3e498866aca4159fe687e011b5b73c7e91a5c660; main run 39005432827 completed successfully before the Phase 2 feature branch was created. Phase 2 selectively adapts PR #5 requirements/status/traceability and PR #6 public landing component/CSS, using current intake, calendar, combined page, scoped clinic workspaces, four-persona switcher and no-reset/session behavior. It does not merge any branch wholesale or implement the separate registration branch. Same-role entries resume the existing session, including nondefault Jordan/Harbor personas, instead of silently resetting to Avery/Cedar. Backend, schema, migrations and dependencies remain unchanged; tests use a new isolated database. Refer to VALIDATION.md for actual Phase 2 results. The older inventory above remains the historical Phase 1 review.

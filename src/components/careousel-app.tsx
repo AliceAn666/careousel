@@ -31,6 +31,7 @@ import { IntakeQuestionnaire } from "./patient-intake";
 import { ClinicSchedule, Matches, ActivityFeed } from "./clinic-portal";
 import { Priorities } from "./clinic-priorities";
 import { DemoGuide } from "./demo-guide";
+import { LandingPage } from "./landing-page";
 // Demo guide and Activity stay reachable by URL but are hidden from navigation.
 const navPatient = [
   ["/search", "Find care", Search],
@@ -123,6 +124,33 @@ export function CareouselApp() {
     setWaitlist(w ?? null);
     setShowWaitlist(true);
   }
+  function goHome() {
+    router.push("/");
+  }
+  // Public home is independent of session loading. Entering a workspace never
+  // resets data and a same-role entry resumes this browser's existing persona.
+  if (path === "/" || (state && !state.user))
+    return (
+      <LandingPage
+        personas={state?.personas ?? []}
+        currentRole={state?.user?.role}
+        loading={!state && !error}
+        busy={busy}
+        error={error}
+        onRetry={() => {
+          setError("");
+          void load().catch((e) => setError(e.message));
+        }}
+        onSelectPersona={(id) => void selectPersona(id)}
+        onEnter={(role) => {
+          if (state?.user?.role === role) {
+            router.push(role === "STAFF" ? "/clinic/schedule" : "/search");
+          } else {
+            void selectPersona(role === "STAFF" ? "staff-cedar" : "avery");
+          }
+        }}
+      />
+    );
   if (!state)
     return (
       <main className="boot">
@@ -138,111 +166,9 @@ export function CareouselApp() {
         )}
       </main>
     );
-  function goHome() {
-    router.push("/");
-  }
-  const user = path === "/" ? null : state.user,
+  const user = state.user,
     staff = user?.role === "STAFF",
     unread = state.notifications.filter((n) => !n.read).length;
-  if (!user)
-    return (
-      <main className="landing">
-        <header>
-          <div className="brand">
-            <Heart />
-            careousel<span>✳</span>
-          </div>
-          <span className="eyebrow">HACKATHON DEMO · SYNTHETIC DATA</span>
-        </header>
-        <section className="landing-grid">
-          <div>
-            <span className="pill">
-              <Sparkles size={15} /> A little less waiting. A lot more living.
-            </span>
-            <h1>
-              Better care.
-              <br />
-              <em>Sooner.</em>
-            </h1>
-            <p>
-              Find the right appointment across local clinics. When an earlier
-              opening appears, we’ll help you move forward.
-            </p>
-            <div className="landing-points">
-              <span>
-                <ShieldCheck />
-                Your original booking stays safe
-              </span>
-              <span>
-                <Users />
-                Every match reviewed by clinic staff
-              </span>
-            </div>
-          </div>
-          <div className="entry-card">
-            <span className="eyebrow">EXPLORE CAREOUSEL</span>
-            <h2>Choose your demo workspace</h2>
-            <p>
-              All people and clinics here are fictional. Choosing a persona only
-              changes this browser session. Shared appointments and waitlists
-              are preserved.
-            </p>
-            <button
-              disabled={busy}
-              className="entry-option"
-              onClick={() => void selectPersona("avery")}
-            >
-              <span className="avatar mint">AM</span>
-              <span>
-                <strong>Continue as Avery</strong>
-                <small>Patient · First visit</small>
-              </span>
-              <ArrowRight />
-            </button>
-            <button
-              disabled={busy}
-              className="entry-option"
-              onClick={() => void selectPersona("staff-cedar")}
-            >
-              <span className="avatar lavender">
-                <Heart size={20} />
-              </span>
-              <span>
-                <strong>Cedar Health workspace</strong>
-                <small>Clinic staff · Fill an opening</small>
-              </span>
-              <ArrowRight />
-            </button>
-            <label className="field">
-              Other demo personas
-              <select
-                defaultValue=""
-                onChange={(e) =>
-                  e.target.value && void selectPersona(e.target.value)
-                }
-                disabled={busy}
-              >
-                <option value="">Choose a persona…</option>
-                {state.personas.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {personaLabel(p)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {error && (
-              <p role="alert" className="alert error">
-                {error}
-              </p>
-            )}
-            <div className="demo-note">
-              <ShieldCheck size={16} /> Demo access only. No real medical
-              records, insurance checks or payments.
-            </div>
-          </div>
-        </section>
-      </main>
-    );
   // First-visit patients see only the intake questionnaire until it is done.
   const needsIntake =
     !staff && user.visitType === "FIRST" && !user.intakeCompleted;

@@ -20,7 +20,10 @@ test("two independent browsers retain shared waitlist and atomically reschedule"
     const p = await patient.newPage(),
       c = await clinic.newPage();
     await p.goto("/");
-    await p.getByRole("button", { name: "Continue as Avery" }).click();
+    await p
+      .getByRole("button", { name: "Find Care", exact: true })
+      .first()
+      .click();
     await p.getByLabel("Skin problem", { exact: true }).check();
     await p.getByRole("button", { name: "Submit questionnaire" }).click();
     await p.getByRole("button", { name: "Continue to find care" }).click();
@@ -37,7 +40,7 @@ test("two independent browsers retain shared waitlist and atomically reschedule"
     );
     expect(need).toBeTruthy();
     await c.goto("/");
-    await c.getByRole("button", { name: "Cedar Health workspace" }).click();
+    await c.getByRole("button", { name: "Open clinic demo" }).click();
     await expect(c).toHaveURL(/\/clinic\/schedule$/);
     await c.reload();
     await expect(c).toHaveURL(/\/clinic\/schedule$/);
@@ -91,7 +94,10 @@ test("two independent browsers retain shared waitlist and atomically reschedule"
       ),
     ).toBe(true);
     await p.getByRole("button", { name: "Careousel home page" }).click();
-    await p.getByRole("button", { name: "Continue as Avery" }).click();
+    await p
+      .getByRole("button", { name: "Find Care", exact: true })
+      .first()
+      .click();
     expect(
       (await (await patient.request.get("/api/state")).json()).bookings.some(
         (b: { id: string }) => b.id === next.id,
