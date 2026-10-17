@@ -16,7 +16,13 @@ import {
   Users,
   X,
 } from "lucide-react";
-import type { Action, AppState, Waitlist, SlotView } from "@/lib/types";
+import type {
+  Action,
+  AppState,
+  Waitlist,
+  SlotView,
+  Booking,
+} from "@/lib/types";
 import { dateLabel, money, VISIT_TYPES } from "@/lib/config";
 import { request } from "@/lib/api";
 import { FeedbackContext, Modal, SymptomLabels } from "./ui";
@@ -27,7 +33,7 @@ import {
   Inbox,
   ClinicIcon,
 } from "./patient-portal";
-import { IntakeQuestionnaire } from "./patient-intake";
+import { OptionalHealthInformation, PatientEntry } from "./patient-entry";
 import { ClinicSchedule, Matches, ActivityFeed } from "./clinic-portal";
 import accountStyles from "./account-access.module.css";
 import { AccountAccess } from "./account-access";
@@ -41,7 +47,10 @@ import onboarding from "./onboarding.module.css";
 import { LandingPage } from "./landing-page";
 // Demo guide and Activity stay reachable by URL but are hidden from navigation.
 const navPatient = [
+  ["/patient", "Patient home", Home],
+  ["/earlier", "Earlier appointment", CalendarDays],
   ["/search", "Find care", Search],
+  ["/needs", "Manage my medical needs", Heart],
   ["/appointments", "My appointments", CalendarDays],
   ["/notifications", "Notifications", Bell],
 ] as const;
@@ -69,6 +78,7 @@ export function CareouselApp() {
     [showWaitlist, setShowWaitlist] = useState(false),
     [detail, setDetail] = useState<SlotView | null>(null),
     [showSummary, setShowSummary] = useState(false);
+  const [waitlistBooking, setWaitlistBooking] = useState<Booking | null>(null);
   const [tour, setTour] = useState(false);
   const [coverage, setCoverage] = useState<{
     provider: string;
@@ -107,7 +117,7 @@ export function CareouselApp() {
     try {
       await request("/api/session", { id, demo: true });
       await load();
-      router.push(id.startsWith("staff-") ? "/clinic/schedule" : "/search");
+      router.push(id.startsWith("staff-") ? "/clinic/schedule" : "/patient");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -136,8 +146,9 @@ export function CareouselApp() {
     if (ok) setShowSummary(true);
     return ok;
   };
-  function join(w?: Waitlist) {
+  function join(w?: Waitlist, booking?: Booking) {
     setWaitlist(w ?? null);
+    setWaitlistBooking(booking ?? null);
     setShowWaitlist(true);
   }
   function goHome() {
@@ -174,7 +185,7 @@ export function CareouselApp() {
         onLogout={logout}
         onDone={async () => {
           await load();
-          router.push(entrance === "STAFF" ? "/clinic/schedule" : "/search");
+          router.push(entrance === "STAFF" ? "/clinic/schedule" : "/patient");
         }}
       />
     );
@@ -205,7 +216,7 @@ export function CareouselApp() {
         onSelectPersona={(id) => void selectPersona(id)}
         onEnter={(role) => {
           if (state?.user?.role === role) {
-            router.push(role === "STAFF" ? "/clinic/schedule" : "/search");
+            router.push(role === "STAFF" ? "/clinic/schedule" : "/patient");
           } else if (demoMode) {
             void selectPersona(role === "STAFF" ? "staff-cedar" : "avery");
           } else {
@@ -232,29 +243,33 @@ export function CareouselApp() {
   const user = state.user,
     staff = user?.role === "STAFF",
     unread = state.notifications.filter((n) => !n.read).length;
-  // First-visit patients see only the intake questionnaire until it is done.
-  const needsIntake =
-    !staff && user.visitType === "FIRST" && !user.intakeCompleted;
   const nav = staff ? navClinic : navPatient;
-  const heading = needsIntake
-    ? "Welcome to Careousel"
-    : path === "/appointments" || path === "/waitlists"
-      ? "My appointments"
-      : path === "/notifications"
-        ? "Your inbox"
-        : path === "/clinic/schedule"
-          ? "Clinic overview"
-          : path === "/clinic/access"
-            ? "Clinic staff access"
-            : path === "/clinic/waitlists"
-              ? "Waitlist matches"
-              : path === "/clinic/priorities"
-                ? "Request priorities"
-                : path === "/clinic/activity"
-                  ? "Clinic activity"
-                  : path === "/demo"
-                    ? "A better-care walkthrough"
-                    : "Find your next appointment";
+  const heading =
+    path === "/patient"
+      ? "How can we help?"
+      : path === "/earlier"
+        ? "Find an earlier appointment"
+        : path === "/needs"
+          ? "Manage my medical needs"
+          : path === "/health-information"
+            ? "Optional health information"
+            : path === "/appointments" || path === "/waitlists"
+              ? "My appointments"
+              : path === "/notifications"
+                ? "Your inbox"
+                : path === "/clinic/schedule"
+                  ? "Clinic overview"
+                  : path === "/clinic/access"
+                    ? "Clinic staff access"
+                    : path === "/clinic/waitlists"
+                      ? "Waitlist matches"
+                      : path === "/clinic/priorities"
+                        ? "Request priorities"
+                        : path === "/clinic/activity"
+                          ? "Clinic activity"
+                          : path === "/demo"
+                            ? "A better-care walkthrough"
+                            : "Find your next appointment";
   const personaOptions = state.personas.map((p) => (
     <option key={p.id} value={p.id}>
       {personaLabel(p)}
@@ -279,7 +294,6 @@ export function CareouselApp() {
             {nav.map(([href, label, Icon]) => (
               <button
                 key={href}
-                disabled={needsIntake}
                 className={
                   path === href ||
                   (href === "/appointments" && path === "/waitlists")
@@ -358,12 +372,8 @@ export function CareouselApp() {
               <button
                 className={`secondary tour-launch ${onboarding.launch}`}
                 aria-label="Quick tour"
-                disabled={needsIntake || busy}
-                title={
-                  needsIntake
-                    ? "Complete the synthetic intake before the guide"
-                    : "Open step-by-step guidance"
-                }
+                disabled={busy}
+                title="Open step-by-step guidance"
                 onClick={() => setTour(true)}
               >
                 Quick tour
@@ -389,7 +399,6 @@ export function CareouselApp() {
                 aria-label={
                   staff ? "Open waitlist matches" : "Open notifications"
                 }
-                disabled={needsIntake}
                 onClick={() =>
                   router.push(staff ? "/clinic/waitlists" : "/notifications")
                 }
@@ -444,7 +453,7 @@ export function CareouselApp() {
                 </button>
               </div>
             )}
-            {!staff && !needsIntake && path === "/search" && (
+            {!staff && path === "/search" && (
               <section
                 className={onboarding.start}
                 aria-label="Patient getting started"
@@ -463,9 +472,7 @@ export function CareouselApp() {
               </section>
             )}
             <div aria-busy={busy} className={busy ? "content busy" : "content"}>
-              {needsIntake ? (
-                <IntakeQuestionnaire act={submitIntake} />
-              ) : path === "/demo" ? (
+              {path === "/demo" ? (
                 <DemoGuide staff={staff && demoMode} act={act} />
               ) : staff ? (
                 path === "/clinic/access" ? (
@@ -479,7 +486,31 @@ export function CareouselApp() {
                 ) : (
                   <ClinicSchedule state={state} act={act} />
                 )
-              ) : path === "/appointments" || path === "/waitlists" ? (
+              ) : path === "/patient" ? (
+                <PatientEntry navigate={(route) => router.push(route)} />
+              ) : path === "/health-information" ? (
+                <OptionalHealthInformation state={state} act={submitIntake} />
+              ) : path === "/earlier" ? (
+                <section className="card stack">
+                  <h2>Register your appointment need</h2>
+                  <p>
+                    Already booked? Select your existing Careousel appointment
+                    in the request form. It stays confirmed until a valid
+                    earlier replacement succeeds. For an appointment outside
+                    Careousel, register an unlinked request; we do not import or
+                    cancel your external booking.
+                  </p>
+                  <button className="primary" onClick={() => join()}>
+                    Register need and join waitlist
+                  </button>
+                  <p>
+                    No symptom questionnaire is required. Eligibility and
+                    clinic-reviewed P1–P4 priority remain separate.
+                  </p>
+                </section>
+              ) : path === "/appointments" ||
+                path === "/waitlists" ||
+                path === "/needs" ? (
                 <Appointments state={state} act={act} onWaitlist={join} />
               ) : path === "/notifications" ? (
                 <Inbox state={state} act={act} />
@@ -501,7 +532,7 @@ export function CareouselApp() {
             </footer>
           </main>
         </div>
-        {tour && !needsIntake && (
+        {tour && (
           <GuidedTour
             key={user.id}
             userId={user.id}
@@ -572,7 +603,7 @@ export function CareouselApp() {
         {showWaitlist && (
           <WaitlistForm
             state={state}
-            booking={null}
+            booking={waitlistBooking}
             existing={waitlist}
             act={act}
             onClose={() => setShowWaitlist(false)}

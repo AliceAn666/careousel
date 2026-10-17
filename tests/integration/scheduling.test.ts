@@ -28,7 +28,7 @@ const intake = {
 };
 beforeEach(async () => {
   await locked((tx) => seedData(tx, now));
-  // Avery is a first-visit patient and must finish intake before scheduling.
+  // Preserve compatibility with an optional saved self-report in this legacy fixture.
   await performAction("avery", intake);
 });
 afterAll(async () => {

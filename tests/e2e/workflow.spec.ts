@@ -14,17 +14,18 @@ test.beforeEach(async ({ request }) => {
   await reset(request);
 });
 
-async function completeIntake(page: import("@playwright/test").Page) {
-  await expect(
-    page.getByRole("button", { name: "My appointments", exact: true }),
-  ).toBeDisabled();
-  await page.getByLabel("Skin problem", { exact: true }).check();
-  await page.getByRole("button", { name: "Submit questionnaire" }).click();
-  await page.getByRole("button", { name: "Continue to find care" }).click();
+async function enterBooking(page: import("@playwright/test").Page) {
   await expect(
     page.getByRole("button", { name: "My appointments", exact: true }),
   ).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Book an Appointment", exact: true })
+    .click();
+  await expect(
+    page.getByRole("region", { name: "Appointment calendar" }),
+  ).toBeVisible();
 }
+
 test("complete patient → cancellation → staff approval → accepted replacement", async ({
   page,
 }) => {
@@ -33,7 +34,7 @@ test("complete patient → cancellation → staff approval → accepted replacem
     .getByRole("button", { name: "Find Care", exact: true })
     .first()
     .click();
-  await completeIntake(page);
+  await enterBooking(page);
   await page
     .getByRole("button", { name: "My appointments", exact: true })
     .click();
@@ -98,7 +99,7 @@ test("search filters, detail review, direct booking and mobile layout", async ({
     .getByRole("button", { name: "Find Care", exact: true })
     .first()
     .click();
-  await completeIntake(page);
+  await enterBooking(page);
   const openings = page.locator(".cal-pop li button[data-slot-id]");
   await expect(
     page.getByRole("region", { name: "Appointment calendar" }),

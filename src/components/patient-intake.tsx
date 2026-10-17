@@ -19,7 +19,7 @@ const blank = (area: SymptomArea): SymptomAnswer => ({
   worsening: false,
 });
 
-// First-visit synthetic self-report; no computed clinical priority.
+// Optional synthetic self-report; never a booking gate or clinical priority.
 export function IntakeQuestionnaire({ act }: { act: Action }) {
   const [symptoms, setSymptoms] = useState<SymptomAnswer[]>([]),
     [signs, setSigns] = useState<WarningSign[]>([]),
@@ -35,12 +35,13 @@ export function IntakeQuestionnaire({ act }: { act: Action }) {
           <ClipboardList />
         </span>
         <div>
-          <span className="eyebrow">FIRST VISIT · BEFORE YOU BOOK</span>
-          <h2>Tell us how you’re feeling</h2>
+          <span className="eyebrow">OPTIONAL · PATIENT SELF-REPORT</span>
+          <h2>Share health information (optional)</h2>
           <p>
-            A few quick questions help clinics understand your needs when an
-            earlier opening appears. This is a demo — please don’t enter real
-            health information.
+            You can book and join waitlists without answering these questions.
+            Share only if you choose; answers never assign urgency or a P1–P4
+            group. This is a synthetic demo — do not enter real health
+            information.
           </p>
         </div>
       </div>

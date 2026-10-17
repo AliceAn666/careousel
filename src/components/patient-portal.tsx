@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { priorityLabel } from "@/lib/waitlist-priority";
 import { useEffect, useState } from "react";
 import {
@@ -497,10 +498,19 @@ export function Appointments({
 }: {
   state: AppState;
   act: Action;
-  onWaitlist: (w?: Waitlist) => void;
+  onWaitlist: (w?: Waitlist, booking?: Booking) => void;
 }) {
   return (
     <>
+      <section className="card">
+        <h2>Health information is your choice</h2>
+        <p>
+          Appointments and waitlist needs do not require a symptom
+          questionnaire. Clinician-authored tags and consent-based record
+          imports are planned for Phase 8.
+        </p>
+        <Link href="/health-information">View optional health information</Link>
+      </section>
       <div className="insight-row">
         <div className="card insight">
           <CalendarDays />
@@ -550,6 +560,14 @@ export function Appointments({
               </div>
               <div className="card-actions">
                 <Status value={b.status} />
+                {b.status === "CONFIRMED" && (
+                  <button
+                    className="secondary"
+                    onClick={() => onWaitlist(undefined, b)}
+                  >
+                    Find an earlier time
+                  </button>
+                )}
                 {b.status === "CONFIRMED" && (
                   <button
                     className="text-button"

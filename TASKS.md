@@ -1,5 +1,17 @@
 # Careousel proposal-aligned development roadmap
 
+## Patient entry correction — current policy
+
+This UX correction supersedes all older mandatory first-visit symptom/intake gates and guide-lock requirements below. A patient enters through **Book an Appointment**, **Find an Earlier Appointment**, or **Manage My Medical Needs**. Ordinary search, eligible basic booking, waitlist registration and valid invitation acceptance never require a generic symptom questionnaire. Specific service/referral/authorization, ownership, overlap, expiry and priority-sequence restrictions remain authoritative on the server.
+
+Vaccination, Blood test and Routine examination are now supported service choices alongside Primary care and existing specialties; staff may create synthetic openings. This change does not create shared fixtures or claim existing availability. Linked Careousel appointments can open a prefilled earlier-request form and remain protected until committed replacement. External appointments can be represented by an unlinked scheduling request, but are not imported, managed or cancelled by this release. One active request per service remains the existing model boundary.
+
+Optional health information has its own route `/health-information`, reachable from medical needs/appointments. Existing answers are retained unchanged; repeated submissions do not overwrite them. Returning and new patients may optionally provide a first self-report. It does not assign P1–P4, infer urgency, diagnose or perform automatic triage. General emergency guidance remains visible at entry and beside the optional form. No current generic symptom requirement is introduced; any future service-specific questionnaire requires an explicit justified service contract.
+
+Phase 8 UI preparation labels clinician-authored medical tags and explicitly patient-authorized record imports as **planned, not connected**. Patient self-report is identified separately. No upload, import, consent grant or clinician-tag mutation is implemented here; do not enter real medical information in this synthetic prototype.
+
+Patient home is `/patient`, booking search `/search`, earlier-request entry `/earlier`, medical-needs view `/needs`; existing `/appointments`, `/waitlists` and inbox links remain compatible. Tours/navigation remain available before any optional intake. No schema/migration, shared-data reset/reseed, automatic merge or deployment is part of this correction.
+
 ## Phase 7 — current authoritative notification policy
 
 This section supersedes ALL older internal-clinic-first/release-stage plans and requirements for a separate manual send per group below. Historical proposal comparisons and validation records are retained as history, not active acceptance criteria. Base: PR #13 merged main `0de5aaaf175b10fe86bed5cb7c8cbaa44e598192`; [main CI 39013494376](https://github.com/AliceAn666/careousel/actions/runs/39013494376) succeeded before the feature branch.
@@ -113,3 +125,13 @@ See PRD October 17 R1–R4 requirements and incremental PR/AT-R* table for the s
 - [ ] Later impact dashboard: explicitly not started; wait for Phase 7 review/merge.
 
 See VALIDATION.md for executed checks and limitations; documentation acceptance tables from older phases do not establish Phase 7 test results.
+
+## Patient-entry correction review checklist
+
+- [x] Remove generic UI and backend intake gate; retain service clearance, authenticated ownership, conflict, expiry and atomic replacement checks.
+- [x] Three patient-entry actions, direct linked-booking request shortcut, basic service choices and always-available tour/navigation.
+- [x] Optional self-report page preserves saved intake; no new clinical urgency inference or changes to P1–P4 authority.
+- [x] Explicitly label Phase 8 clinician tags/authorized imports as unconnected; no medical-record ingestion.
+- [x] Complete isolated regression evidence in VALIDATION.md: lint/typecheck, 43 unit, 70 PostgreSQL and 20 browser tests, build and restart persistence.
+- [ ] User review of the patient-entry PR; implementation and checks are ready.
+- [ ] User review/merge; no automatic merge or shared-database reset/reseed.

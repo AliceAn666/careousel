@@ -26,10 +26,10 @@ async function enterPatient(page: Page) {
     .click();
   await expect(
     page.getByRole("button", { name: "Quick tour", exact: true }),
-  ).toBeDisabled();
-  await page.getByLabel("Skin problem", { exact: true }).check();
-  await page.getByRole("button", { name: "Submit questionnaire" }).click();
-  await page.getByRole("button", { name: "Continue to find care" }).click();
+  ).toBeEnabled();
+  await page
+    .getByRole("button", { name: "Book an Appointment", exact: true })
+    .click();
   await expect(
     page.getByRole("region", { name: "Patient getting started" }),
   ).toBeVisible();
@@ -158,6 +158,9 @@ test("fictional PPO/HMO calendar filters and costs persist per identity without 
     .getByRole("button", { name: "Find Care", exact: true })
     .first()
     .click();
+  await page
+    .getByRole("button", { name: "Book an Appointment", exact: true })
+    .click();
   await expect(page.getByLabel("Plan type", { exact: true })).toHaveValue(
     "HMO",
   );
@@ -165,8 +168,14 @@ test("fictional PPO/HMO calendar filters and costs persist per identity without 
     page.getByLabel("Maximum estimated patient cost ($)"),
   ).toHaveValue("30");
   await page.getByLabel("Switch demo persona").selectOption("patient-1");
+  await page
+    .getByRole("button", { name: "Book an Appointment", exact: true })
+    .click();
   await expect(page.getByLabel("Insurance", { exact: true })).toHaveValue("");
   await page.getByLabel("Switch demo persona").selectOption("avery");
+  await page
+    .getByRole("button", { name: "Book an Appointment", exact: true })
+    .click();
   await expect(page.getByLabel("Plan type", { exact: true })).toHaveValue(
     "HMO",
   );
