@@ -64,3 +64,42 @@
   overflow-wrap: anywhere;
   min-width: 0;
 }
+
+.invalidInput {
+  border: 1px solid #bb2525 !important;
+  box-shadow: 0 0 0 1px #bb2525;
+}
+
+.fieldError {
+  margin: -12px 0 0;
+  color: #b42318;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.formError {
+  margin: -4px 0 0;
+  padding: 11px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  background: #fff1f2;
+  color: #a61b1b;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.hint {
+  margin: -12px 0 0;
+  color: #51665c;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.successMessage {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid #8dcab1;
+  border-radius: 9px;
+  background: #e7f6ee;
+  color: #14613d;
+}
