@@ -61,7 +61,7 @@ test("search-first categories, text, earliest ordering and no-questionnaire wait
   const dialog = page.getByRole("dialog");
   await expect(
     dialog.getByRole("combobox", { name: "Specialty", exact: true }),
-  ).toHaveValue("Vaccinations");
+  ).toHaveValue("Vaccination");
   await dialog
     .getByRole("button", { name: "Join waitlist", exact: true })
     .click();
@@ -73,7 +73,7 @@ test("search-first categories, text, earliest ordering and no-questionnaire wait
   expect(after.user.intakeCompleted).toBe(false);
   expect(
     after.waitlists.some(
-      (w: { service: string }) => w.service === "Vaccinations",
+      (w: { service: string }) => w.service === "Vaccination",
     ),
   ).toBe(true);
   expect(

@@ -17,7 +17,13 @@ import {
   Users,
   X,
 } from "lucide-react";
-import type { Action, AppState, Waitlist, SlotView } from "@/lib/types";
+import type {
+  Action,
+  AppState,
+  Waitlist,
+  SlotView,
+  Booking,
+} from "@/lib/types";
 import { dateLabel, money, VISIT_TYPES } from "@/lib/config";
 import { request } from "@/lib/api";
 import { FeedbackContext, Modal } from "./ui";
@@ -32,6 +38,7 @@ import { ClinicSchedule, Matches, ActivityFeed } from "./clinic-portal";
 import accountStyles from "./account-access.module.css";
 import { AccountAccess } from "./account-access";
 import { ClinicAccess } from "./clinic-access";
+import { PatientEntry, OptionalHealthInformation } from "./patient-entry";
 import { Priorities } from "./clinic-priorities";
 import { DemoGuide } from "./demo-guide";
 import { GuidedTour } from "./guided-tour";
@@ -69,6 +76,7 @@ export function CareouselApp() {
   const [waitlist, setWaitlist] = useState<Waitlist | null>(null),
     [showWaitlist, setShowWaitlist] = useState(false),
     [detail, setDetail] = useState<SlotView | null>(null);
+  const [waitlistBooking, setWaitlistBooking] = useState<Booking | null>(null);
   const [requestedService, setRequestedService] = useState<string>();
   const [tour, setTour] = useState(false);
   const [coverage, setCoverage] = useState<{
@@ -131,8 +139,9 @@ export function CareouselApp() {
       setBusy(false);
     }
   };
-  function join(w?: Waitlist, service?: string) {
+  function join(w?: Waitlist, booking?: Booking, service?: string) {
     setRequestedService(service);
+    setWaitlistBooking(booking ?? null);
     setWaitlist(w ?? null);
     setShowWaitlist(true);
   }
@@ -229,9 +238,9 @@ export function CareouselApp() {
     unread = state.notifications.filter((n) => !n.read).length;
   const nav = staff ? navClinic : navPatient;
   const heading =
-    path === "/waitlists"
+    path === "/waitlists" || path === "/earlier"
       ? "Find an Earlier Appointment"
-      : path === "/appointments"
+      : path === "/appointments" || path === "/needs"
         ? "Appointments and waitlists"
         : path === "/notifications"
           ? "Your inbox"
@@ -441,9 +450,18 @@ export function CareouselApp() {
                 ) : (
                   <ClinicSchedule state={state} act={act} />
                 )
-              ) : path === "/appointments" || path === "/waitlists" ? (
+              ) : path === "/patient" ? (
+                <PatientEntry navigate={(route) => router.push(route)} />
+              ) : path === "/health-information" ? (
+                <OptionalHealthInformation state={state} />
+              ) : [
+                  "/appointments",
+                  "/waitlists",
+                  "/earlier",
+                  "/needs",
+                ].includes(path) ? (
                 <>
-                  {path === "/waitlists" && (
+                  {(path === "/waitlists" || path === "/earlier") && (
                     <section className="card search-intro">
                       <h2>
                         Keep your appointment while we find an earlier one
@@ -454,7 +472,9 @@ export function CareouselApp() {
                         explicitly accept a valid earlier invitation.
                       </p>
                       <button className="primary" onClick={() => join()}>
-                        Create earlier appointment request
+                        {path === "/earlier"
+                          ? "Register need and join waitlist"
+                          : "Create earlier appointment request"}
                       </button>
                     </section>
                   )}
@@ -470,7 +490,7 @@ export function CareouselApp() {
                     setDetail(slot);
                     setCoverage(selection);
                   }}
-                  onWaitlist={(service) => join(undefined, service)}
+                  onWaitlist={(service) => join(undefined, undefined, service)}
                 />
               )}
             </div>
@@ -552,7 +572,7 @@ export function CareouselApp() {
           <WaitlistForm
             initialService={requestedService}
             state={state}
-            booking={null}
+            booking={waitlistBooking}
             existing={waitlist}
             act={act}
             onClose={() => setShowWaitlist(false)}

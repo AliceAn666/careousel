@@ -709,8 +709,6 @@ export async function performAction(
       }
       case "intake": {
         patient();
-        if (user.visitType !== "FIRST")
-          fail("Only first-visit patients complete the intake form.", 403);
         if (await tx.intake.findUnique({ where: { patientId: user.id } }))
           return { message: "Your intake questionnaire is already complete." };
         const answers = {

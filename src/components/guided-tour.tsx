@@ -32,7 +32,7 @@ const clinicSteps = [
   {
     route: "/clinic/waitlists",
     title: "Review before sending",
-    body: "Review eligibility and approve one time-limited offer with a reason. Matching and booking decisions stay with staff; this guide never creates offers or changes appointments.",
+    body: "Review eligibility, human-approved P1–P4 groups and recipients, then authorize the automatic sequence once. Matching and booking decisions stay with staff; this guide never creates offers or changes appointments.",
   },
   {
     route: "/clinic/priorities",

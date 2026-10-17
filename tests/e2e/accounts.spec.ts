@@ -125,7 +125,14 @@ test("patient individual account, onboarding, logout and navigation never switch
   const cookie = (await page.context().cookies()).find(
     (c) => c.name === "careousel_session",
   )!.value;
+  const logoutResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/session") &&
+      response.request().method() === "DELETE",
+  );
   await page.getByRole("button", { name: "Log out", exact: true }).click();
+  expect((await logoutResponse).ok()).toBe(true);
+  await expect(page).toHaveURL(/\/$/);
   const stale = await request.get("/api/state", {
     headers: { cookie: `careousel_session=${cookie}` },
   });

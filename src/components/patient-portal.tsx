@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { priorityLabel } from "@/lib/waitlist-priority";
 import { useEffect, useState } from "react";
 import {
@@ -116,13 +117,15 @@ export function SearchCare({
     const benefit = demoCoverage(s, plan, planType);
     return (
       (!query ||
-        `${s.service} ${s.service === "Primary care" ? "Routine Checkups" : ["Cardiology", "Dermatology"].includes(s.service) ? "Specialist Visits" : ""} ${s.clinic.name} ${s.provider}`
+        `${s.service} ${["Primary care", "Routine examination"].includes(s.service) ? "Routine Checkups" : ["Cardiology", "Dermatology"].includes(s.service) ? "Specialist Visits" : ""} ${s.clinic.name} ${s.provider}`
           .toLowerCase()
           .includes(query.toLowerCase().trim())) &&
       (!category ||
         (category === "Specialist Visits"
           ? ["Dermatology", "Cardiology"].includes(s.service)
-          : s.service === category)) &&
+          : category === "Routine examination"
+            ? ["Primary care", "Routine examination"].includes(s.service)
+            : s.service === category)) &&
       (!service || s.service === service) &&
       (!city || s.clinic.city === city) &&
       (!plan || s.plans.includes(plan)) &&
@@ -165,9 +168,9 @@ export function SearchCare({
         </label>
         <div className="button-row" aria-label="Service categories">
           {[
-            ["Vaccinations", "Vaccinations"],
-            ["Blood Tests", "Blood Tests"],
-            ["Routine Checkups", "Primary care"],
+            ["Vaccinations", "Vaccination"],
+            ["Blood Tests", "Blood test"],
+            ["Routine Checkups", "Routine examination"],
             ["Specialist Visits", "Specialist Visits"],
           ].map(([label, value]) => (
             <button
@@ -405,10 +408,19 @@ export function Appointments({
 }: {
   state: AppState;
   act: Action;
-  onWaitlist: (w?: Waitlist) => void;
+  onWaitlist: (w?: Waitlist, booking?: Booking) => void;
 }) {
   return (
     <>
+      <section className="card">
+        <h2>Historical health information</h2>
+        <p>
+          Appointments and waitlist needs do not require a symptom
+          questionnaire. Clinician-authored tags and consent-based record
+          imports are planned for Phase 8.
+        </p>
+        <Link href="/health-information">View saved health information</Link>
+      </section>
       <div className="insight-row">
         <div className="card insight">
           <CalendarDays />
@@ -458,6 +470,14 @@ export function Appointments({
               </div>
               <div className="card-actions">
                 <Status value={b.status} />
+                {b.status === "CONFIRMED" && (
+                  <button
+                    className="secondary"
+                    onClick={() => onWaitlist(undefined, b)}
+                  >
+                    Find an earlier time
+                  </button>
+                )}
                 {b.status === "CONFIRMED" && (
                   <button
                     className="text-button"

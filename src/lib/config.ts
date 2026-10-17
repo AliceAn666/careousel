@@ -2,8 +2,9 @@ export const SERVICES = [
   "Dermatology",
   "Cardiology",
   "Primary care",
-  "Vaccinations",
-  "Blood Tests",
+  "Vaccination",
+  "Blood test",
+  "Routine examination",
 ] as const;
 export const PLANS = [
   "Blue Horizon",

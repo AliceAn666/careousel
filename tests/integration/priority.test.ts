@@ -57,9 +57,11 @@ describe("request-scoped four-level priority", () => {
     expect((await getState(await user("avery"))).user?.intakeCompleted).toBe(
       true,
     );
-    await expect(performAction("patient-1", intake)).rejects.toThrow(
-      /first-visit/,
+    await performAction("patient-1", intake);
+    expect(await db.intake.count({ where: { patientId: "patient-1" } })).toBe(
+      1,
     );
+    expect(await db.waitlistPriority.count()).toBe(0);
   });
 
   it("saves all four levels on one request with provenance and complete history, preserving legacy rows", async () => {
