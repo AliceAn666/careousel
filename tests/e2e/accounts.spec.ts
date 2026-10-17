@@ -314,3 +314,49 @@ test("account endpoints enforce CSRF, prevent self-granted staff and reject expi
     ).status(),
   ).toBe(401);
 });
+
+test("account forms show email validation beside the field and failed login below the password", async ({
+  page,
+}) => {
+  await page.goto("/login/patient");
+  await page
+    .getByRole("button", { name: "Create patient account" })
+    .click();
+  await page.getByLabel("Username", { exact: true }).fill("form.patient");
+  await page
+    .getByLabel("Display name (fictional)")
+    .fill("Synthetic Form Patient");
+  await page.getByLabel("Email (fictional)").fill("person@gmail.com");
+  await page.getByLabel("Password (at least 12 characters)").fill(password);
+  await page.getByRole("button", { name: "Register patient" }).click();
+  await expect(
+    page.locator("form").getByRole("alert"),
+  ).toContainText("Only fictional example/test email addresses");
+  await expect(page.getByLabel("Email (fictional)")).toHaveAttribute(
+    "aria-invalid",
+    "true",
+  );
+  await page.getByLabel("Email (fictional)").fill("form@example.test");
+  await expect(page.locator("form").getByRole("alert")).toHaveCount(0);
+  await page.getByRole("button", { name: "Register patient" }).click();
+  await expect(page.getByRole("status")).toContainText(
+    "Patient account created",
+  );
+  await page.getByLabel("Username", { exact: true }).fill("form.patient");
+  await page
+    .getByLabel("Password (at least 12 characters)")
+    .fill("IncorrectPassword!123");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(
+    page.locator("form").getByRole("alert"),
+  ).toHaveText("Invalid username or password.");
+  await expect(
+    page.getByLabel("Password (at least 12 characters)"),
+  ).toHaveAttribute("aria-invalid", "true");
+  await page
+    .getByLabel("Password (at least 12 characters)")
+    .fill(password);
+  await expect(page.locator("form").getByRole("alert")).toHaveCount(0);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page).toHaveURL(/\/search$/);
+});
