@@ -135,7 +135,7 @@ export function ClinicSchedule({
               });
               const unreviewed = matches.length - reviewed.length;
               return (
-                <tr key={s.id}>
+                <tr key={s.id} data-slot-id={s.id}>
                   <td>
                     <strong>{dateLabel(s.start)}</strong>
                     <small>{money(s.price)} estimated</small>
