@@ -169,7 +169,7 @@ export function SearchCare({
       <section className="card search-intro" aria-label="Appointment search">
         <h2>Book an appointment</h2>
         <p>
-          Search participating clinics. Earliest matching openings appear first.
+          Search participating clinics by service. Compatible demo insurance appears first; other clinics remain visible.
         </p>
         <label className="field">
           Medical service or specialty
@@ -198,8 +198,7 @@ export function SearchCare({
           ))}
         </div>
         <p className="muted">
-          Synthetic openings only. Some categories may currently have no
-          participating appointments.
+          Synthetic openings only. All participating clinic, service, date and time options are fictional.
         </p>
         <button
           className="text-button"
