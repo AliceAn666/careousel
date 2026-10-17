@@ -36,8 +36,9 @@ export function PatientEntry({
         <article className="card">
           <h2>Manage My Appointments and Waitlists</h2>
           <p>
-            Review appointments, saved requests and clinic-reviewed priorities.
-            Stored health information remains read-only.
+            Manage independent medical needs, unverified external appointments,
+            saved requests and clinic-reviewed priorities. Stored health
+            information remains read-only.
           </p>
           <button className="primary" onClick={() => navigate("/needs")}>
             Manage My Appointments and Waitlists

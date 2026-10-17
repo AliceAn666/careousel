@@ -38,6 +38,7 @@ import {
 import { ClinicSchedule, Matches, ActivityFeed } from "./clinic-portal";
 import accountStyles from "./account-access.module.css";
 import { AccountAccess } from "./account-access";
+import { PatientNeeds } from "./patient-needs";
 import { MedicalRecords } from "./medical-records";
 import { MedicalTags } from "./medical-tags";
 import { ClinicAccess } from "./clinic-access";
@@ -100,7 +101,8 @@ export function CareouselApp() {
     let mounted = true;
     let inFlight = false;
     const refresh = async () => {
-      if (!mounted || document.visibilityState !== "visible" || inFlight) return;
+      if (!mounted || document.visibilityState !== "visible" || inFlight)
+        return;
       inFlight = true;
       try {
         await load();
@@ -495,6 +497,7 @@ export function CareouselApp() {
                   "/needs",
                 ].includes(path) ? (
                 <>
+                  <PatientNeeds key={user.id} act={act} />
                   {(path === "/waitlists" || path === "/earlier") && (
                     <section className="card search-intro">
                       <h2>
@@ -592,7 +595,9 @@ export function CareouselApp() {
                   }
                 >
                   {PLANS.map((p) => (
-                    <option key={p} value={p}>{p}</option>
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -620,17 +625,17 @@ export function CareouselApp() {
               planType={coverage.planType}
             />
             <p className="demo-note">
-              Your saved demo profile lists {user.plan}. This booking uses
-              the insurer selected above for fictional comparisons; coverage
-              and referral requirements have not been verified. Your saved
-              profile is unchanged. No payment will be collected.
+              Your saved demo profile lists {user.plan}. This booking uses the
+              insurer selected above for fictional comparisons; coverage and
+              referral requirements have not been verified. Your saved profile
+              is unchanged. No payment will be collected.
             </p>
             {needsSelfPay && (
               <p className="insurance-booking-warning" role="status">
-                This demo plan does not cover the selected appointment.
-                You may still continue as self-pay at the full listed price
-                of <strong>{money(detail.price)}</strong>. No insurance benefit
-                is assumed and no payment will be collected.
+                This demo plan does not cover the selected appointment. You may
+                still continue as self-pay at the full listed price of{" "}
+                <strong>{money(detail.price)}</strong>. No insurance benefit is
+                assumed and no payment will be collected.
               </p>
             )}
             <button

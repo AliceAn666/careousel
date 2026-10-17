@@ -18,15 +18,17 @@ import {
   Trees,
   type LucideIcon,
 } from "lucide-react";
-import { CoverageSummary } from "./coverage-summary";
-import { demoClinicAccepts, demoCoverage, type PlanType } from "@/lib/demo-coverage";
+import {
+  demoClinicAccepts,
+  demoCoverage,
+  type PlanType,
+} from "@/lib/demo-coverage";
 import {
   readSearchPreferences,
   saveSearchPreferences,
   defaultSearchPreferences,
   type SearchPreferences,
 } from "@/lib/search-preferences";
-import onboarding from "./onboarding.module.css";
 import type {
   Action,
   AppState,
@@ -40,8 +42,8 @@ import {
   PLANS,
   SERVICES,
   pacificDateBoundary,
-  pacificDate,
   timeLabel,
+  pacificDate,
 } from "@/lib/config";
 import { Status, Empty, Modal } from "./ui";
 const CLINIC_ICONS: Record<string, LucideIcon> = {
@@ -84,14 +86,7 @@ export function SearchCare({
           : ""),
     };
   });
-  const {
-    service,
-    city,
-    plan,
-    price,
-    date,
-    planType,
-  } = preferences;
+  const { service, city, plan, price, date, planType } = preferences;
   const update = (patch: Partial<SearchPreferences>) =>
     setPreferences((current) => ({ ...current, ...patch }));
   const setService = (service: SearchPreferences["service"]) =>
@@ -144,8 +139,9 @@ export function SearchCare({
       slots,
       first: slots[0],
       compatible: plan
-        ? slots.filter((slot) => demoCoverage(slot, plan, planType).estimate !== null)
-            .length
+        ? slots.filter(
+            (slot) => demoCoverage(slot, plan, planType).estimate !== null,
+          ).length
         : slots.length,
     }))
     .sort(
@@ -170,7 +166,8 @@ export function SearchCare({
       <section className="card search-intro" aria-label="Appointment search">
         <h2>Book an appointment</h2>
         <p>
-          Search participating clinics by service. Compatible demo insurance appears first; other clinics remain visible.
+          Search participating clinics by service. Compatible demo insurance
+          appears first; other clinics remain visible.
         </p>
         <label className="field">
           Medical service or specialty
@@ -199,7 +196,8 @@ export function SearchCare({
           ))}
         </div>
         <p className="muted">
-          Synthetic openings only. All participating clinic, service, date and time options are fictional.
+          Synthetic openings only. All participating clinic, service, date and
+          time options are fictional.
         </p>
         <button
           className="text-button"
@@ -214,7 +212,10 @@ export function SearchCare({
           Find an earlier appointment · Join a waitlist
         </button>
       </section>
-      <section className="card insurance-selection" aria-label="Insurance preferences">
+      <section
+        className="card insurance-selection"
+        aria-label="Insurance preferences"
+      >
         <h3>Which insurance company do you have?</h3>
         <p>
           We will show matching clinics first and clearly label other options.
@@ -234,7 +235,9 @@ export function SearchCare({
             >
               <option value="">Compare all insurers</option>
               {PLANS.map((p) => (
-                <option key={p} value={p}>{p}</option>
+                <option key={p} value={p}>
+                  {p}
+                </option>
               ))}
             </select>
           </label>
@@ -309,20 +312,22 @@ export function SearchCare({
         </label>
       </section>
       <p className="demo-note">
-        Demo pricing is illustrative. PPO/HMO comparisons are unverified,
-        and any out-of-network or excluded service can be shown with a
-        self-pay choice at the listed visit price.
+        Demo pricing is illustrative. PPO/HMO comparisons are unverified, and
+        any out-of-network or excluded service can be shown with a self-pay
+        choice at the listed visit price.
       </p>
       <div className="section-title">
         <div>
           <h2>
             Available appointments{" "}
             <span className="result-count">
-              {clinicOptions.length} clinic/service options · {matchCount} openings
+              {clinicOptions.length} clinic/service options · {matchCount}{" "}
+              openings
             </span>
           </h2>
           <p>
-            Demo in-network matches first · other clinics shown with warnings · Pacific time.
+            Demo in-network matches first · other clinics shown with warnings ·
+            Pacific time.
           </p>
         </div>
         <div className="button-row">
@@ -374,32 +379,37 @@ export function SearchCare({
                   <span className="eyebrow">{first.service}</span>
                   <div className="clinic-title-row">
                     <h3>{first.clinic.name}</h3>
-                  {plan && plan !== "Self-pay" && (
-                    <p
-                      className={
-                        clinicInNetwork && compatible > 0
-                          ? "insurance-match insurance-match-good"
-                          : "insurance-match insurance-match-warning"
-                      }
-                    >
-                      {clinicInNetwork
-                        ? compatible > 0
-                          ? `Accepts ${plan} ${planType} · demo network`
-                          : `Accepts ${plan} ${planType} · ${first.service} excluded by this fictional plan`
-                        : `Does not accept ${plan} ${planType} · Self-pay available`}
-                    </p>
-                  )}
-                  {plan === "Self-pay" && (
-                    <p className="insurance-match">
-                      Self-pay: full listed price, no insurance benefit applied
-                    </p>
-                  )}
+                    {plan && plan !== "Self-pay" && (
+                      <p
+                        className={
+                          clinicInNetwork && compatible > 0
+                            ? "insurance-match insurance-match-good"
+                            : "insurance-match insurance-match-warning"
+                        }
+                      >
+                        {clinicInNetwork
+                          ? compatible > 0
+                            ? `Accepts ${plan} ${planType} · demo network`
+                            : `Accepts ${plan} ${planType} · ${first.service} excluded by this fictional plan`
+                          : `Does not accept ${plan} ${planType} · Self-pay available`}
+                      </p>
+                    )}
+                    {plan === "Self-pay" && (
+                      <p className="insurance-match">
+                        Self-pay: full listed price, no insurance benefit
+                        applied
+                      </p>
+                    )}
                   </div>
-                  <p>{first.clinic.address}, {first.clinic.city}</p>
+                  <p>
+                    {first.clinic.address}, {first.clinic.city}
+                  </p>
                   <p>
                     {slots.length} available appointment{" "}
                     {slots.length === 1 ? "time" : "times"} ·{" "}
-                    {[...new Set(slots.map((slot) => slot.provider))].join(", ")}
+                    {[...new Set(slots.map((slot) => slot.provider))].join(
+                      ", ",
+                    )}
                   </p>
                   <p className="muted">
                     Select an available time to confirm your appointment
@@ -448,8 +458,9 @@ export function SearchCare({
                     })}
                   </div>
                   <p className="muted">
-                    Listed visit prices from {money(Math.min(...slots.map((slot) => slot.price)))}.
-                    Demo insurers are not verified.
+                    Listed visit prices from{" "}
+                    {money(Math.min(...slots.map((slot) => slot.price)))}. Demo
+                    insurers are not verified.
                   </p>
                 </div>
               </article>
@@ -475,8 +486,8 @@ export function Appointments({
         <h2>Historical health information</h2>
         <p>
           Appointments and waitlist needs do not require a symptom
-          questionnaire. Clinician-authored tags and consent-based record
-          imports are planned for Phase 8.
+          questionnaire. Approved clinician tags and consent-based synthetic
+          record imports are available in Health information.
         </p>
         <Link href="/health-information">View saved health information</Link>
       </section>
@@ -529,7 +540,10 @@ export function Appointments({
               </div>
               <div className="card-actions">
                 <Status value={b.status} />
-                {b.status === "CONFIRMED" && (
+                {b.needId && (
+                  <Link href="/needs">Manage linked medical need</Link>
+                )}
+                {b.status === "CONFIRMED" && !b.needId && (
                   <button
                     className="secondary"
                     onClick={() => onWaitlist(undefined, b)}
@@ -614,9 +628,16 @@ export function Appointments({
                 <Status value={w.status} />
                 {w.status === "ACTIVE" && (
                   <>
-                    <button className="secondary" onClick={() => onWaitlist(w)}>
-                      Edit preferences
-                    </button>
+                    {w.needId ? (
+                      <Link href="/needs">Manage linked medical need</Link>
+                    ) : (
+                      <button
+                        className="secondary"
+                        onClick={() => onWaitlist(w)}
+                      >
+                        Edit preferences
+                      </button>
+                    )}
                     <button
                       className="text-button"
                       onClick={() => {
@@ -918,13 +939,25 @@ export function Inbox({ state, act }: { state: AppState; act: Action }) {
                         {money(offer.slot.price)} estimated
                       </p>
                       <Status value={offer.status} />
+                      {offer.waitlist.patientNeed && (
+                        <p>Medical need: {offer.waitlist.patientNeed.title}</p>
+                      )}
+                      {offer.waitlist.externalAppointmentId && (
+                        <p>
+                          External original is patient-reported and unverified.
+                          Careousel cannot cancel it; contact the original
+                          clinic yourself.
+                        </p>
+                      )}
                       <p>
                         Referral:{" "}
-                        {offer.slot.requiresReferral
+                        {offer.slot.requiresReferral ||
+                        offer.waitlist.requiresReferral
                           ? "required; clinic-reviewed"
                           : "not required for this opening"}
                         . Authorization:{" "}
-                        {offer.slot.requiresAuthorization
+                        {offer.slot.requiresAuthorization ||
+                        offer.waitlist.requiresAuthorization
                           ? "required; clinic-reviewed"
                           : "not required for this opening"}
                         . Your saved fictional plan and scheduling restrictions
@@ -950,8 +983,10 @@ export function Inbox({ state, act }: { state: AppState; act: Action }) {
                       {offer.status === "PENDING" && (
                         <>
                           <p>
-                            Respond by {dateLabel(offer.expiresAt)}. Accepting
-                            replaces your linked original appointment.
+                            Respond by {dateLabel(offer.expiresAt)}.{" "}
+                            {offer.waitlist.externalAppointmentId
+                              ? "Accepting books a new Careousel appointment; the external original remains unchanged."
+                              : "Accepting replaces only the linked original Careousel appointment."}
                           </p>
                           <div className="button-row">
                             <button
@@ -959,7 +994,9 @@ export function Inbox({ state, act }: { state: AppState; act: Action }) {
                               onClick={() => {
                                 if (
                                   confirm(
-                                    "Confirm this earlier appointment and replace your linked original booking?",
+                                    offer.waitlist.externalAppointmentId
+                                      ? "Confirm the new appointment? Your external original will NOT be cancelled. Contact its clinic yourself."
+                                      : "Confirm this earlier appointment and replace only this request's linked original Careousel booking?",
                                   )
                                 )
                                   void act({

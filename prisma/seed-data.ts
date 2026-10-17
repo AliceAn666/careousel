@@ -3,6 +3,8 @@ import { OFFER_MINUTES, PLANS, SERVICES } from "../src/lib/config";
 import { demoClinicPlans } from "../src/lib/demo-coverage";
 export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
   await tx.$executeRaw`SELECT set_config('careousel.synthetic_reset', 'on', true)`;
+  await tx.patientNeedEvidence.deleteMany();
+  await tx.patientNeedHistory.deleteMany();
   await tx.medicalRecordAudit.deleteMany();
   await tx.importedTagSuggestion.deleteMany();
   await tx.medicalTagRevision.deleteMany();
@@ -23,6 +25,9 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
   await tx.notificationSequence.deleteMany();
   await tx.suggestion.deleteMany();
   await tx.waitlist.deleteMany();
+  await tx.booking.updateMany({ data: { needId: null } });
+  await tx.patientNeed.deleteMany();
+  await tx.externalAppointment.deleteMany();
   await tx.booking.updateMany({ data: { replacementId: null } });
   await tx.booking.deleteMany();
   await tx.audit.deleteMany();

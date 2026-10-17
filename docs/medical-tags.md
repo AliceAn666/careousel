@@ -76,3 +76,8 @@ Integration follow-up: main advanced during development to `3a827a6` (PR18–PR2
 ## Part B extension
 
 Patient-authorized synthetic imports, local extraction and clinical review are now implemented in the Part B branch; see [record contracts and privacy](medical-record-import.md). Migrations 0009–0010 add a second, immutable source type SYNTHETIC_RECORD_REVIEW without fabricating visits. Approved imports integrate with the existing clinical tag UI and priority evidence; active consent is required for clinic access/use. Earlier Part A verification/scope notes above describe that original PR, not the current Part B implementation.
+
+
+## Part C integration update
+
+Part B has merged as PR #25. Independent scheduling needs and patient-reported external appointments are now implemented in Part C; see [patient scheduling contracts](patient-needs.md). Earlier scope notes above describe the original PR. Clinical MedicalNeed records remain distinct from patient-owned PatientNeed scheduling contexts. Explicit approved same-service tag links support staff review without assigning priority or clearance.

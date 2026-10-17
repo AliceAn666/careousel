@@ -34,8 +34,12 @@ function validate(values: Record<string, string>, registering: boolean): FieldEr
       errors.email = "Enter a valid fictional email address.";
     else if (!demoEmail.test(email))
       errors.email = "Only fictional example/test email addresses are accepted. Try patient@example.com.";
-    if ("invitationToken" in values && !values.invitationToken?.trim())
-      errors.invitationToken = "Invitation token is required.";
+    if ("invitationToken" in values) {
+      const token = values.invitationToken?.trim() ?? "";
+      if (!token) errors.invitationToken = "Invitation token is required.";
+      else if (token.length < 32 || token.length > 128)
+        errors.invitationToken = "Invitation token must contain between 32 and 128 characters. Paste the complete token provided by your clinic administrator.";
+    }
   }
   return errors;
 }
@@ -183,8 +187,12 @@ export function AccountAccess({
                   const detail = e instanceof Error ? e.message : "Request failed.";
                   if (/fictional example\/test email|fictional example\/test/i.test(detail))
                     setFieldErrors({ email: "Only fictional example/test email addresses are accepted. Try patient@example.com." });
+                  else if (registering && entrance === "STAFF" && /too small.*32 characters|invitation.?token.*(length|characters)/i.test(detail))
+                    setFieldErrors({ invitationToken: "Invitation token must contain between 32 and 128 characters. Paste the complete token provided by your clinic administrator." });
                   else if (!registering && /invalid credentials|invalid username or password/i.test(detail))
                     setError("Invalid username or password.");
+                  else if (registering && entrance === "STAFF" && /invalid invitation|invitation.*(expired|invalid|not found|used)/i.test(detail))
+                    setFieldErrors({ invitationToken: "This invitation is invalid, expired, or already used. Request a new invitation from your clinic administrator." });
                   else if (/username or email is unavailable/i.test(detail))
                     setError("That username or email is already in use. Choose a different fictional account.");
                   else
@@ -262,6 +270,7 @@ export function AccountAccess({
                           {...inputError("invitationToken")}
                         />
                       </label>
+                      <p className={styles.hint}>Paste the full 32–128 character invitation token supplied by your clinic administrator.</p>
                       {fieldErrors.invitationToken && (
                         <p id="invitationToken-error" role="alert" className={styles.fieldError}>
                           {fieldErrors.invitationToken}

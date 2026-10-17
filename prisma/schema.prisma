@@ -64,6 +64,10 @@ model Slot {
   @@index([clinicId, start])
 }
 model Booking {
+  needId String?
+  patientNeed PatientNeed? @relation("NeedBookings", fields: [needId, patientId], references: [id, patientId])
+  originalFor PatientNeed? @relation("NeedOriginal")
+  currentFor PatientNeed? @relation("NeedCurrent")
   id String @id @default(cuid())
   patientId String
   patient User @relation(fields: [patientId], references: [id])
@@ -80,6 +84,12 @@ model Booking {
   @@unique([replacementId, patientId])
 }
 model Waitlist {
+  needId String?
+  patientNeed PatientNeed? @relation(fields: [needId, patientId], references: [id, patientId])
+  externalAppointmentId String?
+  externalAppointment ExternalAppointment? @relation(fields: [externalAppointmentId, patientId], references: [id, patientId])
+  requiresReferral Boolean @default(false)
+  requiresAuthorization Boolean @default(false)
   id String @id @default(cuid())
   patientId String
   patient User @relation(fields: [patientId], references: [id])
@@ -298,6 +308,8 @@ model MedicalNeed {
   @@unique([id, patientId, clinicId])
 }
 model MedicalTag {
+  patientNeedLinks PatientNeedEvidence[]
+  @@unique([id, patientId])
   id String @id @default(cuid())
   needId String
   patientId String
@@ -405,4 +417,72 @@ model MedicalRecordAudit {
   details Json
   createdAt DateTime @default(now())
   @@index([importId, createdAt])
+}
+
+model PatientNeed {
+  id String @id @default(cuid())
+  patientId String
+  title String
+  service String
+  preferences Json
+  requiresReferral Boolean @default(false)
+  requiresAuthorization Boolean @default(false)
+  state String @default("OPEN")
+  version Int @default(1)
+  @@unique([originalBookingId, patientId])
+  @@unique([currentBookingId, patientId])
+  @@unique([externalAppointmentId, patientId])
+  originalBookingId String? @unique
+  originalBooking Booking? @relation("NeedOriginal", fields: [originalBookingId, patientId], references: [id, patientId])
+  currentBookingId String? @unique
+  currentBooking Booking? @relation("NeedCurrent", fields: [currentBookingId, patientId], references: [id, patientId])
+  externalAppointmentId String? @unique
+  externalAppointment ExternalAppointment? @relation(fields: [externalAppointmentId, patientId], references: [id, patientId])
+  bookings Booking[] @relation("NeedBookings")
+  waitlists Waitlist[]
+  evidence PatientNeedEvidence[]
+  history PatientNeedHistory[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([id, patientId])
+}
+model ExternalAppointment {
+  reportKey String
+  @@unique([patientId, reportKey])
+  id String @id @default(cuid())
+  patientId String
+  clinicName String
+  service String
+  start DateTime
+  end DateTime
+  location String
+  reference String
+  reportedConfirmed Boolean
+  reportedCancelled Boolean @default(false)
+  verification String @default("PATIENT_REPORTED_UNVERIFIED")
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  need PatientNeed?
+  waitlists Waitlist[]
+  @@unique([id, patientId])
+}
+model PatientNeedEvidence {
+  needId String
+  patientId String
+  tagId String
+  need PatientNeed @relation(fields: [needId, patientId], references: [id, patientId])
+  tag MedicalTag @relation(fields: [tagId, patientId], references: [id, patientId])
+  @@id([needId, tagId])
+}
+model PatientNeedHistory {
+  id String @id @default(cuid())
+  needId String
+  need PatientNeed @relation(fields: [needId], references: [id])
+  version Int
+  actorId String
+  action String
+  details Json
+  createdAt DateTime @default(now())
+  @@unique([needId, version])
 }

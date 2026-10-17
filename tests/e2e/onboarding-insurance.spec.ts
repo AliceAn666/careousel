@@ -63,7 +63,8 @@ test("patient guide follows current screens, resumes after refresh, and never ch
   );
   await guide.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page).toHaveURL(/appointments$/);
-  await expect(guide).toContainText("Existing appointment to replace");
+  await expect(guide).toContainText("independent medical need");
+  await expect(guide).toContainText("cannot cancel external appointments");
   await guide.getByRole("button", { name: "Next", exact: true }).click();
   await expect(page).toHaveURL(/notifications$/);
   await guide.getByRole("button", { name: "Finish", exact: true }).click();
@@ -103,7 +104,9 @@ test("all clinics remain visible and out-of-network booking requires explicit se
   const matching = page.locator(".appointment-results .search-result");
   const insurer = page.getByLabel("Insurance company (demo)");
   await expect(insurer).toHaveValue("Blue Horizon");
-  await page.getByLabel("Specialty", { exact: true }).selectOption("Cardiology");
+  await page
+    .getByLabel("Specialty", { exact: true })
+    .selectOption("Cardiology");
   await page.getByLabel("Insurance plan type").selectOption("HMO");
   await expect(matching).toHaveCount(4);
   await expect(page.locator(".insurance-match-warning")).toHaveCount(4);
@@ -116,8 +119,9 @@ test("all clinics remain visible and out-of-network booking requires explicit se
   const selected = matching.first().locator(".clinic-time-choice").first();
   await selected.click();
   const details = page.getByRole("dialog", { name: "Appointment details" });
-  await expect(details.getByLabel("Insurance company for appointment"))
-    .toHaveValue("Blue Horizon");
+  await expect(
+    details.getByLabel("Insurance company for appointment"),
+  ).toHaveValue("Blue Horizon");
   await expect(details.locator(".insurance-booking-warning")).toContainText(
     "full listed price",
   );
