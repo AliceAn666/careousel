@@ -28,9 +28,7 @@ export function NotificationManager({ state }: { state: AppState }) {
       (s) => s.id === linkedSlot && s.status === "AVAILABLE",
     );
     if (!requested) return;
-    setSelected(requested.id);
-    setPreview(null);
-    setApproved([]);
+    void Promise.resolve().then(() => setSelected(requested.id));
     // Preview is read-only. Staff must still explicitly authorize recipients.
     void request(
       `/api/notification-sequences?slotId=${encodeURIComponent(requested.id)}`,
