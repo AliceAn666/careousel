@@ -1,5 +1,11 @@
 # Careousel proposal-aligned development roadmap
 
+## Unified patient management — October 17, 2026
+
+The latest user-approved navigation supersedes the earlier three-page presentation: Book an Appointment and My Appointments & Waitlists are the two primary patient activities. Health Information and Notifications remain separate accessible destinations. Earlier appointment requests are contextual actions on confirmed appointment cards and beside Join a waitlist; multiple confirmed appointments require choosing the original. Need-linked bookings retain their need-specific workflow rather than creating unbound legacy requests. No confirmed appointment means no earlier-replacement action. Existing /waitlists, /earlier and /needs links remain compatible aliases of the management view, with its navigation item active. Remove the duplicate keep-original and historical-health cards; preserve original-booking warnings in the actual request dialog, historical records on Health Information, independent needs, external appointment disclosures and all scheduling protections. No schema, migration or shared demo database changes.
+
+Acceptance: contextual requests prefill the correct booking; multiple originals can be selected; empty accounts can book or join without misleading replacement prompts; linked needs remain isolated; sidebar, old links, refresh and mobile retain identity and original bookings. Existing clinic, authorization, group timing and atomic replacement regressions must continue passing. Implementation and regression results are recorded in VALIDATION.md.
+
 ## Patient search-first redesign — October 17, 2026
 
 This user-approved UX requirement supersedes all earlier instructions to require first-visit symptom intake or use a monthly clinic-icon calendar for patient search. No symptom questionnaire is shown in normal patient UI, including optional onboarding. No intake-completion gate applies to search, direct booking, waitlist registration, acceptance or guides. Existing Intake/SymptomTag rows and historical API compatibility are retained without deletion, migration or automatic backfill. Clinician-authored tags are implemented in Phase 8 Part A; patient-authorized synthetic record import and clinician-reviewed extraction are implemented in Part B. Do not invent clinical information.

@@ -106,19 +106,11 @@ test("clinic-first service grouping, selectable times, and optional waitlist pre
       .status,
   ).toBe("CONFIRMED");
   await page
+    .locator(".section-title")
     .getByRole("button", { name: "Find an Earlier Appointment", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/waitlists$/);
-  await expect(
-    page.getByRole("heading", {
-      name: "Find an Earlier Appointment.",
-      exact: true,
-    }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/appointments$/);
   await expect(page.locator(".sidebar .nav-item.active")).toHaveCount(1);
-  await page
-    .getByRole("button", { name: "Create earlier appointment request" })
-    .click();
   await page
     .getByLabel("Existing appointment to replace (optional)")
     .selectOption("avery-original");
@@ -128,7 +120,7 @@ test("clinic-first service grouping, selectable times, and optional waitlist pre
   await page.getByRole("button", { name: "Close dialog" }).click();
   await page
     .getByRole("button", {
-      name: "Manage My Appointments and Waitlists",
+      name: "My Appointments & Waitlists",
       exact: true,
     })
     .click();

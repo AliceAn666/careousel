@@ -1,5 +1,23 @@
 # Careousel initial prototype validation
 
+## Unified patient management — October 17, 2026
+
+Base: latest successful main `7ca7918f85cf4eb32b5d7b0922dc702c83b626ed`, including merged staff registration PR #36 and clinic schedule/group review PR #37. Branch: `feat/unified-patient-management`.
+
+- Patient sidebar and task hub now share one My Appointments & Waitlists destination. `/earlier`, `/waitlists` and `/needs` remain compatible management aliases, with the correct active navigation state.
+- Earlier requests live on confirmed appointment cards and beside Join a waitlist. Multiple appointments open an explicit original-appointment chooser; legacy requests prefill booking/service, while need-linked bookings focus their own need and keep its scoped request workflow. Generic waitlist choices exclude need-linked bookings so they cannot accidentally enter the legacy API.
+- Removed duplicate keep-original and historical-health cards. Health Information remains directly accessible; historical data, approved tags, consent/import controls, independent needs and unverified external reports remain available. Empty accounts have booking/waitlist options without misleading replacement prompts. Primary mobile navigation labels get full-width rows without reducing font sizes.
+- Verification uses only the existing isolated PostgreSQL 17 `careousel_test` database on localhost:5548, with a different sentinel application DATABASE_URL. No shared/cloud database access, reset, reseed, migration or schema change was performed.
+- `npm run lint`: passed with zero errors and the existing anonymous-default-export warning in `deployment/cloudflare/worker.js`.
+- `npm run typecheck`: passed, including after production build.
+- `npm test`: **72 passed**.
+- `npm run test:integration`: **118 passed**.
+- `npm run test:e2e`: **40 passed**. The initial multi-appointment test used a label substring that also matched the dialog title; selecting the combobox by role resolves the ambiguity while retaining both original-ID and service assertions. Existing authentication, clinic scoping, insurance, priorities, automatic 180-minute sequences, expiry/decline, original protection and complete cross-clinic replacement checks remain intact.
+- `npm run test:e2e -- tests/e2e/patient-entry.spec.ts`: **5 passed** after strengthening the reload/layout check to wait for the actual management page. The fully loaded 375px screenshot was visually reviewed: primary navigation labels remain intact and the earlier-request action sits beside the waitlist action.
+- `npm run build`: passed.
+- `npm run test:persistence`: passed, including production restart, records/consent/history/account persistence and independent notification worker advancement.
+- Browser coverage adds multiple-original selection, empty-account behavior, alias navigation/refresh identity and original preservation, need-specific request isolation, accessible health navigation and 375px layout. Only Chromium was exercised; no live deployment was tested or triggered by a deployment command.
+
 Validated locally on 2026-10-16 using Node 24.19.0, npm 11.9.0, PostgreSQL 17 in Docker, Next.js 16.4.2 and headless Chromium. Built from main `0a620b06b3082bf0710f2ddb420fc84aa052ce4a` on `feat/careousel-prototype`; deleted frontend files are not restored.
 
 ## Milestone results

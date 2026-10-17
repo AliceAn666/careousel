@@ -15,7 +15,7 @@ const patientSteps = [
   {
     route: "/appointments",
     title: "Keep your original appointment",
-    body: "Appointments and waitlists live together here. Add an independent medical need for each service or follow-up, then link its confirmed Careousel booking or register an unverified external appointment. Search or join a waitlist for that need only. Your internal original stays confirmed until a replacement succeeds; other needs stay unchanged. Careousel cannot cancel external appointments: contact their clinics yourself. Existing unlinked requests remain available below. Health information shows your approved clinician-authored follow-up tags; viewing tags and authorizing synthetic record import are optional and never gate booking. Use Health information to grant one clinic access or revoke it.",
+    body: "Use My Appointments & Waitlists to manage saved care. Choose Find an Earlier Appointment on a confirmed appointment or beside Join a waitlist; select which appointment to bring forward when you have several. Add an independent medical need for each service or follow-up, then link its confirmed Careousel booking or register an unverified external appointment. Search or join a waitlist for that need only. Your internal original stays confirmed until a replacement succeeds; other needs stay unchanged. Careousel cannot cancel external appointments: contact their clinics yourself. Existing unlinked requests remain available on this page. Health information shows your approved clinician-authored follow-up tags; viewing tags and authorizing synthetic record import are optional and never gate booking. Use Health information to grant one clinic access or revoke it.",
   },
   {
     route: "/notifications",

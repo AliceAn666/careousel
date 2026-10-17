@@ -87,7 +87,7 @@ test("patient individual account, onboarding, logout and navigation never switch
   await expect(page.getByLabel("Switch demo persona")).toHaveCount(0);
   await expect(
     page.getByRole("button", {
-      name: "Manage My Appointments and Waitlists",
+      name: "My Appointments & Waitlists",
       exact: true,
     }),
   ).toBeEnabled();

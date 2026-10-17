@@ -94,7 +94,10 @@ export function SearchCare({
   const setDate = (date: string) => update({ date });
   useEffect(() => {
     if (state.user)
-      saveSearchPreferences(state.user.id, { ...preferences, plan: state.user.plan as SearchPreferences["plan"] });
+      saveSearchPreferences(state.user.id, {
+        ...preferences,
+        plan: state.user.plan as SearchPreferences["plan"],
+      });
   }, [preferences, state.user]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -207,7 +210,10 @@ export function SearchCare({
           Find an earlier appointment · Join a waitlist
         </button>
       </section>
-      <section className="insurance-account-note" aria-label="Insurance from your account">
+      <section
+        className="insurance-account-note"
+        aria-label="Insurance from your account"
+      >
         <span>
           Your insurance: <strong>{plan || "Not provided"}</strong>
           <span className="muted"> · from your account</span>
@@ -227,8 +233,8 @@ export function SearchCare({
         )}
         <p className="muted">
           We will highlight clinics where your demo coverage does not apply. All
-          clinics remain bookable; you may need to pay the listed self-pay price.
-          Plan benefits are simulated, not verified.
+          clinics remain bookable; you may need to pay the listed self-pay
+          price. Plan benefits are simulated, not verified.
         </p>
       </section>
       <section className="filter-card">
@@ -297,7 +303,8 @@ export function SearchCare({
             </span>
           </h2>
           <p>
-            Clinic options for your saved insurance · Book any available time · Pacific time.
+            Clinic options for your saved insurance · Book any available time ·
+            Pacific time.
           </p>
         </div>
         <div className="button-row">
@@ -356,7 +363,10 @@ export function SearchCare({
                   <div className="clinic-title-row">
                     <h3>{first.clinic.name}</h3>
                     {needsCoverageWarning && (
-                      <p className="insurance-match insurance-match-warning" role="status">
+                      <p
+                        className="insurance-match insurance-match-warning"
+                        role="status"
+                      >
                         {networkAccepted
                           ? `Your ${plan} ${planType} does not cover this service · You can still book (self-pay)`
                           : `Your ${plan} ${planType} is not accepted at this clinic · You can still book (self-pay)`}
@@ -442,17 +452,24 @@ export function Appointments({
   act: Action;
   onWaitlist: (w?: Waitlist, booking?: Booking) => void;
 }) {
+  const [choosingEarlier, setChoosingEarlier] = useState(false);
+  const confirmed = state.bookings.filter((b) => b.status === "CONFIRMED");
+  const [selectedBooking, setSelectedBooking] = useState("");
+  const earlier = (booking: Booking) => {
+    if (booking.needId) {
+      window.history.pushState(null, "", `#need-${booking.needId}`);
+      // Wait for the appointment picker to close before focusing content
+      // outside its modal dialog. Deferred need loading also handles this hash.
+      window.requestAnimationFrame(() => {
+        const need = document.getElementById(`need-${booking.needId}`);
+        need?.scrollIntoView({ behavior: "smooth", block: "start" });
+        need?.focus({ preventScroll: true });
+      });
+    } else onWaitlist(undefined, booking);
+    setChoosingEarlier(false);
+  };
   return (
     <>
-      <section className="card">
-        <h2>Historical health information</h2>
-        <p>
-          Appointments and waitlist needs do not require a symptom
-          questionnaire. Approved clinician tags and consent-based synthetic
-          record imports are available in Health information.
-        </p>
-        <Link href="/health-information">View saved health information</Link>
-      </section>
       <div className="insight-row">
         <div className="card insight">
           <CalendarDays />
@@ -474,12 +491,12 @@ export function Appointments({
         </div>
       </div>
       <div className="section-title">
-        <h2>Your care calendar</h2>
+        <h2>Your appointments</h2>
         <span className="muted">Pacific time</span>
       </div>
       {!state.bookings.length ? (
         <Empty
-          title="Your calendar is ready"
+          title="No appointments yet"
           body="Find care to book your first appointment."
         />
       ) : (
@@ -503,14 +520,13 @@ export function Appointments({
               <div className="card-actions">
                 <Status value={b.status} />
                 {b.needId && (
-                  <Link href="/needs">Manage linked medical need</Link>
+                  <Link href={`/appointments#need-${b.needId}`}>
+                    Manage linked care need
+                  </Link>
                 )}
-                {b.status === "CONFIRMED" && !b.needId && (
-                  <button
-                    className="secondary"
-                    onClick={() => onWaitlist(undefined, b)}
-                  >
-                    Find an earlier time
+                {b.status === "CONFIRMED" && (
+                  <button className="secondary" onClick={() => earlier(b)}>
+                    Find an Earlier Appointment
                   </button>
                 )}
                 {b.status === "CONFIRMED" && (
@@ -535,11 +551,63 @@ export function Appointments({
       )}
       <div className="section-title">
         <h2>Your requests</h2>
-        <button className="primary" onClick={() => onWaitlist()}>
-          <Plus size={17} />
-          Join a waitlist
-        </button>
+        <div className="button-row">
+          {confirmed.length > 0 && (
+            <button
+              className="secondary"
+              onClick={() => {
+                if (confirmed.length === 1) earlier(confirmed[0]);
+                else {
+                  setSelectedBooking(confirmed[0].id);
+                  setChoosingEarlier(true);
+                }
+              }}
+            >
+              Find an Earlier Appointment
+            </button>
+          )}
+          <button className="primary" onClick={() => onWaitlist()}>
+            <Plus size={17} />
+            Join a waitlist
+          </button>
+        </div>
       </div>
+      {choosingEarlier && (
+        <Modal
+          title="Choose an appointment to bring forward"
+          onClose={() => setChoosingEarlier(false)}
+        >
+          <p>
+            Your original appointment stays confirmed until you explicitly
+            accept a valid replacement. Linked care needs keep their own
+            preferences.
+          </p>
+          <label className="field">
+            Appointment to bring forward
+            <select
+              aria-label="Appointment to bring forward"
+              value={selectedBooking}
+              onChange={(event) => setSelectedBooking(event.target.value)}
+            >
+              {confirmed.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.slot.service} · {b.slot.clinic.name} ·{" "}
+                  {dateLabel(b.slot.start)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="primary"
+            onClick={() => {
+              const selected = confirmed.find((b) => b.id === selectedBooking);
+              if (selected) earlier(selected);
+            }}
+          >
+            Continue with this appointment
+          </button>
+        </Modal>
+      )}
       {state.waitlists.length === 0 ? (
         <Empty
           title="Your next opportunity starts here"
@@ -550,7 +618,11 @@ export function Appointments({
           {state.waitlists.map((w) => (
             <article className="card request-card" key={w.id}>
               <div>
-                <span className="eyebrow">EARLIER CARE REQUEST</span>
+                <span className="eyebrow">
+                  {w.bookingId
+                    ? "EARLIER APPOINTMENT REQUEST"
+                    : "APPOINTMENT WAITLIST"}
+                </span>
                 <h3>{w.service}</h3>
                 <p>
                   {w.city || "All participating locations"} · Up to{" "}
@@ -591,7 +663,9 @@ export function Appointments({
                 {w.status === "ACTIVE" && (
                   <>
                     {w.needId ? (
-                      <Link href="/needs">Manage linked medical need</Link>
+                      <Link href={`/appointments#need-${w.needId}`}>
+                        Manage linked care need
+                      </Link>
                     ) : (
                       <button
                         className="secondary"
@@ -656,7 +730,9 @@ export function WaitlistForm({
       title={
         existing
           ? "Edit waitlist preferences"
-          : "Let’s find you an earlier opening"
+          : booking
+            ? "Let’s find you an earlier opening"
+            : "Join a waitlist"
       }
       onClose={onClose}
     >
@@ -699,7 +775,10 @@ export function WaitlistForm({
             <option value="">No linked appointment</option>
             {state.bookings
               .filter(
-                (b) => b.status === "CONFIRMED" && b.slot.service === service,
+                (b) =>
+                  b.status === "CONFIRMED" &&
+                  !b.needId &&
+                  b.slot.service === service,
               )
               .map((b) => (
                 <option key={b.id} value={b.id}>

@@ -86,7 +86,7 @@ test("public anchors, both role entrances, immediate patient access and existing
   ).toBeVisible();
   await expect(
     page.getByRole("button", {
-      name: "Manage My Appointments and Waitlists",
+      name: "My Appointments & Waitlists",
       exact: true,
     }),
   ).toBeEnabled();
