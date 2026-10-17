@@ -16,15 +16,20 @@ describe("fictional plan-specific benefits", () => {
       demoCoverage({ ...slot, price: 0 }, "Blue Horizon", "PPO").estimate,
     ).toBe(0);
   });
-  it("distinguishes insurer acceptance from the specific plan network", () => {
+  it("applies one insurance network consistently across all times at a clinic", () => {
     const otherClinic = { ...slot, clinicId: "summit" };
-    expect(
-      demoCoverage(otherClinic, "Blue Horizon", "PPO").estimate,
-    ).not.toBeNull();
-    expect(
-      demoCoverage(otherClinic, "Blue Horizon", "HMO").estimate,
-    ).toBeNull();
+    expect(demoCoverage(otherClinic, "Blue Horizon", "PPO").estimate).toBeNull();
+    expect(demoCoverage(otherClinic, "Pacific Care", "PPO").estimate).not.toBeNull();
     expect(demoCoverage(slot, "Aster Health", "PPO").estimate).toBeNull();
+    expect(demoCoverage(slot, "United Demo", "PPO").estimate).not.toBeNull();
+    // Time-slot metadata in older synthetic records must not override
+    // the fixed demo clinic network displayed to patients.
+    expect(
+      demoCoverage({ ...slot, plans: ["Aster Health"], price: 20000 }, "Blue Horizon", "PPO").status,
+    ).toBe("In-network · demo");
+    expect(
+      demoCoverage({ ...slot, plans: ["Aster Health"], price: 20000 }, "Aster Health", "PPO").status,
+    ).toBe("Out-of-network · demo");
   });
   it("does not infer service coverage from network status", () => {
     expect(
