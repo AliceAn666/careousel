@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { NotificationManager } from "./notification-manager";
 import {
   ArrowDownLeft,
@@ -22,9 +23,22 @@ export function ClinicSchedule({
   state: AppState;
   act: Action;
 }) {
+  const router = useRouter();
+  const clinicId = state.user?.clinicId;
+  const clinic = state.clinics.find((c) => c.id === clinicId);
+  // Server state is already scoped; keep this view explicitly limited to
+  // the authenticated clinic, including any local fixture or stale state.
+  const clinicSlots = state.slots.filter((s) => s.clinicId === clinicId);
+  const clinicSlotIds = new Set(clinicSlots.map((s) => s.id));
+  const clinicCandidates = state.candidates.filter((c) =>
+    clinicSlotIds.has(c.slotId),
+  );
+  const clinicBookings = state.bookings.filter((b) =>
+    clinicSlotIds.has(b.slotId),
+  );
   const [date, setDate] = useState(""),
     [show, setShow] = useState(false);
-  const visible = state.slots.filter(
+  const visible = clinicSlots.filter(
     (s) =>
       !date ||
       new Intl.DateTimeFormat("en-CA", {
@@ -42,7 +56,7 @@ export function ClinicSchedule({
           <div>
             <span>Confirmed appointments</span>
             <strong>
-              {state.bookings.filter((b) => b.status === "CONFIRMED").length}
+              {clinicBookings.filter((b) => b.status === "CONFIRMED").length}
             </strong>
           </div>
         </div>
@@ -51,15 +65,15 @@ export function ClinicSchedule({
           <div>
             <span>Available openings</span>
             <strong>
-              {state.slots.filter((s) => s.status === "AVAILABLE").length}
+              {clinicSlots.filter((s) => s.status === "AVAILABLE").length}
             </strong>
           </div>
         </div>
         <div className="card insight">
           <Users />
           <div>
-            <span>Eligible matches</span>
-            <strong>{state.candidates.length}</strong>
+            <span>Matched waitlist requests</span>
+            <strong>{clinicCandidates.length}</strong>
           </div>
         </div>
       </div>
@@ -67,7 +81,8 @@ export function ClinicSchedule({
         <div>
           <h2>Appointment schedule</h2>
           <p>
-            Cancellations automatically surface eligible waitlist candidates.
+            {clinic ? `Showing ${clinic.name} appointments only.` : "Your clinic schedule"}
+            {" "}Waitlist candidates may come from any participating clinic.
           </p>
         </div>
         <button className="primary" onClick={() => setShow(true)}>
@@ -99,11 +114,28 @@ export function ClinicSchedule({
           </thead>
           <tbody>
             {visible.map((s) => {
-              const b = state.bookings.find(
-                (b) => b.slotId === s.id && b.status === "CONFIRMED",
+              const b = clinicBookings.find(
+                (booking) =>
+                  booking.slotId === s.id && booking.status === "CONFIRMED",
               );
+              const matches = clinicCandidates.filter((c) => c.slotId === s.id);
+              const reviewed = matches.filter((c) => {
+                const request = state.priorityRequests.find(
+                  (w) => w.id === c.waitlistId,
+                );
+                const priority = c.priority;
+                return (
+                  priority?.reviewState === "APPROVED" &&
+                  !!priority.level &&
+                  (!(s.requiresReferral || request?.requiresReferral) ||
+                    priority.referralApproved) &&
+                  (!(s.requiresAuthorization || request?.requiresAuthorization) ||
+                    priority.authorizationApproved)
+                );
+              });
+              const unreviewed = matches.length - reviewed.length;
               return (
-                <tr key={s.id}>
+                <tr key={s.id} data-slot-id={s.id}>
                   <td>
                     <strong>{dateLabel(s.start)}</strong>
                     <small>{money(s.price)} estimated</small>
@@ -131,12 +163,48 @@ export function ClinicSchedule({
                       >
                         Cancel & release
                       </button>
+                    ) : s.status === "AVAILABLE" ? (
+                      <div className="schedule-priority-summary">
+                        {matches.length ? (
+                          <>
+                            <div
+                              className="schedule-priority-groups"
+                              aria-label={`Priority groups for ${s.service} ${dateLabel(s.start)}`}
+                            >
+                              {(["P1", "P2", "P3", "P4"] as const).map((level) => (
+                                <span key={level} className="schedule-priority-count">
+                                  {level}: {reviewed.filter(
+                                    (c) => c.priority?.level === level,
+                                  ).length}
+                                </span>
+                              ))}
+                              {unreviewed > 0 && (
+                                <span className="schedule-unreviewed">
+                                  Review / clearance: {unreviewed}
+                                </span>
+                              )}
+                            </div>
+                            <small>
+                              Matched requests · final eligibility checked at review
+                            </small>
+                          </>
+                        ) : (
+                          <span className="muted">No matching waitlist requests</span>
+                        )}
+                        <button
+                          type="button"
+                          className="secondary schedule-review-groups"
+                          onClick={() =>
+                            router.push(
+                              `/clinic/waitlists?slotId=${encodeURIComponent(s.id)}`,
+                            )
+                          }
+                        >
+                          Review P1–P4 groups
+                        </button>
+                      </div>
                     ) : (
-                      <span className="muted">
-                        {s.status === "HELD"
-                          ? "Awaiting patient response"
-                          : `${state.candidates.filter((c) => c.slotId === s.id).length} eligible matches`}
-                      </span>
+                      <span className="muted">Awaiting patient response</span>
                     )}
                   </td>
                 </tr>
@@ -224,6 +292,7 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
   );
 }
 function LegacyMatches({ state, act }: { state: AppState; act: Action }) {
+  const routed = useRef(false);
   const [selected, setSelected] = useState(""),
     [summary, setSummary] = useState<{
       source: string;
@@ -232,6 +301,13 @@ function LegacyMatches({ state, act }: { state: AppState; act: Action }) {
     [loading, setLoading] = useState(false),
     [aiError, setAiError] = useState("");
   const slots = state.slots.filter((s) => s.status === "AVAILABLE");
+  useEffect(() => {
+    if (routed.current) return;
+    routed.current = true;
+    const linked = new URLSearchParams(window.location.search).get("slotId");
+    if (linked && slots.some((s) => s.id === linked))
+      void Promise.resolve().then(() => setSelected(linked));
+  }, [slots]);
   const slot =
     slots.find((s) => s.id === selected) ??
     slots.find((s) => s.id === "earlier") ??

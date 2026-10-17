@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AppState } from "@/lib/types";
 import type { getSequencePreview } from "@/server/services/notification-sequences";
 import { request } from "@/lib/api";
@@ -7,6 +7,7 @@ import { dateLabel } from "@/lib/config";
 import { priorityLabel } from "@/lib/waitlist-priority";
 type Preview = Awaited<ReturnType<typeof getSequencePreview>>;
 export function NotificationManager({ state }: { state: AppState }) {
+  const routeHandled = useRef(false);
   const [selected, setSelected] = useState("earlier");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [approved, setApproved] = useState<string[]>([]);
@@ -19,6 +20,30 @@ export function NotificationManager({ state }: { state: AppState }) {
   const [clock, setClock] = useState(0);
   const slot = state.slots.find((s) => s.id === selected) ?? state.slots[0];
   const sequence = sequences.find((s) => s.slotId === slot?.id);
+  useEffect(() => {
+    if (routeHandled.current) return;
+    routeHandled.current = true;
+    const linkedSlot = new URLSearchParams(window.location.search).get("slotId");
+    const requested = state.slots.find(
+      (s) => s.id === linkedSlot && s.status === "AVAILABLE",
+    );
+    if (!requested) return;
+    void Promise.resolve().then(() => setSelected(requested.id));
+    // Preview is read-only. Staff must still explicitly authorize recipients.
+    void request(
+      `/api/notification-sequences?slotId=${encodeURIComponent(requested.id)}`,
+      undefined,
+      "GET",
+    )
+      .then((data: Preview) => setPreview(data))
+      .catch((e) =>
+        setError(
+          e instanceof Error
+            ? e.message
+            : "Unable to preview priority groups for this opening.",
+        ),
+      );
+  }, [state.slots]);
   useEffect(() => {
     const timer = setInterval(() => setClock(Date.now()), 1000);
     return () => clearInterval(timer);
