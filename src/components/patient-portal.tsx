@@ -375,6 +375,24 @@ export function SearchCare({
                 <p>
                   <strong>{dateLabel(s.start)}</strong> · {s.provider}
                 </p>
+                <p className="muted">
+                  {state.slots.filter(
+                    (slot) =>
+                      slot.clinicId === s.clinicId &&
+                      slot.service === s.service &&
+                      slot.provider === s.provider,
+                  ).length}{" "}
+                  available appointment{" "}
+                  {state.slots.filter(
+                    (slot) =>
+                      slot.clinicId === s.clinicId &&
+                      slot.service === s.service &&
+                      slot.provider === s.provider,
+                  ).length === 1
+                    ? "time"
+                    : "times"}{" "}
+                  to choose from
+                </p>
                 <p>
                   {money(s.price)} estimated listed price · Fictional plans:{" "}
                   {s.plans.join(", ")}

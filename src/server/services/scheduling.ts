@@ -182,15 +182,22 @@ export async function refreshMatches(tx: Prisma.TransactionClient, now: Date) {
       include: { slot: true },
     }),
   ]);
-  await tx.suggestion.deleteMany();
+  // Compute matches in memory, then persist them in one bulk operation.
+  // Previously one SQL insert was issued per match on every state refresh.
+  const suggestions: Prisma.SuggestionCreateManyInput[] = [];
   for (const slot of slots)
     for (const request of requests) {
       const reasons = eligibility(request, slot, bookings, now);
       if (reasons)
-        await tx.suggestion.create({
-          data: { slotId: slot.id, waitlistId: request.id, reasons },
+        suggestions.push({
+          slotId: slot.id,
+          waitlistId: request.id,
+          reasons,
         });
     }
+  await tx.suggestion.deleteMany();
+  if (suggestions.length)
+    await tx.suggestion.createMany({ data: suggestions });
 }
 async function revokeRequests(
   tx: Prisma.TransactionClient,
