@@ -100,7 +100,7 @@ test("all clinics remain visible and out-of-network booking requires explicit se
   page,
 }) => {
   await enterPatient(page);
-  const matching = page.locator(".appointment-results button[data-slot-id]");
+  const matching = page.locator(".appointment-results .search-result");
   const insurer = page.getByLabel("Insurance company (demo)");
   await expect(insurer).toHaveValue("Blue Horizon");
   await page.getByLabel("Specialty", { exact: true }).selectOption("Cardiology");
@@ -110,10 +110,10 @@ test("all clinics remain visible and out-of-network booking requires explicit se
   await page.getByLabel("Location", { exact: true }).selectOption("Berkeley");
   await expect(matching).toHaveCount(1);
   await expect(page.locator(".insurance-match-warning")).toContainText(
-    "out-of-network or uncovered",
+    "Does not accept Blue Horizon HMO",
   );
   await page.getByLabel("Location", { exact: true }).selectOption("");
-  const selected = matching.first();
+  const selected = matching.first().locator(".clinic-time-choice").first();
   await selected.click();
   const details = page.getByRole("dialog", { name: "Appointment details" });
   await expect(details.getByLabel("Insurance company for appointment"))
