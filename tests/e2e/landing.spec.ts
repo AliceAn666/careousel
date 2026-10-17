@@ -22,7 +22,7 @@ test.beforeEach(async ({ request }) => {
 const findCare = (page: Page) =>
   page.getByRole("button", { name: "Find Care", exact: true }).first();
 
-test("public anchors, both role entrances, ungated entry and existing-session continuity", async ({
+test("public anchors, both role entrances, immediate patient access and existing-session continuity", async ({
   page,
 }) => {
   await page.goto("/");
@@ -80,12 +80,15 @@ test("public anchors, both role entrances, ungated entry and existing-session co
   ).toBe(true);
   await page.getByRole("button", { name: "Careousel home page" }).click();
   await findCare(page).click();
-  await expect(page).toHaveURL(/\/patient$/);
+  await expect(page).toHaveURL(/\/search$/);
   await expect(
-    page.getByRole("heading", { name: "Book an Appointment", exact: true }),
+    page.getByRole("heading", { name: "Book an appointment", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "My appointments", exact: true }),
+    page.getByRole("button", {
+      name: "Manage My Appointments and Waitlists",
+      exact: true,
+    }),
   ).toBeEnabled();
   await page.getByRole("button", { name: "Careousel home page" }).click();
   await page.getByText("Explore other demo personas", { exact: true }).click();
@@ -96,7 +99,7 @@ test("public anchors, both role entrances, ungated entry and existing-session co
     page.getByLabel("Choose a demo persona").locator("option"),
   ).toHaveCount(3);
   await page.getByLabel("Choose a demo persona").selectOption("patient-1");
-  await expect(page).toHaveURL(/\/patient$/);
+  await expect(page).toHaveURL(/\/search$/);
   await expect(page.getByLabel("Switch demo persona")).toHaveValue("patient-1");
   const patientCookie = (await page.context().cookies()).find(
     (c) => c.name === "careousel_session",
@@ -140,7 +143,7 @@ test("responsive home, keyboard skip and patient entry with reduced motion", asy
   await expect(page.locator("main")).toBeFocused();
   await findCare(page).focus();
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/\/patient$/);
+  await expect(page).toHaveURL(/\/search$/);
   await expect(page.getByLabel("Mobile demo persona")).toHaveValue("avery");
 });
 

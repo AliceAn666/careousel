@@ -37,7 +37,7 @@ afterAll(async () => {
 });
 
 describe("request-scoped four-level priority", () => {
-  it("allows booking without intake and preserves optional raw answers without assigning clinical priority", async () => {
+  it("allows booking without intake and preserves historical raw answers without assigning clinical priority", async () => {
     await performAction("avery", { type: "book", slotId: "slot-0" });
     expect(await db.intake.count({ where: { patientId: "avery" } })).toBe(0);
     await performAction("avery", intake);
@@ -61,6 +61,7 @@ describe("request-scoped four-level priority", () => {
     expect(await db.intake.count({ where: { patientId: "patient-1" } })).toBe(
       1,
     );
+    expect(await db.waitlistPriority.count()).toBe(0);
   });
 
   it("saves all four levels on one request with provenance and complete history, preserving legacy rows", async () => {

@@ -1,16 +1,14 @@
 # Careousel proposal-aligned development roadmap
 
-## Patient entry correction — current policy
+## Patient search-first redesign — October 17, 2026
 
-This UX correction supersedes all older mandatory first-visit symptom/intake gates and guide-lock requirements below. A patient enters through **Book an Appointment**, **Find an Earlier Appointment**, or **Manage My Medical Needs**. Ordinary search, eligible basic booking, waitlist registration and valid invitation acceptance never require a generic symptom questionnaire. Specific service/referral/authorization, ownership, overlap, expiry and priority-sequence restrictions remain authoritative on the server.
+This user-approved UX requirement supersedes all earlier instructions to require first-visit symptom intake or use a monthly clinic-icon calendar for patient search. No symptom questionnaire is shown in normal patient UI, including optional onboarding. No intake-completion gate applies to search, direct booking, waitlist registration, acceptance or guides. Existing Intake/SymptomTag rows and historical API compatibility are retained without deletion, migration or automatic backfill. Future clinician-authored tags and patient-authorized medical-record imports are separate, unimplemented work; do not invent clinical information.
 
-Vaccination, Blood test and Routine examination are now supported service choices alongside Primary care and existing specialties; staff may create synthetic openings. This change does not create shared fixtures or claim existing availability. Linked Careousel appointments can open a prefilled earlier-request form and remain protected until committed replacement. External appointments can be represented by an unlinked scheduling request, but are not imported, managed or cancelled by this release. One active request per service remains the existing model boundary.
+Patient navigation centers on Book an Appointment, Find an Earlier Appointment, and Manage My Appointments and Waitlists, plus the durable notification inbox. Search includes a service/specialty text field, categories (Vaccinations, Blood Tests, Routine Checkups mapped to Primary care / Routine examination, Specialist Visits), service/location/insurance/date/listed-cost and fictional estimated-patient-cost filters. Only matching labeled appointment cards appear, earliest first; details/booking and waitlist actions remain available. Vaccination, Blood test and Routine examination are supported request service strings, but current synthetic fixtures may have no matching openings; display an honest empty state. Never relabel a specialist appointment as another service. Clinic operational schedules are preserved.
 
-Optional health information has its own route `/health-information`, reachable from medical needs/appointments. Existing answers are retained unchanged; repeated submissions do not overwrite them. Returning and new patients may optionally provide a first self-report. It does not assign P1–P4, infer urgency, diagnose or perform automatic triage. General emergency guidance remains visible at entry and beside the optional form. No current generic symptom requirement is introduced; any future service-specific questionnaire requires an explicit justified service contract.
+Service-specific referral/authorization, saved-plan eligibility, availability, request/clinic human-approved P1–P4, account/clinic scope, atomic replacement, occupancy constraints and authorized automatic 180-minute group sequences remain enforced. No shared database reset/reseed, automatic migration, clinical inference or real insurance-verification claim.
 
-Phase 8 UI preparation labels clinician-authored medical tags and explicitly patient-authorized record imports as **planned, not connected**. Patient self-report is identified separately. No upload, import, consent grant or clinician-tag mutation is implemented here; do not enter real medical information in this synthetic prototype.
-
-Patient home is `/patient`, booking search `/search`, earlier-request entry `/earlier`, medical-needs view `/needs`; existing `/appointments`, `/waitlists` and inbox links remain compatible. Tours/navigation remain available before any optional intake. No schema/migration, shared-data reset/reseed, automatic merge or deployment is part of this correction.
+Acceptance: new patients can browse/book/join/accept without Intake rows; historical intake survives normal operations; search results combine filters, show readable clinic/service/location/time/price, exclude nonmatches and sort chronologically; empty categories allow waitlist registration; navigation/home/refresh preserve account and bookings; existing clinic/group/concurrency/expiry/rollback regressions continue passing in isolation.
 
 ## Phase 7 — current authoritative notification policy
 
@@ -126,12 +124,15 @@ See PRD October 17 R1–R4 requirements and incremental PR/AT-R* table for the s
 
 See VALIDATION.md for executed checks and limitations; documentation acceptance tables from older phases do not establish Phase 7 test results.
 
-## Patient-entry correction review checklist
+## Patient UX redesign implementation
 
-- [x] Remove generic UI and backend intake gate; retain service clearance, authenticated ownership, conflict, expiry and atomic replacement checks.
-- [x] Three patient-entry actions, direct linked-booking request shortcut, basic service choices and always-available tour/navigation.
-- [x] Optional self-report page preserves saved intake; no new clinical urgency inference or changes to P1–P4 authority.
-- [x] Explicitly label Phase 8 clinician tags/authorized imports as unconnected; no medical-record ingestion.
-- [x] Complete isolated regression evidence in VALIDATION.md: lint/typecheck, 43 unit, 70 PostgreSQL and 20 browser tests, build and restart persistence.
-- [ ] User review of the patient-entry PR; implementation and checks are ready.
-- [ ] User review/merge; no automatic merge or shared-database reset/reseed.
+- [x] Remove the symptom questionnaire and summary from normal patient screens; remove intake completion gates on booking, waitlist and acceptance. Retain historical data and legacy compatibility without migration/deletion.
+- [x] Replace patient monthly/icon calendar with earliest-first text/category search and readable appointment cards; preserve insurance/date/location/cost comparisons and actual detail/booking actions.
+- [x] Add honest empty categories and service-prefilled waitlist registration. Keep Vaccination/Blood test available as request/slot service strings without reseeding existing data.
+- [x] Center navigation on booking, earlier-care requests and management; retain inbox and optional Quick tour, remove duplicate onboarding panel, provide immediate earlier-request action.
+- [x] Adapt obsolete questionnaire/calendar assertions while preserving acceptance checks; add search ordering/categories/zero-intake/navigation/original-protection browser coverage.
+- [ ] User review and merge of the focused feature PR. No automatic merge, deployment or shared database reset/reseed.
+
+### Latest-main PR #15 compatibility
+
+PR #15 merged during development (main f5212eb, successful CI). Preserve its canonical service identifiers Vaccination, Blood test and Routine examination, existing-booking prefilled earlier-request shortcut and /patient, /earlier, /needs, /health-information routes. The task hub remains accessible; normal login opens search directly. The health-information page now shows historical data/future-work explanations only: PR #15's optional questionnaire is explicitly superseded by the latest user requirement and removed. Patient task labels use the three standardized appointment/waitlist activities. Existing/new PR #15 safety tests remain, adapted only for this intentionally removed optional questionnaire and search interface.

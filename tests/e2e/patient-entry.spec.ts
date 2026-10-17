@@ -22,9 +22,13 @@ test("patient joins a linked waitlist directly from entry, with no symptoms and 
   for (const name of [
     "Book an Appointment",
     "Find an Earlier Appointment",
-    "Manage My Medical Needs",
+    "Manage My Appointments and Waitlists",
   ])
-    await expect(page.getByRole("button", { name, exact: true })).toBeEnabled();
+    await expect(
+      page
+        .locator(".patient-entry-grid")
+        .getByRole("button", { name, exact: true }),
+    ).toBeEnabled();
   await expect(
     page.getByRole("button", { name: "Quick tour", exact: true }),
   ).toBeEnabled();
@@ -40,6 +44,7 @@ test("patient joins a linked waitlist directly from entry, with no symptoms and 
     fullPage: true,
   });
   await page
+    .locator(".patient-entry-grid")
     .getByRole("button", { name: "Find an Earlier Appointment", exact: true })
     .click();
   await page
@@ -78,7 +83,7 @@ test("patient joins a linked waitlist directly from entry, with no symptoms and 
     page.getByText("Awaiting staff review", { exact: true }),
   ).toBeVisible();
 });
-test("basic vaccination booking skips symptoms, optional self-report remains separate and survives refresh", async ({
+test("basic vaccination booking skips symptoms, health-history route stays read-only after refresh", async ({
   page,
   request,
 }) => {
@@ -101,6 +106,7 @@ test("basic vaccination booking skips symptoms, optional self-report remains sep
   });
   await page.goto("/patient");
   await page
+    .locator(".patient-entry-grid")
     .getByRole("button", { name: "Book an Appointment", exact: true })
     .click();
   await page
@@ -111,11 +117,6 @@ test("basic vaccination booking skips symptoms, optional self-report remains sep
     (s: { service: string }) => s.service === "Vaccination",
   );
   const opening = page.locator(`button[data-slot-id="${slot.id}"]`);
-  await opening
-    .locator("xpath=ancestor::div[contains(@class,'cal-clinic')]")
-    .getByRole("button")
-    .first()
-    .click();
   await opening.click();
   await page.getByRole("button", { name: "Confirm appointment" }).click();
   await expect(page.getByRole("status")).toContainText("Appointment confirmed");
@@ -123,24 +124,21 @@ test("basic vaccination booking skips symptoms, optional self-report remains sep
     (await (await page.request.get("/api/state")).json()).user.intakeCompleted,
   ).toBe(false);
   await page
-    .getByRole("link", { name: "View optional health information" })
+    .getByRole("link", { name: "View saved health information" })
     .click();
+  await expect(page).toHaveURL(/\/health-information$/);
   await expect(
     page.getByText("Planned for Phase 8.", { exact: false }).first(),
   ).toBeVisible();
-  await page.getByLabel("Skin problem", { exact: true }).check();
-  await page.getByRole("button", { name: "Submit questionnaire" }).click();
-  await page.getByRole("button", { name: "Continue to find care" }).click();
-  await page.goto("/health-information");
   await page.reload();
   await expect(
-    page.getByRole("heading", { name: "Your saved self-report" }),
+    page.getByRole("heading", { name: "No saved self-report" }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Submit questionnaire" }),
   ).toHaveCount(0);
   const after = await (await page.request.get("/api/state")).json();
-  expect(after.user.intakeCompleted).toBe(true);
+  expect(after.user.intakeCompleted).toBe(false);
   expect(
     after.bookings.find((b: { id: string }) => b.id === "avery-original")
       .status,

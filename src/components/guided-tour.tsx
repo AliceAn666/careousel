@@ -5,7 +5,7 @@ const patientSteps = [
   {
     route: "/search",
     title: "Find care that fits",
-    body: "Start with Book an Appointment, Find an Earlier Appointment or Manage My Medical Needs on Patient home. No symptom questionnaire is required. Choose a service, location and available date. The month calendar groups openings by clinic: tap or focus a clinic icon to see times. Gray openings do not match your filters. Maximum cost is the full listed visit price.",
+    body: "Choose a service, location and available date. Matching results are ordered earliest first. Open a labeled appointment card to review details and book. Maximum cost is the full listed visit price.",
   },
   {
     route: "/search",
@@ -15,7 +15,7 @@ const patientSteps = [
   {
     route: "/appointments",
     title: "Keep your original appointment",
-    body: "Appointments and waitlists live together here and under Manage My Medical Needs. Optional health information is separate; Phase 8 clinician tags and authorized imports are not enabled. Choose Join a waitlist, then explicitly select Existing appointment to replace. Your original stays confirmed until you accept a valid earlier offer. An unlinked request does not replace it.",
+    body: "Appointments and waitlists live together here. Choose Join a waitlist, then explicitly select Existing appointment to replace. Your original stays confirmed until you accept a valid earlier offer. An unlinked request does not replace it.",
   },
   {
     route: "/notifications",

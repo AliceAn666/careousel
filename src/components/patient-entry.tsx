@@ -1,6 +1,5 @@
 "use client";
-import type { Action, AppState } from "@/lib/types";
-import { IntakeQuestionnaire } from "./patient-intake";
+import type { AppState } from "@/lib/types";
 import { SymptomLabels } from "./ui";
 export function PatientEntry({
   navigate,
@@ -32,13 +31,13 @@ export function PatientEntry({
           </button>
         </article>
         <article className="card">
-          <h2>Manage My Medical Needs</h2>
+          <h2>Manage My Appointments and Waitlists</h2>
           <p>
             Review appointments, saved requests and clinic-reviewed priorities.
-            Choose whether to share optional health information.
+            Stored health information remains read-only.
           </p>
           <button className="primary" onClick={() => navigate("/needs")}>
-            Manage My Medical Needs
+            Manage My Appointments and Waitlists
           </button>
         </article>
       </div>
@@ -50,13 +49,7 @@ export function PatientEntry({
     </section>
   );
 }
-export function OptionalHealthInformation({
-  state,
-  act,
-}: {
-  state: AppState;
-  act: Action;
-}) {
+export function OptionalHealthInformation({ state }: { state: AppState }) {
   return (
     <section className="stack" aria-label="Optional patient health information">
       <p>
@@ -76,7 +69,13 @@ export function OptionalHealthInformation({
           <SymptomLabels tags={state.myTags} />
         </section>
       ) : (
-        <IntakeQuestionnaire act={act} />
+        <section className="card">
+          <h2>No saved self-report</h2>
+          <p>
+            No questionnaire is required or available here. Future
+            clinician-authored tags and authorized imports are separate work.
+          </p>
+        </section>
       )}
       <section className="card">
         <h2>Clinician-authored medical tags</h2>

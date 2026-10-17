@@ -5,13 +5,9 @@ import { useEffect, useState } from "react";
 import {
   Anchor,
   ArrowRight,
-  ArrowUpRight,
   Bell,
   CalendarDays,
   Check,
-  CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   Clock3,
   Heart,
   Leaf,
@@ -45,7 +41,6 @@ import {
   SERVICES,
   pacificDateBoundary,
   pacificDate,
-  timeLabel,
 } from "@/lib/config";
 import { Status, Empty, Modal } from "./ui";
 const CLINIC_ICONS: Record<string, LucideIcon> = {
@@ -64,29 +59,6 @@ export function ClinicIcon({
   const Icon = CLINIC_ICONS[clinicId] ?? Heart;
   return <Icon size={size} aria-hidden="true" />;
 }
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const monthKey = (key: string) => key.slice(0, 7);
-function shiftMonth(month: string, delta: number) {
-  const [y, m] = month.split("-").map(Number);
-  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-function monthDays(month: string) {
-  const [y, m] = month.split("-").map(Number);
-  const first = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
-  const count = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  return {
-    lead: first,
-    days: Array.from({ length: count }, (_, i) => {
-      const day = i + 1;
-      return {
-        day,
-        weekday: (first + i) % 7,
-        key: `${month}-${String(day).padStart(2, "0")}`,
-      };
-    }),
-  };
-}
 export function SearchCare({
   state,
   onDetail,
@@ -97,7 +69,7 @@ export function SearchCare({
     s: SlotView,
     selection: { provider: string; planType: PlanType },
   ) => void;
-  onWaitlist: () => void;
+  onWaitlist: (service?: string) => void;
 }) {
   const [preferences, setPreferences] = useState(() =>
     readSearchPreferences(state.user?.id ?? "guest"),
@@ -128,13 +100,11 @@ export function SearchCare({
   useEffect(() => {
     if (state.user) saveSearchPreferences(state.user.id, preferences);
   }, [preferences, state.user]);
-  const today = pacificDate(new Date());
-  const firstSlot = state.slots[0] ? pacificDate(state.slots[0].start) : today;
-  const lastSlot = state.slots.length
-    ? pacificDate(state.slots[state.slots.length - 1].start)
-    : today;
-  const [month, setMonth] = useState(monthKey(date || firstSlot));
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("");
   const filtering = !!(
+    query ||
+    category ||
     service ||
     city ||
     plan ||
@@ -146,6 +116,16 @@ export function SearchCare({
   const matches = (s: SlotView) => {
     const benefit = demoCoverage(s, plan, planType);
     return (
+      (!query ||
+        `${s.service} ${["Primary care", "Routine examination"].includes(s.service) ? "Routine Checkups" : ["Cardiology", "Dermatology"].includes(s.service) ? "Specialist Visits" : ""} ${s.clinic.name} ${s.provider}`
+          .toLowerCase()
+          .includes(query.toLowerCase().trim())) &&
+      (!category ||
+        (category === "Specialist Visits"
+          ? ["Dermatology", "Cardiology"].includes(s.service)
+          : category === "Routine examination"
+            ? ["Primary care", "Routine examination"].includes(s.service)
+            : s.service === category)) &&
       (!service || s.service === service) &&
       (!city || s.clinic.city === city) &&
       (!plan || s.plans.includes(plan)) &&
@@ -158,59 +138,67 @@ export function SearchCare({
           benefit.estimate <= Number(patientCost) * 100))
     );
   };
-  const matchCount = state.slots.filter(matches).length;
-  // Group each day's openings by clinic so one icon represents one clinic.
-  const byDay = new Map<string, Map<string, SlotView[]>>();
-  for (const s of state.slots) {
-    const key = pacificDate(s.start);
-    const clinics = byDay.get(key) ?? new Map<string, SlotView[]>();
-    clinics.set(s.clinicId, [...(clinics.get(s.clinicId) ?? []), s]);
-    byDay.set(key, clinics);
-  }
-  const { lead, days } = monthDays(month);
-  const monthTitle = new Intl.DateTimeFormat("en-US", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${month}-01T12:00:00Z`));
-  const clear = () => setPreferences({ ...defaultSearchPreferences });
+  const results = state.slots
+    .filter(matches)
+    .sort(
+      (a, b) =>
+        +new Date(a.start) - +new Date(b.start) || a.id.localeCompare(b.id),
+    );
+  const matchCount = results.length;
+  const clear = () => {
+    setPreferences({ ...defaultSearchPreferences });
+    setQuery("");
+    setCategory("");
+  };
   return (
     <>
-      <section className="hero">
-        <div>
-          <span className="pill">
-            <span className="live-dot" />
-            CARE THAT FITS YOUR LIFE
-          </span>
-          <h2>
-            Your next chapter
-            <br />
-            shouldn’t have to wait.
-          </h2>
-          <p>
-            Explore appointments across trusted local clinics.
-            <br />
-            Find a time that works for you.
-          </p>
-          <button className="hero-link" onClick={onWaitlist}>
-            Looking for something sooner? Join a waitlist{" "}
-            <ArrowUpRight size={18} />
-          </button>
+      <section className="card search-intro" aria-label="Appointment search">
+        <h2>Book an appointment</h2>
+        <p>
+          Search participating clinics. Earliest matching openings appear first.
+        </p>
+        <label className="field">
+          Medical service or specialty
+          <input
+            type="search"
+            placeholder="Search service, clinic or specialist"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </label>
+        <div className="button-row" aria-label="Service categories">
+          {[
+            ["Vaccinations", "Vaccination"],
+            ["Blood Tests", "Blood test"],
+            ["Routine Checkups", "Routine examination"],
+            ["Specialist Visits", "Specialist Visits"],
+          ].map(([label, value]) => (
+            <button
+              key={label}
+              className="secondary"
+              aria-pressed={category === value}
+              onClick={() => setCategory(category === value ? "" : value)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-        <div className="hero-art" aria-hidden="true">
-          <div className="orbit orbit-one" />
-          <div className="orbit orbit-two" />
-          <div className="art-cross">✚</div>
-          <div className="floating-card">
-            <CheckCircle2 />
-            <span>
-              Earlier care.
-              <br />
-              <strong>More possibilities.</strong>
-            </span>
-          </div>
-          <span className="art-star">✳</span>
-        </div>
+        <p className="muted">
+          Synthetic openings only. Some categories may currently have no
+          participating appointments.
+        </p>
+        <button
+          className="text-button"
+          onClick={() =>
+            onWaitlist(
+              service ||
+                (category !== "Specialist Visits" ? category : "") ||
+                undefined,
+            )
+          }
+        >
+          Find an earlier appointment · Join a waitlist
+        </button>
       </section>
       <section className="filter-card">
         <label>
@@ -273,16 +261,16 @@ export function SearchCare({
             value={date}
             onChange={(e) => {
               setDate(e.target.value);
-              if (e.target.value) setMonth(monthKey(e.target.value));
             }}
           />
         </label>
       </section>
-      <section
+      <details
+        open={!!plan}
         className={onboarding.benefits}
         aria-label="Fictional insurance comparison"
       >
-        <h3>Explore fictional PPO / HMO benefits</h3>
+        <summary>Compare fictional PPO / HMO estimates (optional)</summary>
         <p>
           Compare synthetic plan scenarios, not verified coverage. Your saved
           patient plan is {state.user?.plan}; browsing another insurer does not
@@ -328,7 +316,7 @@ export function SearchCare({
           Select an opening for the calculation; unknown costs are never shown
           as $0.
         </p>
-      </section>
+      </details>
       <div className="section-title">
         <div>
           <h2>
@@ -340,8 +328,8 @@ export function SearchCare({
             </span>
           </h2>
           <p>
-            Hover or tap a clinic icon to see its open times, then choose a time
-            to book.
+            Earliest matching appointment first · Pacific time. View details
+            before confirming.
           </p>
         </div>
         <div className="button-row">
@@ -350,142 +338,64 @@ export function SearchCare({
               Clear filters
             </button>
           )}
-          <button className="primary" onClick={onWaitlist}>
+          <button
+            className="primary"
+            onClick={() =>
+              onWaitlist(
+                service ||
+                  (category !== "Specialist Visits" ? category : "") ||
+                  undefined,
+              )
+            }
+          >
             <Plus size={16} />
             Join a waitlist
           </button>
         </div>
       </div>
-      <section className="card care-calendar" aria-label="Appointment calendar">
-        <div className="calendar-toolbar">
-          <button
-            className="icon-button"
-            aria-label="Previous month"
-            disabled={month <= monthKey(today)}
-            onClick={() => setMonth(shiftMonth(month, -1))}
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <h3>{monthTitle}</h3>
-          <button
-            className="icon-button"
-            aria-label="Next month"
-            disabled={month >= monthKey(lastSlot)}
-            onClick={() => setMonth(shiftMonth(month, 1))}
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-        <ul className="clinic-legend" aria-label="Clinic icons">
-          {state.clinics.map((c) => (
-            <li key={c.id}>
-              <span className={`cal-icon ${c.id}`}>
-                <ClinicIcon clinicId={c.id} size={14} />
-              </span>
-              {c.name}
-            </li>
-          ))}
-        </ul>
-        <div className="calendar-grid">
-          {WEEKDAYS.map((d) => (
-            <div className="calendar-weekday" key={d}>
-              {d}
-            </div>
-          ))}
-          {Array.from({ length: lead }, (_, i) => (
-            <div className="calendar-day blank" key={`lead-${i}`} />
-          ))}
-          {days.map(({ day, weekday, key }) => {
-            const clinics = byDay.get(key);
-            const dayMatches =
-              !!clinics && [...clinics.values()].flat().some(matches);
-            const classes = [
-              "calendar-day",
-              key < today ? "past" : "",
-              key === today ? "today" : "",
-              date === key ? "selected" : "",
-              filtering && clinics && !dayMatches ? "dim" : "",
-            ];
-            return (
-              <div className={classes.join(" ")} key={key}>
-                <span className="day-number">{day}</span>
-                {clinics && (
-                  <div className="day-clinics">
-                    {[...clinics.entries()].map(([clinicId, slots]) => {
-                      const clinic = slots[0].clinic;
-                      const hits = slots.filter(matches);
-                      const dim = filtering && hits.length === 0;
-                      const side =
-                        weekday >= 4 ? "end" : weekday === 3 ? "middle" : "";
-                      return (
-                        <div className={`cal-clinic ${side}`} key={clinicId}>
-                          <button
-                            className={`cal-icon ${clinicId} ${dim ? "dim" : ""}`}
-                            aria-label={`${clinic.name}: ${slots.length} opening${slots.length > 1 ? "s" : ""} on ${dateLabel(slots[0].start).split(",")[0]}${dim ? ", does not match filters" : ""}`}
-                          >
-                            <ClinicIcon clinicId={clinicId} />
-                            {slots.length > 1 && <i>{slots.length}</i>}
-                          </button>
-                          <div
-                            className="cal-pop"
-                            role="group"
-                            aria-label={`${clinic.name} openings`}
-                          >
-                            <strong>{clinic.name}</strong>
-                            <small>
-                              {clinic.city} · {clinic.address}
-                            </small>
-                            <ul className={onboarding.openings}>
-                              {slots.map((s) => (
-                                <li key={s.id}>
-                                  <button
-                                    data-slot-id={s.id}
-                                    className={
-                                      matches(s) || !filtering ? "" : "dim"
-                                    }
-                                    onClick={() =>
-                                      onDetail(s, { provider: plan, planType })
-                                    }
-                                  >
-                                    <b>{timeLabel(s.start)}</b>
-                                    <span>
-                                      {s.service} · {s.provider}
-                                    </span>
-                                    <span>{money(s.price)}</span>
-                                  </button>
-                                  {plan && (
-                                    <CoverageSummary
-                                      slot={s}
-                                      provider={plan}
-                                      planType={planType}
-                                    />
-                                  )}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        {firstSlot > lastSlot || !state.slots.length ? (
+      <section
+        className="stack appointment-results"
+        aria-label="Appointment results"
+        aria-live="polite"
+      >
+        {!results.length ? (
           <Empty
-            title="No openings just yet"
-            body="Join the waitlist and we’ll watch for a suitable opening."
+            title="No openings match these filters."
+            body="Adjust your filters or join a waitlist. Your existing appointment stays protected."
           />
         ) : (
-          filtering &&
-          matchCount === 0 && (
-            <p className="calendar-note">
-              No openings match these filters. Try adjusting them, or join the
-              waitlist.
-            </p>
-          )
+          results.map((s) => (
+            <article className="card search-result" key={s.id}>
+              <div className="grow">
+                <span className="eyebrow">{s.service}</span>
+                <h3>{s.clinic.name}</h3>
+                <p>
+                  {s.clinic.address}, {s.clinic.city}
+                </p>
+                <p>
+                  <strong>{dateLabel(s.start)}</strong> · {s.provider}
+                </p>
+                <p>
+                  {money(s.price)} estimated listed price · Fictional plans:{" "}
+                  {s.plans.join(", ")}
+                </p>
+                {plan && (
+                  <CoverageSummary
+                    slot={s}
+                    provider={plan}
+                    planType={planType}
+                  />
+                )}
+              </div>
+              <button
+                className="primary"
+                data-slot-id={s.id}
+                onClick={() => onDetail(s, { provider: plan, planType })}
+              >
+                View details &amp; book
+              </button>
+            </article>
+          ))
         )}
       </section>
     </>
@@ -503,13 +413,13 @@ export function Appointments({
   return (
     <>
       <section className="card">
-        <h2>Health information is your choice</h2>
+        <h2>Historical health information</h2>
         <p>
           Appointments and waitlist needs do not require a symptom
           questionnaire. Clinician-authored tags and consent-based record
           imports are planned for Phase 8.
         </p>
-        <Link href="/health-information">View optional health information</Link>
+        <Link href="/health-information">View saved health information</Link>
       </section>
       <div className="insight-row">
         <div className="card insight">
@@ -672,6 +582,7 @@ export function Appointments({
   );
 }
 export function WaitlistForm({
+  initialService,
   state,
   booking,
   existing,
@@ -679,6 +590,7 @@ export function WaitlistForm({
   onClose,
   onSaved,
 }: {
+  initialService?: string;
   state: AppState;
   booking: Booking | null;
   existing: Waitlist | null;
@@ -690,7 +602,10 @@ export function WaitlistForm({
     [saving, setSaving] = useState(false);
   const [clinicIds, setClinicIds] = useState(existing?.clinicIds ?? []);
   const [service, setService] = useState(
-    existing?.service ?? booking?.slot.service ?? "Dermatology",
+    existing?.service ??
+      booking?.slot.service ??
+      initialService ??
+      "Dermatology",
   );
   const [openedAt] = useState(() => Date.now());
   const inputDate = pacificDate;
@@ -760,6 +675,7 @@ export function WaitlistForm({
           <label>
             Specialty
             <select
+              aria-label="Specialty"
               value={service}
               disabled={!!booking || !!existing}
               onChange={(e) =>

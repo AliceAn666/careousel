@@ -80,20 +80,20 @@ test("patient individual account, onboarding, logout and navigation never switch
   await page.getByLabel("Username", { exact: true }).fill("patient.one");
   await page.getByLabel("Password (at least 12 characters)").fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page).toHaveURL(/\/patient$/);
+  await expect(page).toHaveURL(/\/search$/);
   await expect(
     page.getByText("Synthetic New Patient", { exact: true }),
   ).toBeVisible();
   await expect(page.getByLabel("Switch demo persona")).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "My appointments", exact: true }),
+    page.getByRole("button", {
+      name: "Manage My Appointments and Waitlists",
+      exact: true,
+    }),
   ).toBeEnabled();
   await expect(
-    page.getByRole("button", { name: "Book an Appointment", exact: true }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Book an Appointment", exact: true })
-    .click();
+    page.getByText("Tell us how you’re feeling", { exact: true }),
+  ).toHaveCount(0);
   await page.setViewportSize({ width: 375, height: 812 });
   expect(
     await page.evaluate(
@@ -125,7 +125,14 @@ test("patient individual account, onboarding, logout and navigation never switch
   const cookie = (await page.context().cookies()).find(
     (c) => c.name === "careousel_session",
   )!.value;
+  const logoutResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/session") &&
+      response.request().method() === "DELETE",
+  );
   await page.getByRole("button", { name: "Log out", exact: true }).click();
+  expect((await logoutResponse).ok()).toBe(true);
+  await expect(page).toHaveURL(/\/$/);
   const stale = await request.get("/api/state", {
     headers: { cookie: `careousel_session=${cookie}` },
   });

@@ -27,11 +27,9 @@ async function enterPatient(page: Page) {
   await expect(
     page.getByRole("button", { name: "Quick tour", exact: true }),
   ).toBeEnabled();
-  await page
-    .getByRole("button", { name: "Book an Appointment", exact: true })
-    .click();
+
   await expect(
-    page.getByRole("region", { name: "Patient getting started" }),
+    page.getByRole("region", { name: "Appointment search" }),
   ).toBeVisible();
 }
 const state = async (page: Page) =>
@@ -45,7 +43,7 @@ test("patient guide follows current screens, resumes after refresh, and never ch
   const cookie = (await page.context().cookies()).find(
     (c) => c.name === "careousel_session",
   )?.value;
-  await page.getByRole("button", { name: "Start patient guide" }).click();
+  await page.getByRole("button", { name: "Quick tour" }).click();
   const guide = page.getByRole("dialog", { name: "Careousel quick tour" });
   await expect(guide.getByRole("heading")).toHaveText("Find care that fits");
   await guide.getByRole("button", { name: "Next", exact: true }).click();
@@ -57,9 +55,7 @@ test("patient guide follows current screens, resumes after refresh, and never ch
   await guide.getByRole("button", { name: "Next", exact: true }).click();
   await page.keyboard.press("Escape");
   await expect(guide).not.toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Start patient guide" }),
-  ).toBeFocused();
+  await expect(page.getByRole("button", { name: "Quick tour" })).toBeFocused();
   await page.reload();
   await page.getByRole("button", { name: "Quick tour", exact: true }).click();
   await expect(guide.getByRole("heading")).toHaveText(
@@ -100,11 +96,11 @@ test("patient guide follows current screens, resumes after refresh, and never ch
   await guide.getByRole("button", { name: "Close guide" }).click();
 });
 
-test("fictional PPO/HMO calendar filters and costs persist per identity without changing the saved plan", async ({
+test("fictional PPO/HMO result filters and costs persist per identity without changing the saved plan", async ({
   page,
 }) => {
   await enterPatient(page);
-  const matching = page.locator(".cal-pop li button[data-slot-id]:not(.dim)");
+  const matching = page.locator(".appointment-results button[data-slot-id]");
   await page
     .getByLabel("Insurance", { exact: true })
     .selectOption("Blue Horizon");
@@ -138,11 +134,6 @@ test("fictional PPO/HMO calendar filters and costs persist per identity without 
     expect(slot.service).toBe("Dermatology");
   }
   const selected = matching.first();
-  await selected
-    .locator("xpath=ancestor::div[contains(@class,'cal-clinic')]")
-    .getByRole("button")
-    .first()
-    .click();
   await selected.click();
   const details = page.getByRole("dialog", { name: "Appointment details" });
   await expect(details.locator(".coverage-summary")).toContainText("$30");
@@ -158,9 +149,6 @@ test("fictional PPO/HMO calendar filters and costs persist per identity without 
     .getByRole("button", { name: "Find Care", exact: true })
     .first()
     .click();
-  await page
-    .getByRole("button", { name: "Book an Appointment", exact: true })
-    .click();
   await expect(page.getByLabel("Plan type", { exact: true })).toHaveValue(
     "HMO",
   );
@@ -168,14 +156,8 @@ test("fictional PPO/HMO calendar filters and costs persist per identity without 
     page.getByLabel("Maximum estimated patient cost ($)"),
   ).toHaveValue("30");
   await page.getByLabel("Switch demo persona").selectOption("patient-1");
-  await page
-    .getByRole("button", { name: "Book an Appointment", exact: true })
-    .click();
   await expect(page.getByLabel("Insurance", { exact: true })).toHaveValue("");
   await page.getByLabel("Switch demo persona").selectOption("avery");
-  await page
-    .getByRole("button", { name: "Book an Appointment", exact: true })
-    .click();
   await expect(page.getByLabel("Plan type", { exact: true })).toHaveValue(
     "HMO",
   );

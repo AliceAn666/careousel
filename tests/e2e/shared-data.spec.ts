@@ -32,9 +32,7 @@ test("two independent browsers retain shared waitlist and atomically reschedule"
       .getByRole("button", { name: "Find Care", exact: true })
       .first()
       .click();
-    await p
-      .getByRole("button", { name: "Book an Appointment", exact: true })
-      .click();
+
     await p
       .getByRole("button", { name: "Join a waitlist", exact: true })
       .click();

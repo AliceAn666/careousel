@@ -1,10 +1,18 @@
 # Careousel — persistent Codex instructions
 
+## Patient search-first redesign — October 17, 2026
+
+This user-approved UX requirement supersedes all earlier instructions to require first-visit symptom intake or use a monthly clinic-icon calendar for patient search. No symptom questionnaire is shown in normal patient UI, including optional onboarding. No intake-completion gate applies to search, direct booking, waitlist registration, acceptance or guides. Existing Intake/SymptomTag rows and historical API compatibility are retained without deletion, migration or automatic backfill. Future clinician-authored tags and patient-authorized medical-record imports are separate, unimplemented work; do not invent clinical information.
+
+Patient navigation centers on Book an Appointment, Find an Earlier Appointment, and Manage My Appointments and Waitlists, plus the durable notification inbox. Search includes a service/specialty text field, categories (Vaccinations, Blood Tests, Routine Checkups mapped to Primary care / Routine examination, Specialist Visits), service/location/insurance/date/listed-cost and fictional estimated-patient-cost filters. Only matching labeled appointment cards appear, earliest first; details/booking and waitlist actions remain available. Vaccination, Blood test and Routine examination are supported request service strings, but current synthetic fixtures may have no matching openings; display an honest empty state. Never relabel a specialist appointment as another service. Clinic operational schedules are preserved.
+
+Service-specific referral/authorization, saved-plan eligibility, availability, request/clinic human-approved P1–P4, account/clinic scope, atomic replacement, occupancy constraints and authorized automatic 180-minute group sequences remain enforced. No shared database reset/reseed, automatic migration, clinical inference or real insurance-verification claim.
+
+Acceptance: new patients can browse/book/join/accept without Intake rows; historical intake survives normal operations; search results combine filters, show readable clinic/service/location/time/price, exclude nonmatches and sort chronologically; empty categories allow waitlist registration; navigation/home/refresh preserve account and bookings; existing clinic/group/concurrency/expiry/rollback regressions continue passing in isolation.
+
 ## Current authorization
 
-The latest patient UX correction authorizes a new review PR removing the generic symptom questionnaire gate in UI and backend. Patient entry offers booking, earlier appointment and medical-needs paths. Preserve historical intake verbatim, staff-reviewed P1–P4 and all scheduling/permission restrictions. Optional symptoms and emergency guidance are informational; Phase 8 tag/import UI must clearly remain unconnected, with no real records collected. No shared reset/reseed or automatic merge.
-
-The user and Codex are the sole owners. Phase 7 authorizes functional automated priority-group notifications from successful PR #13 main 0de5aaa. Read docs/automated-notifications.md. One shared cross-clinic pool supersedes internal-clinic-first/release stages. Staff explicitly authorize the full approved P1–P4 recipient sequence once; an independent durable worker sends later groups at least 180 minutes after the previous actual send. Preserve accounts, explicit Demo Mode, request/clinic priorities, intake, calendar, fictional insurance, audit and atomic replacement. Do not change shared data or applied migration bytes, push to main, auto-merge, start the impact dashboard or publicly deploy.
+The user and Codex are the sole owners. Phase 7 authorizes functional automated priority-group notifications from successful PR #13 main 0de5aaa. Read docs/automated-notifications.md. One shared cross-clinic pool supersedes internal-clinic-first/release stages. Staff explicitly authorize the full approved P1–P4 recipient sequence once; an independent durable worker sends later groups at least 180 minutes after the previous actual send. Preserve accounts, explicit Demo Mode, request/clinic priorities, historical intake records, clinic schedule, fictional insurance, audit and atomic replacement. Do not change shared data or applied migration bytes, push to main, auto-merge, start the impact dashboard or publicly deploy.
 
 ## Read first
 
@@ -66,7 +74,7 @@ Committed changes must persist across app restarts. Ordinary startup must not re
 
 ## Onboarding and insurance browsing
 
-- Generic intake is optional and must never block search, basic booking, waitlist registration, valid acceptance, navigation or guides. Service-specific eligibility remains server-authoritative. Guides are optional, manually opened and read-only; they are available without intake. Use current calendar and combined appointments/waitlists routes, never restore removed navigation or auto-book/reset actions.
+- No symptom intake is required or shown. Guides are optional, manually opened and read-only, available immediately. Use search-first results and combined appointments/waitlists routes, never restore removed navigation or auto-book/reset actions.
 - Search and guide progress are optional browser-local conveniences, versioned and scoped to the current synthetic persona. Validate persisted preferences, handle corrupt/blocked storage, and remount search on identity change. Never treat browser state as authorization or real clinical/insurance data.
 - PPO/HMO scenarios are fictional comparisons. Do not mutate User.plan, session identity, bookings or eligibility when browsing. Booking still checks the saved patient plan and all server safeguards; prominently explain comparison-versus-booking identity in details.
 - Keep listed medical cost and simulated out-of-pocket cost distinct. Unknown coverage is not $0; show estimates to cents, disclaim omitted benefits/charges and guarantees, and never claim real insurer verification. Referral/authorization text is simulated guidance, not approved eligibility.
@@ -121,3 +129,7 @@ At the R1 baseline, staff used server-authorized, pre-authorized synthetic sessi
 - Existing browser scheduling journeys opt into explicit Demo Mode via demo-fixture; their original safety checks remain. New account journeys use plain Playwright fixtures to prove normal UI has no identity selector.
 - 0005_accounts_clinic_access is additive and creates no accounts or memberships automatically. provision-mock-admin.ts is an explicit trusted CLI, not an HTTP endpoint, and requires target database review and --confirm-mock-bootstrap. Shared migration/bootstrap remains separately authorized.
 - The separately confirmed Demo Mode reset clears synthetic accounts/sessions too, visibly warned; normal account sessions cannot invoke it. No entry/login/registration/navigation invokes seed/reset. Do not run reset or bootstrap against shared data during development.
+
+### Latest-main PR #15 compatibility
+
+PR #15 merged during development (main f5212eb, successful CI). Preserve its canonical service identifiers Vaccination, Blood test and Routine examination, existing-booking prefilled earlier-request shortcut and /patient, /earlier, /needs, /health-information routes. The task hub remains accessible; normal login opens search directly. The health-information page now shows historical data/future-work explanations only: PR #15's optional questionnaire is explicitly superseded by the latest user requirement and removed. Patient task labels use the three standardized appointment/waitlist activities. Existing/new PR #15 safety tests remain, adapted only for this intentionally removed optional questionnaire and search interface.
