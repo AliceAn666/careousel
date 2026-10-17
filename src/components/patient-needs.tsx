@@ -363,19 +363,6 @@ export function PatientNeeds({ act }: { act: Action }) {
       aria-label="Independent medical needs"
       aria-busy={!data && !error}
     >
-      <div className="card">
-        <h2>Your independent medical needs</h2>
-        <p>
-          Manage each service and original appointment separately. Completing
-          one need never cancels another need or appointment. No symptoms or
-          record import are required.
-        </p>
-        <p>
-          External appointments are patient-reported and unverified. Careousel
-          cannot contact, verify or cancel them. After securing new care,
-          contact the original clinic yourself.
-        </p>
-      </div>
       {error && (
         <p role="alert">
           {error}{" "}
@@ -393,7 +380,8 @@ export function PatientNeeds({ act }: { act: Action }) {
       {!data && !error && <p aria-live="polite">Loading medical needs…</p>}
       {data && (
         <>
-          <details className="card">
+          {/* Hidden for now: adding independent needs from this page. */}
+          <details className="card" hidden>
             <summary>Add an independent medical need</summary>
             <form
               className="stack"
@@ -446,12 +434,6 @@ export function PatientNeeds({ act }: { act: Action }) {
               </button>
             </form>
           </details>
-          {!data.needs.length && (
-            <p>
-              No independent needs yet. Existing appointments and legacy
-              waitlists below remain unchanged.
-            </p>
-          )}
           {data.needs.map((need) => (
             <article
               className="card stack"

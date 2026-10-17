@@ -89,6 +89,8 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
         name: names[i],
         role: "PATIENT",
         plan: PLANS[i % 4],
+        // Every synthetic patient has a fictional PPO or HMO plan type.
+        planType: i % 2 === 1 ? "HMO" : "PPO",
         // Avery is a new patient who must complete the intake questionnaire;
         // everyone else is a returning synthetic patient.
         visitType: i === 0 ? "FIRST" : "FOLLOW_UP",

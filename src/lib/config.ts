@@ -21,6 +21,19 @@ export const DEMO_PERSONAS = [
   "staff-cedar",
   "staff-harbor",
 ] as const;
+// Home-page quick login for fast demos (at most 6 seeded synthetic users,
+// a superset of DEMO_PERSONAS). The in-app switcher still lists DEMO_PERSONAS.
+export const QUICK_LOGIN_PERSONAS = [
+  { id: "avery", name: "Avery Morgan", role: "PATIENT" },
+  { id: "patient-1", name: "Jordan Lee", role: "PATIENT" },
+  { id: "patient-2", name: "Sam Rivera", role: "PATIENT" },
+  { id: "staff-cedar", name: "Cedar Health staff", role: "STAFF" },
+  { id: "staff-harbor", name: "Harbor Medical staff", role: "STAFF" },
+  { id: "staff-summit", name: "Summit Specialty staff", role: "STAFF" },
+] as const;
+export function isDemoPersonaId(id: string) {
+  return QUICK_LOGIN_PERSONAS.some((p) => p.id === id);
+}
 export const VISIT_TYPES = { FIRST: "First visit", FOLLOW_UP: "Follow-up" };
 export function dateLabel(value: string | Date) {
   return new Intl.DateTimeFormat("en-US", {

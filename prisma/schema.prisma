@@ -12,6 +12,7 @@ model User {
   name String
   role String
   plan String @default("Blue Horizon")
+  planType String?
   clinicId String?
   clinic Clinic? @relation(fields: [clinicId], references: [id])
   visitType String?

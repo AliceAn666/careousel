@@ -22,7 +22,11 @@ import {
 } from "../../lib/config";
 import { DURATIONS, SYMPTOM_AREAS, WARNING_SIGNS } from "../../lib/priority";
 import { PRIORITY_LEVELS } from "../../lib/waitlist-priority";
-import { demoClinicAccepts, demoCoverage } from "../../lib/demo-coverage";
+import {
+  demoClinicAccepts,
+  demoCoverage,
+  type PlanType,
+} from "../../lib/demo-coverage";
 import { priorityInclude, priorityRequestScope } from "./waitlist-priority";
 import { ensureStaffAccess } from "../auth/access";
 import { seedData } from "../../../prisma/seed-data";
@@ -381,11 +385,12 @@ export async function performAction(
             "This opening requires staff-reviewed referral/authorization clearance through a waitlist invitation.",
           );
         const selectedInsurer = input.insuranceProvider ?? user.plan;
-        const coverage = demoCoverage(
-          s,
-          selectedInsurer,
-          input.planType ?? "PPO",
-        );
+        // The saved profile plan type wins over any browser-sent value.
+        const planType: PlanType =
+          user.planType === "HMO" || user.planType === "PPO"
+            ? user.planType
+            : (input.planType ?? "PPO");
+        const coverage = demoCoverage(s, selectedInsurer, planType);
         const selfPay =
           selectedInsurer === "Self-pay" || coverage.estimate === null;
         // Incompatible synthetic insurance does not block care: the patient
@@ -421,7 +426,7 @@ export async function performAction(
               externalUnchanged: external?.id,
               insuranceComparison: {
                 provider: selectedInsurer,
-                planType: input.planType ?? "PPO",
+                planType,
                 selfPayAcknowledged: selfPay,
                 listedPrice: s.price,
               },
@@ -1330,6 +1335,7 @@ export async function getState(
         name: user.name,
         role: user.role,
         plan: user.plan,
+        planType: user.planType,
         clinicId: user.clinicId,
         visitType: user.visitType,
         intakeCompleted: !!intake,

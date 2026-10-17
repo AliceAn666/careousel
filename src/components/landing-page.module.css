@@ -875,3 +875,49 @@
     gap: 16px;
   }
 }
+/* Demo quick login (top right, DEMO_MODE only) */
+.quickLogin {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--soft-ink);
+}
+.quickLogin select {
+  min-height: 44px;
+  max-width: 15rem;
+  padding: 0 14px;
+  border: 1px solid var(--forest);
+  border-radius: 100px;
+  background: #fff;
+  color: var(--forest);
+  font: inherit;
+  font-size: 1rem;
+}
+@media (max-width: 720px) {
+  .quickLogin {
+    order: 4;
+    width: 100%;
+  }
+  .quickLogin select {
+    max-width: none;
+    width: 100%;
+  }
+}
+@media (min-width: 721px) and (max-width: 1180px) {
+  .header nav {
+    gap: 20px;
+    white-space: nowrap;
+  }
+  .quickLogin span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .quickLogin select {
+    max-width: 12.5rem;
+  }
+}

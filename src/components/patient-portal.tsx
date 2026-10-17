@@ -39,7 +39,6 @@ import type {
 import {
   dateLabel,
   money,
-  PLANS,
   SERVICES,
   pacificDateBoundary,
   timeLabel,
@@ -83,8 +82,14 @@ export function SearchCare({
       plan: (state.user?.plan ?? "") as SearchPreferences["plan"],
     };
   });
-  const { service, city, price, date, planType } = preferences;
+  const { service, city, price, date } = preferences;
   const plan = state.user?.plan ?? "";
+  // PPO/HMO comes from the patient profile, alongside the insurer.
+  const planType: PlanType = state.user?.planType === "HMO" ? "HMO" : "PPO";
+  // Self-pay ignores insurer and plan type; otherwise only covered openings
+  // are listed.
+  const [selfPay, setSelfPay] = useState(false);
+  const insured = !!plan && plan !== "Self-pay";
   const update = (patch: Partial<SearchPreferences>) =>
     setPreferences((current) => ({ ...current, ...patch }));
   const setService = (service: SearchPreferences["service"]) =>
@@ -94,11 +99,22 @@ export function SearchCare({
   const setDate = (date: string) => update({ date });
   useEffect(() => {
     if (state.user)
-      saveSearchPreferences(state.user.id, { ...preferences, plan: state.user.plan as SearchPreferences["plan"] });
+      saveSearchPreferences(state.user.id, {
+        ...preferences,
+        plan: state.user.plan as SearchPreferences["plan"],
+      });
   }, [preferences, state.user]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
-  const filtering = !!(query || category || service || city || price || date);
+  const filtering = !!(
+    query ||
+    category ||
+    service ||
+    city ||
+    price ||
+    date ||
+    selfPay
+  );
   const matches = (s: SlotView) => {
     return (
       (!query ||
@@ -114,7 +130,8 @@ export function SearchCare({
       (!service || s.service === service) &&
       (!city || s.clinic.city === city) &&
       (!price || s.price <= Number(price) * 100) &&
-      (!date || pacificDate(s.start) === date)
+      (!date || pacificDate(s.start) === date) &&
+      (selfPay || !insured || demoCoverage(s, plan, planType).estimate !== null)
     );
   };
   const results = state.slots
@@ -155,16 +172,20 @@ export function SearchCare({
     });
     setQuery("");
     setCategory("");
+    setSelfPay(false);
   };
   return (
     <>
-      <section className="card search-intro" aria-label="Appointment search">
-        <h2>Book an appointment</h2>
-        <p>
-          Search by service and choose an opening directly. Clinics where your
-          insurance may not apply will be labeled; you can still book.
-        </p>
-        <label className="field">
+      <p className="insurance-line" aria-label="Your insurance">
+        <ShieldCheck size={18} aria-hidden="true" />
+        Your insurance:{" "}
+        <strong>
+          {plan || "Not provided"}
+          {plan && plan !== "Self-pay" ? ` - ${planType}` : ""}
+        </strong>
+      </p>
+      <section className="filter-card" aria-label="Appointment search">
+        <label className="filter-search">
           Medical service or specialty
           <input
             type="search"
@@ -173,65 +194,6 @@ export function SearchCare({
             onChange={(e) => setQuery(e.target.value)}
           />
         </label>
-        <div className="button-row" aria-label="Service categories">
-          {[
-            ["Vaccinations", "Vaccination"],
-            ["Blood Tests", "Blood test"],
-            ["Routine Checkups", "Routine examination"],
-            ["Specialist Visits", "Specialist Visits"],
-          ].map(([label, value]) => (
-            <button
-              key={label}
-              className="secondary"
-              aria-pressed={category === value}
-              onClick={() => setCategory(category === value ? "" : value)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <p className="muted">
-          Synthetic openings only. All participating clinic, service, date and
-          time options are fictional.
-        </p>
-        <button
-          className="text-button"
-          onClick={() =>
-            onWaitlist(
-              service ||
-                (category !== "Specialist Visits" ? category : "") ||
-                undefined,
-            )
-          }
-        >
-          Find an earlier appointment · Join a waitlist
-        </button>
-      </section>
-      <section className="insurance-account-note" aria-label="Insurance from your account">
-        <span>
-          Your insurance: <strong>{plan || "Not provided"}</strong>
-          <span className="muted"> · from your account</span>
-        </span>
-        {plan && plan !== "Self-pay" && (
-          <label className="account-plan-type">
-            Demo plan type
-            <select
-              aria-label="Insurance plan type"
-              value={planType}
-              onChange={(e) => update({ planType: e.target.value as PlanType })}
-            >
-              <option value="PPO">PPO</option>
-              <option value="HMO">HMO</option>
-            </select>
-          </label>
-        )}
-        <p className="muted">
-          We will highlight clinics where your demo coverage does not apply. All
-          clinics remain bookable; you may need to pay the listed self-pay price.
-          Plan benefits are simulated, not verified.
-        </p>
-      </section>
-      <section className="filter-card">
         <label>
           Specialty
           <select
@@ -281,6 +243,14 @@ export function SearchCare({
             }}
           />
         </label>
+        <label className="inline-check self-pay-filter">
+          <input
+            type="checkbox"
+            checked={selfPay}
+            onChange={(e) => setSelfPay(e.target.checked)}
+          />
+          Self-pay (show all clinics, ignore my insurance)
+        </label>
       </section>
       <p className="demo-note">
         Demo pricing is illustrative. PPO/HMO comparisons are unverified, and
@@ -297,7 +267,8 @@ export function SearchCare({
             </span>
           </h2>
           <p>
-            Clinic options for your saved insurance · Book any available time · Pacific time.
+            Clinic options for your saved insurance · Book any available time ·
+            Pacific time.
           </p>
         </div>
         <div className="button-row">
@@ -356,7 +327,10 @@ export function SearchCare({
                   <div className="clinic-title-row">
                     <h3>{first.clinic.name}</h3>
                     {needsCoverageWarning && (
-                      <p className="insurance-match insurance-match-warning" role="status">
+                      <p
+                        className="insurance-match insurance-match-warning"
+                        role="status"
+                      >
                         {networkAccepted
                           ? `Your ${plan} ${planType} does not cover this service · You can still book (self-pay)`
                           : `Your ${plan} ${planType} is not accepted at this clinic · You can still book (self-pay)`}
@@ -444,15 +418,6 @@ export function Appointments({
 }) {
   return (
     <>
-      <section className="card">
-        <h2>Historical health information</h2>
-        <p>
-          Appointments and waitlist needs do not require a symptom
-          questionnaire. Approved clinician tags and consent-based synthetic
-          record imports are available in Health information.
-        </p>
-        <Link href="/health-information">View saved health information</Link>
-      </section>
       <div className="insight-row">
         <div className="card insight">
           <CalendarDays />
@@ -474,7 +439,7 @@ export function Appointments({
         </div>
       </div>
       <div className="section-title">
-        <h2>Your care calendar</h2>
+        <h2>Appointment</h2>
         <span className="muted">Pacific time</span>
       </div>
       {!state.bookings.length ? (
@@ -534,7 +499,7 @@ export function Appointments({
         </div>
       )}
       <div className="section-title">
-        <h2>Your requests</h2>
+        <h2>Waitlist</h2>
         <button className="primary" onClick={() => onWaitlist()}>
           <Plus size={17} />
           Join a waitlist
@@ -675,7 +640,10 @@ export function WaitlistForm({
             waitlistId: existing?.id,
             bookingId: String(f.get("bookingId") || "") || undefined,
             service,
-            plan: f.get("plan"),
+            // Unchecked: the patient's own insurer. Self-pay: any clinic.
+            plan: f.has("selfPay")
+              ? "Self-pay"
+              : (state.user?.plan ?? "Self-pay"),
             city: f.get("city"),
             clinicIds,
             maxPrice: Math.round(Number(f.get("maxPrice")) * 100),
@@ -689,29 +657,16 @@ export function WaitlistForm({
           if (success) onSaved();
         }}
       >
-        <label className="field">
-          Existing appointment to replace (optional)
-          <select
+        {/* No replace-appointment picker: "Join a waitlist" creates an
+            unlinked request. A booking passed in from an appointment card or
+            an existing linked request keeps its link. */}
+        {(existing?.bookingId ?? booking?.id) && (
+          <input
+            type="hidden"
             name="bookingId"
-            key={service}
-            defaultValue={existing?.bookingId ?? booking?.id ?? ""}
-          >
-            <option value="">No linked appointment</option>
-            {state.bookings
-              .filter(
-                (b) => b.status === "CONFIRMED" && b.slot.service === service,
-              )
-              .map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.slot.clinic.name} · {dateLabel(b.slot.start)}
-                </option>
-              ))}
-          </select>
-          <small>
-            A linked appointment stays confirmed until an earlier replacement
-            succeeds. Unlinked requests do not replace it.
-          </small>
-        </label>
+            value={existing?.bookingId ?? booking?.id}
+          />
+        )}
 
         <div className="form-grid">
           <label>
@@ -729,16 +684,14 @@ export function WaitlistForm({
               ))}
             </select>
           </label>
-          <label>
-            Demo insurance
-            <select
-              name="plan"
-              defaultValue={existing?.plan ?? state.user?.plan}
-            >
-              {PLANS.map((p) => (
-                <option key={p}>{p}</option>
-              ))}
-            </select>
+          <label className="inline-check self-pay-filter">
+            <input
+              type="checkbox"
+              name="selfPay"
+              defaultChecked={existing?.plan === "Self-pay"}
+            />
+            Self-pay (any clinic, not limited to my {state.user?.plan}{" "}
+            insurance)
           </label>
           <label>
             Location

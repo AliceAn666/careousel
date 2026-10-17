@@ -2714,8 +2714,13 @@ fieldset {
   min-height: 38px;
 }
 @media (max-width: 680px) {
-  .insurance-account-note { align-items: flex-start; }
-  .account-plan-type { width: 100%; justify-content: space-between; }
+  .insurance-account-note {
+    align-items: flex-start;
+  }
+  .account-plan-type {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 /* Compact, clinic-scoped per-opening P1–P4 summary. */
@@ -2774,7 +2779,9 @@ fieldset {
   color: var(--ink);
   text-align: left;
   min-width: 0;
-  transition: border-color 120ms ease, background-color 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
 }
 .insight-action:hover {
   border-color: #87b8a7;
@@ -2886,4 +2893,130 @@ fieldset {
   .overview-review-slot {
     width: 100%;
   }
+}
+/* Book an appointment: one-line insurance, search inside the filters */
+.insurance-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 16px;
+  font-size: 1rem;
+  color: var(--ink);
+}
+.insurance-line svg {
+  color: var(--teal);
+}
+.filter-card .filter-search,
+.filter-card .self-pay-filter {
+  grid-column: 1 / -1;
+}
+.filter-card .self-pay-filter {
+  font-size: 0.9375rem;
+}
+/* Floating success notice: top center, fades out (duration set inline). */
+.alert.success.toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 1000;
+  width: max-content;
+  max-width: min(640px, calc(100vw - 32px));
+  margin: 0;
+  transform: translateX(-50%);
+  box-shadow: 0 12px 32px rgb(25 58 57 / 18%);
+  animation-name: toast-life;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes toast-life {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  6%,
+  86% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .alert.success.toast {
+    animation-name: toast-fade;
+  }
+  @keyframes toast-fade {
+    0%,
+    86% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}
+/* P1 (red) → P4 (green); awaiting staff review is yellow. */
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.priority-p1 {
+  background: #fde4e1;
+  color: #a12a1c;
+  border-color: #f4b9b1;
+}
+.priority-p2 {
+  background: #fdebdc;
+  color: #a4501c;
+  border-color: #f2c5a2;
+}
+.priority-p3 {
+  background: #eef5dc;
+  color: #5a6e1c;
+  border-color: #d3e3a6;
+}
+.priority-p4 {
+  background: #e1f3e6;
+  color: #22693b;
+  border-color: #b3dcbf;
+}
+.priority-pending {
+  background: #fdf3cf;
+  color: #7d5d07;
+  border-color: #f0d98a;
+}
+.candidate-heading .priority-badge {
+  margin-left: 4px;
+}
+/* Referral / authorization checkboxes take a single compact line. */
+label:has(> input[name="requiresReferral"]),
+label:has(> input[name="requiresAuthorization"]) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  margin-block: 0.1rem;
+  min-height: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+label:has(> input[name="requiresReferral"]) input,
+label:has(> input[name="requiresAuthorization"]) input {
+  width: auto;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
 }

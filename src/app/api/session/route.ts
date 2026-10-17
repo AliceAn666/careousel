@@ -10,7 +10,7 @@ import {
   logoutSession,
 } from "@/server/auth/session";
 import { apiError } from "@/server/http";
-import { DEMO_PERSONAS } from "@/lib/config";
+import { isDemoPersonaId } from "@/lib/config";
 import { DomainError } from "@/server/services/scheduling";
 export async function POST(request: Request) {
   try {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       .parse(await request.json());
     if (!demo && !(await explicitDemoMode()))
       throw new DomainError("Enter explicitly labeled Demo Mode first.", 403);
-    if (!(DEMO_PERSONAS as readonly string[]).includes(id))
+    if (!isDemoPersonaId(id))
       throw new DomainError("Unknown demo persona.", 400);
     const user = await db.user.findUnique({ where: { id } });
     if (!user) throw new DomainError("Unknown demo persona.", 400);

@@ -25,8 +25,16 @@ it("patient registration never accepts privileged roles, clinics, or non-synthet
     email: "patient@example.test",
     password: "SyntheticPassword!123",
     plan: "Blue Horizon",
+    planType: "PPO",
   };
   expect(patientRegistration.safeParse(input).success).toBe(true);
+  // Insured patients choose PPO or HMO; Self-pay needs no plan type.
+  const { planType: _omit, ...noPlanType } = input;
+  void _omit;
+  expect(patientRegistration.safeParse(noPlanType).success).toBe(false);
+  expect(
+    patientRegistration.safeParse({ ...noPlanType, plan: "Self-pay" }).success,
+  ).toBe(true);
   for (const extra of [
     { role: "STAFF" },
     { clinicId: "cedar" },

@@ -72,6 +72,7 @@ export function AccountAccess({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [plan, setPlan] = useState<string>(PLANS[0]);
   const registering = tab === "register";
 
   function changeTab(next: "login" | "register") {
@@ -201,6 +202,7 @@ export function AccountAccess({
                       body,
                     );
                     form.reset();
+                    setPlan(PLANS[0]);
                     setFieldErrors({});
                     setShowPassword(false);
                     setTab("login");
@@ -326,14 +328,34 @@ export function AccountAccess({
                     </p>
                   )}
                   {entrance === "PATIENT" ? (
-                    <label>
-                      Fictional insurance plan
-                      <select name="plan" aria-label="Fictional insurance plan">
-                        {PLANS.map((plan) => (
-                          <option key={plan}>{plan}</option>
-                        ))}
-                      </select>
-                    </label>
+                    <>
+                      <label>
+                        Fictional insurance plan
+                        <select
+                          name="plan"
+                          aria-label="Fictional insurance plan"
+                          value={plan}
+                          onChange={(e) => setPlan(e.target.value)}
+                        >
+                          {PLANS.map((option) => (
+                            <option key={option}>{option}</option>
+                          ))}
+                        </select>
+                      </label>
+                      {plan !== "Self-pay" && (
+                        <label>
+                          Plan type
+                          <select
+                            name="planType"
+                            aria-label="Plan type"
+                            defaultValue="PPO"
+                          >
+                            <option value="PPO">PPO</option>
+                            <option value="HMO">HMO</option>
+                          </select>
+                        </label>
+                      )}
+                    </>
                   ) : (
                     <>
                       <label>

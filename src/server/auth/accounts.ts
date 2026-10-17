@@ -30,8 +30,17 @@ const credentials = {
   name: z.string().trim().min(2).max(60),
 };
 export const patientRegistration = z
-  .object({ ...credentials, plan: z.enum(PLANS) })
-  .strict();
+  .object({
+    ...credentials,
+    plan: z.enum(PLANS),
+    // Ignored for Self-pay; required for every insurer.
+    planType: z.enum(["PPO", "HMO"]).optional(),
+  })
+  .strict()
+  .refine((input) => input.plan === "Self-pay" || !!input.planType, {
+    message: "Choose PPO or HMO for your insurance.",
+    path: ["planType"],
+  });
 export const staffRegistration = z
   .object({
     ...credentials,
@@ -82,6 +91,10 @@ async function createAccount(
       clinicId: clinicId ?? null,
       visitType: clinicId ? null : "FIRST",
       plan: "plan" in input ? input.plan : "Blue Horizon",
+      planType:
+        "plan" in input && input.plan !== "Self-pay"
+          ? (input.planType ?? null)
+          : null,
     },
   });
   return tx.account.create({

@@ -5,7 +5,6 @@ import {
   ArrowRight,
   Bell,
   CalendarDays,
-  Clock3,
   CheckCircle2,
   Gauge,
   Heart,
@@ -13,7 +12,6 @@ import {
   LayoutDashboard,
   Search,
   ShieldCheck,
-  Sparkles,
   Users,
   X,
 } from "lucide-react";
@@ -50,16 +48,15 @@ import { CoverageSummary } from "./coverage-summary";
 import type { PlanType } from "@/lib/demo-coverage";
 import onboarding from "./onboarding.module.css";
 import { LandingPage } from "./landing-page";
-// Demo guide and Activity stay reachable by URL but are hidden from navigation.
+// Demo guide, Activity, Record review and Medical tags stay reachable by URL
+// but are hidden from navigation.
+const NOTICE_MS = 5000;
 const navPatient = [
   ["/search", "Book an Appointment", Search],
-  ["/waitlists", "Find an Earlier Appointment", Clock3],
-  ["/appointments", "Manage My Appointments and Waitlists", CalendarDays],
+  ["/appointments", "Appointment and Waitlist", CalendarDays],
   ["/notifications", "Notifications", Bell],
 ] as const;
 const navClinic = [
-  ["/clinic/medical-records", "Record review", Gauge],
-  ["/clinic/medical-tags", "Medical tags", Gauge],
   ["/clinic/schedule", "Schedule", LayoutDashboard],
   ["/clinic/waitlists", "Waitlist matches", Users],
   ["/clinic/priorities", "Priorities", Gauge],
@@ -126,6 +123,12 @@ export function CareouselApp() {
     };
   }, [load]);
   // Persona changes affect only this browser session, never shared demo rows.
+  // Success notices float at the top center and fade out after 5 seconds.
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(""), NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [notice]);
   async function selectPersona(id: string) {
     setTour(false);
     setDetail(null);
@@ -142,6 +145,19 @@ export function CareouselApp() {
     } finally {
       setBusy(false);
     }
+  }
+  // Home-page quick login: an account session is signed out first, then the
+  // chosen seeded persona is entered in explicit Demo Mode.
+  async function quickLogin(id: string) {
+    if (state?.auth?.mode === "account") {
+      try {
+        await request("/api/session", undefined, "DELETE");
+      } catch (e) {
+        setError((e as Error).message);
+        return;
+      }
+    }
+    await selectPersona(id);
   }
   const act: Action = async (data) => {
     setBusy(true);
@@ -228,6 +244,7 @@ export function CareouselApp() {
           void load().catch((e) => setError(e.message));
         }}
         onSelectPersona={(id) => void selectPersona(id)}
+        onQuickLogin={(id) => void quickLogin(id)}
         onEnter={(role) => {
           if (state?.user?.role === role) {
             router.push(role === "STAFF" ? "/clinic/schedule" : "/search");
@@ -269,7 +286,7 @@ export function CareouselApp() {
     path === "/waitlists" || path === "/earlier"
       ? "Find an Earlier Appointment"
       : path === "/appointments" || path === "/needs"
-        ? "Appointments and waitlists"
+        ? "Appointment and Waitlist"
         : path === "/notifications"
           ? "Your inbox"
           : path === "/clinic/schedule"
@@ -289,7 +306,12 @@ export function CareouselApp() {
                         : path === "/demo"
                           ? "A better-care walkthrough"
                           : "Find your next appointment";
-  const personaOptions = state.personas.map((p) => (
+  // A quick-login persona outside the four switcher personas still shows.
+  const switcherPersonas =
+    user && !state.personas.some((p) => p.id === user.id)
+      ? [...state.personas, user]
+      : state.personas;
+  const personaOptions = switcherPersonas.map((p) => (
     <option key={p.id} value={p.id}>
       {personaLabel(p)}
     </option>
@@ -329,11 +351,6 @@ export function CareouselApp() {
               <Home size={16} />
               Back to home page
             </button>
-            <div className="help-card">
-              <Sparkles size={22} />
-              <strong>Good things come sooner.</strong>
-              <p>Openings become opportunities with Careousel.</p>
-            </div>
             <div className="persona">
               <span className="avatar mint">
                 {staff ? "CH" : initials(user.name)}
@@ -456,7 +473,12 @@ export function CareouselApp() {
               </div>
             )}
             {notice && (
-              <div role="status" className="alert success">
+              <div
+                key={notice}
+                role="status"
+                className="alert success toast"
+                style={{ animationDuration: `${NOTICE_MS}ms` }}
+              >
                 <CheckCircle2 size={18} />
                 {notice}
                 <button
@@ -582,7 +604,8 @@ export function CareouselApp() {
               </div>
             </dl>
             <p className="muted">
-              Insurance on your account: <strong>{appointmentInsurer || "Not provided"}</strong>.
+              Insurance on your account:{" "}
+              <strong>{appointmentInsurer || "Not provided"}</strong>.
               {appointmentInsurer && appointmentInsurer !== "Self-pay"
                 ? ` Demo ${coverage.planType} estimate.`
                 : " Self-pay pricing is displayed below."}

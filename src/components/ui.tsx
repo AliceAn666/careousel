@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useRef } from "react";
 import { CalendarDays, X } from "lucide-react";
+import { priorityLabel } from "@/lib/waitlist-priority";
 export const FeedbackContext = createContext("");
 export function Status({ value }: { value: string }) {
   return (
@@ -82,5 +83,17 @@ export function SymptomLabels({
         </li>
       ))}
     </ul>
+  );
+}
+
+// P1 (red) to P4 (green); awaiting review is yellow. The label is always
+// spelled out so priority never relies on color alone.
+export function PriorityBadge({ level }: { level?: string | null }) {
+  const tone =
+    level && /^P[1-4]$/.test(level) ? level.toLowerCase() : "pending";
+  return (
+    <span className={`priority-badge priority-${tone}`}>
+      {priorityLabel(level)}
+    </span>
   );
 }

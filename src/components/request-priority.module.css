@@ -76,3 +76,89 @@
     padding-left: 22px;
   }
 }
+
+/* Compact patient cards: filters on top, one row per requested specialty. */
+.filters {
+  grid-template-columns: minmax(180px, 260px) minmax(220px, 1fr);
+  margin-bottom: 18px;
+}
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #cbd9d5;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fff;
+}
+.searchBox input {
+  border: 0;
+  padding-inline: 0;
+  outline-offset: 4px;
+}
+.patients {
+  display: grid;
+  gap: 12px;
+}
+.patient {
+  display: grid;
+  gap: 8px;
+  padding: 14px 18px;
+}
+.patientHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.patientHeader h3 {
+  margin: 0;
+}
+.patientHeader button {
+  min-height: 36px;
+  padding: 6px 12px;
+}
+.row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.1fr) minmax(170px, 1fr) minmax(
+      200px,
+      2fr
+    ) auto;
+  gap: 10px;
+  align-items: end;
+  padding-top: 8px;
+  border-top: 1px solid #e6eeeb;
+}
+.row label {
+  gap: 4px;
+}
+.row input,
+.row select {
+  min-height: 38px;
+}
+.row button {
+  min-height: 38px;
+}
+.service {
+  display: grid;
+  gap: 4px;
+  align-self: center;
+}
+.more {
+  grid-column: 1 / -1;
+  font-size: 0.875rem;
+}
+@media (max-width: 900px) {
+  .row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .filters,
+  .row {
+    grid-template-columns: 1fr;
+  }
+  .patientHeader {
+    flex-wrap: wrap;
+  }
+}

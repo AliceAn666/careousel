@@ -16,6 +16,7 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
+import { QUICK_LOGIN_PERSONAS } from "@/lib/config";
 import styles from "./landing-page.module.css";
 
 type Persona = { id: string; name: string; role: string };
@@ -32,6 +33,7 @@ type Props = {
   error: string;
   onEnter: (role: "PATIENT" | "STAFF") => void;
   onSelectPersona: (id: string) => void;
+  onQuickLogin?: (id: string) => void;
   onRetry: () => void;
 };
 
@@ -48,6 +50,7 @@ export function LandingPage({
   error,
   onEnter,
   onSelectPersona,
+  onQuickLogin,
   onRetry,
 }: Props) {
   const [audience, setAudience] = useState<"PATIENT" | "STAFF">("PATIENT");
@@ -83,6 +86,39 @@ export function LandingPage({
           {demoMode ? "Find Care" : "Patient Login"}{" "}
           <ArrowRight size={16} aria-hidden="true" />
         </button>
+        {demoAvailable && onQuickLogin && (
+          <label className={styles.quickLogin}>
+            <span>Demo quick login</span>
+            <select
+              aria-label="Demo quick login"
+              value=""
+              disabled={loading || busy}
+              onChange={(e) => {
+                if (e.target.value) onQuickLogin(e.target.value);
+              }}
+            >
+              <option value="">Quick demo login…</option>
+              <optgroup label="Patients">
+                {QUICK_LOGIN_PERSONAS.filter((p) => p.role === "PATIENT").map(
+                  (p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ),
+                )}
+              </optgroup>
+              <optgroup label="Clinics">
+                {QUICK_LOGIN_PERSONAS.filter((p) => p.role === "STAFF").map(
+                  (p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ),
+                )}
+              </optgroup>
+            </select>
+          </label>
+        )}
       </header>
 
       <main id="main-content" tabIndex={-1}>

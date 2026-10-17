@@ -1,7 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { tokenHash } from "./passwords";
-import { DEMO_PERSONAS } from "../../lib/config";
+import { isDemoPersonaId } from "../../lib/config";
 import { db } from "../db";
 import { DomainError } from "../services/scheduling";
 const developmentSecret = randomBytes(32).toString("hex");
@@ -68,7 +68,7 @@ export async function currentIdentity() {
   }
   if (process.env.DEMO_MODE !== "true") return null;
   const id = verifySession(value);
-  if (!id || !(DEMO_PERSONAS as readonly string[]).includes(id)) return null;
+  if (!id || !isDemoPersonaId(id)) return null;
   const user = await db.user.findUnique({
     where: { id },
     include: { account: { select: { id: true } } },
