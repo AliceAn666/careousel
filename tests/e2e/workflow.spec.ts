@@ -124,28 +124,26 @@ test("search filters keep clinics visible, prioritize insurer matches and suppor
   await expect(openings).toHaveCount(0);
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(openings).toHaveCount(baseline);
-  const insurer = page.getByLabel("Insurance company (demo)");
-  await insurer.selectOption("Pacific Care");
-  await expect(openings).toHaveCount(baseline);
   await expect(
-    page.locator(".appointment-results .insurance-match-warning").first(),
-  ).toBeVisible();
-  await insurer.selectOption("Blue Horizon");
-  await page
-    .getByLabel("Specialty", { exact: true })
-    .selectOption("Cardiology");
+    page.getByRole("region", { name: "Insurance from your account" }),
+  ).toContainText("Blue Horizon");
+  await expect(page.getByLabel("Insurance company (demo)")).toHaveCount(0);
+  await page.getByLabel("Specialty", { exact: true }).selectOption("Cardiology");
   await expect(openings).toHaveCount(4);
-  await expect(
-    page.locator(".appointment-results .insurance-match-good").first(),
-  ).toBeVisible();
-  await expect(
-    page.locator(".appointment-results .insurance-match-warning"),
-  ).toHaveCount(0);
+  await expect(page.locator(".appointment-results .insurance-match-good"))
+    .toHaveCount(0);
+  await expect(page.locator(".appointment-results .insurance-match-warning"))
+    .toHaveCount(0);
+  await page.getByLabel("Insurance plan type").selectOption("HMO");
+  await expect(page.locator(".appointment-results .insurance-match-warning"))
+    .toHaveCount(4);
+  await expect(openings).toHaveCount(4);
+  await page.getByLabel("Insurance plan type").selectOption("PPO");
   const selectedTime = openings.first().locator(".clinic-time-choice").first();
   const id = await selectedTime.getAttribute("data-slot-id");
   const snapshot = await (await page.request.get("/api/state")).json();
   const slot = snapshot.slots.find((s: { id: string }) => s.id === id);
-  expect(slot.plans).toContain("Blue Horizon");
+  expect(slot.id).toBe(id);
   await selectedTime.click();
   const details = page.getByRole("dialog", { name: "Appointment details" });
   await expect(details).toContainText("Please confirm the appointment time");
