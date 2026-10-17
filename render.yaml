@@ -9,7 +9,8 @@ services:
     region: oregon
     branch: main
     autoDeployTrigger: commit
-    buildCommand: npm ci --ignore-scripts && npm run build
+    # Include dev tools (tsx, TypeScript and Prisma internals) despite NODE_ENV=production.
+    buildCommand: npm ci --include=dev --ignore-scripts && npm run build
     startCommand: npm run start -- --port $PORT
     healthCheckPath: /
     envVars:
