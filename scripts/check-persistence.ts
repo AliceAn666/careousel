@@ -76,6 +76,17 @@ try {
   const patientCookie = (await post("/api/session", { id: "avery" })).headers
     .get("set-cookie")!
     .split(";")[0];
+  await post(
+    "/api/actions",
+    {
+      type: "intake",
+      symptoms: [
+        { area: "skin", pain: 4, duration: "month", worsening: false },
+      ],
+      warningSigns: [],
+    },
+    patientCookie,
+  );
   await post("/api/actions", { type: "book", slotId: "slot-0" }, patientCookie);
   await stop();
   await start();

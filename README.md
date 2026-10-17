@@ -17,7 +17,7 @@ SEED_CONFIRM=RESET_SYNTHETIC_DATA npm run db:seed
 npm run dev
 ```
 
-Open http://localhost:3000. Choose Avery for the patient portal or Cedar Health staff for the clinic portal. Switch among all 16 synthetic personas from the sidebar or mobile header.
+Open http://localhost:3000. Choose Avery for the patient portal or Cedar Health staff for the clinic portal. The switcher exposes four demo personas (Avery, Jordan, Cedar staff and Harbor staff). Other synthetic records remain in the database.
 
 `--ignore-scripts` avoids Prisma's unnecessary Rust engine download in restricted environments. `db:generate` invokes the **pinned** Prisma 6.19.2 JavaScript generator through `@prisma/internals`, with no native engine download. Runtime uses Prisma's PostgreSQL driver adapter. SQL migrations run with `pg`, a transaction, a migration lock and checksum tracking. Do not run `prisma migrate dev`, `db push`, or silently edit applied SQL; add a numbered migration and update the schema together. Review generator integration when upgrading Prisma.
 
@@ -27,10 +27,10 @@ Production-mode local rehearsal: `npm run build && npm start`. A persistent `SES
 
 ## Five-minute demonstration
 
-1. Start with fresh fixtures (seed command above, or staff → Demo guide → Reset demo data → type `RESET`). This affects only your configured demo database.
-2. Enter as **Avery Morgan**. My appointments shows a Dermatology appointment at Harbor Medical ~28 days away.
-3. Choose **Find an earlier time**, retain the default preferences, and **Join waitlist**. The original booking stays confirmed.
-4. Switch to **Cedar Health staff**. In Schedule, cancel **Jordan Lee**'s booked Dermatology appointment ~7 days away.
+1. Use an already initialized synthetic database. Only when deliberately starting a new rehearsal, open `/demo` as staff → Reset demo data → type `RESET`. This clears shared demo actions: never do it while another browser is presenting. Startup, homepage entry, login and persona switching preserve data.
+2. Enter as **Avery Morgan**. On first entry, complete the synthetic intake (e.g. Skin problem), submit, then Continue to find care. My appointments becomes enabled and shows the Harbor Medical Dermatology booking ~28 days away. Do not enter real health information.
+3. Choose **Join a waitlist** from Find care or the combined My appointments page. Select the Harbor booking under **Existing appointment to replace (optional)**, retain suitable preferences and Join waitlist. The original booking stays confirmed. Without this explicit link, a request does not replace an existing booking.
+4. In a separate browser/profile, enter as **Cedar Health staff** (or use the persona switcher in a single-browser rehearsal). In Schedule, cancel **Jordan Lee**'s booked Dermatology appointment ~7 days away.
 5. Open **Waitlist matches**. The released Dermatology slot is selected first. Review Avery's eligibility; use **Explain recommendations** to see the local rules fallback. Approve Avery and enter a review reason.
 6. Switch to Avery → Notifications. Accept the earlier appointment and confirm the replacement.
 7. My appointments shows Cedar confirmed and Harbor rescheduled. My waitlist is fulfilled. Refresh, switch staff personas, or restart the app to verify persistence. Harbor's old slot is available again.
@@ -93,3 +93,7 @@ Suggested next PR ownership: Member 1 schema/migration/CI integration; Member 2 
 Synthetic data only; insurance matching and prices are demonstrations, with no real verification, billing or payment. In-app notifications are real; SMS/email are not connected. No production identity, autonomous clinical triage, EHR integration, geocoding, travel buffer, or public deployment. New staff-created visits are 30 minutes with a seeded provider. All seeded clinics use America/Los_Angeles. Local explanations and a mocked provider adapter are tested; external AI availability is not required or claimed.
 
 UI uses original CSS and Lucide icons rather than adding Tailwind/shadcn during this milestone. No remote fonts or images are required. Core dependencies use permissive licenses (Next/React/Lucide/Zod/pg: MIT or ISC; Prisma: Apache-2.0); preserve installed package notices when redistributing.
+
+## Final integration
+
+Current owner is the user working with Codex. See [docs/final-integration.md](docs/final-integration.md) for actual CI diagnosis, inspected branch heads, safe migration convergence and subsequent integration gates. No optional branch has been merged by Phase 1.

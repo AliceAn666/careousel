@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowRight,
@@ -82,23 +82,12 @@ export function CareouselApp() {
       clearInterval(timer);
     };
   }, [load]);
-  // Every visit (first load or browser refresh) starts on the home page.
-  // The ref keeps this to the initial load, not later in-app navigation.
-  const entryChecked = useRef(false);
-  useEffect(() => {
-    if (entryChecked.current) return;
-    entryChecked.current = true;
-    if (window.location.pathname !== "/") router.replace("/");
-  }, [router]);
-  // Choosing a persona on the home page restores the demo baseline first, so
-  // questionnaires, bookings and priorities can be tested again from scratch.
-  // Switching personas from the sidebar keeps data for cross-role flows.
-  async function selectPersona(id: string, fresh = false) {
+  // Persona changes affect only this browser session, never shared demo rows.
+  async function selectPersona(id: string) {
     setNotice("");
     setBusy(true);
     setError("");
     try {
-      if (fresh) await request("/api/demo/restart");
       await request("/api/session", { id });
       await load();
       router.push(id.startsWith("staff-") ? "/clinic/schedule" : "/search");
@@ -150,12 +139,7 @@ export function CareouselApp() {
       </main>
     );
   function goHome() {
-    if (
-      confirm(
-        "Return to the home page? Choosing a persona there resets all demo data, including questionnaires.",
-      )
-    )
-      router.push("/");
+    router.push("/");
   }
   const user = path === "/" ? null : state.user,
     staff = user?.role === "STAFF",
@@ -199,14 +183,14 @@ export function CareouselApp() {
             <span className="eyebrow">EXPLORE CAREOUSEL</span>
             <h2>Choose your demo workspace</h2>
             <p>
-              All people and clinics here are fictional. Choosing a persona here
-              starts a fresh demo: questionnaires, bookings and priorities are
-              reset.
+              All people and clinics here are fictional. Choosing a persona only
+              changes this browser session. Shared appointments and waitlists
+              are preserved.
             </p>
             <button
               disabled={busy}
               className="entry-option"
-              onClick={() => void selectPersona("avery", true)}
+              onClick={() => void selectPersona("avery")}
             >
               <span className="avatar mint">AM</span>
               <span>
@@ -218,7 +202,7 @@ export function CareouselApp() {
             <button
               disabled={busy}
               className="entry-option"
-              onClick={() => void selectPersona("staff-cedar", true)}
+              onClick={() => void selectPersona("staff-cedar")}
             >
               <span className="avatar lavender">
                 <Heart size={20} />
@@ -234,7 +218,7 @@ export function CareouselApp() {
               <select
                 defaultValue=""
                 onChange={(e) =>
-                  e.target.value && void selectPersona(e.target.value, true)
+                  e.target.value && void selectPersona(e.target.value)
                 }
                 disabled={busy}
               >

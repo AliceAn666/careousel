@@ -736,11 +736,17 @@ export async function performAction(
   }
   return result;
 }
-// Entering the demo from the home page restores the synthetic baseline, so
-// questionnaires, bookings and priorities can be tested again from scratch.
-export async function restartDemo(now = new Date()) {
-  if (process.env.DEMO_MODE !== "true") fail("Demo reset is disabled.", 403);
-  await locked((tx) => seedData(tx, now));
+// Compatibility endpoint uses exactly the same authorization and confirmation
+// rules as the explicit Reset Demo action. Never call this during navigation.
+export async function restartDemo(
+  userId: string,
+  raw: unknown,
+  options: { now?: Date } = {},
+) {
+  const confirmation = z
+    .object({ confirmation: z.literal("RESET") })
+    .parse(raw);
+  return performAction(userId, { type: "reset", ...confirmation }, options);
 }
 export async function getState(user: User | null) {
   return locked(async (tx) => {

@@ -176,7 +176,7 @@ describe("priority scoring", () => {
       label: "Headache",
       score: 4,
     });
-    await restartDemo(now);
+    await restartDemo("staff-cedar", { confirmation: "RESET" }, { now });
     expect(await db.intake.count()).toBe(0);
     expect(await db.symptomTag.count({ where: { patientId: "avery" } })).toBe(
       0,

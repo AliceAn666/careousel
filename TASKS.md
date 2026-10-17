@@ -1,3 +1,7 @@
+# Current ownership and integration override
+
+The user and Codex now own all remaining development. All five-person allocations below are historical and superseded; do not assign work or request teammate contact. Current Phase 1 scope, branch inventory, migration conflict handling and next-step gates are in [docs/final-integration.md](docs/final-integration.md). Optional branch integration is planned, not performed in Phase 1.
+
 # Careousel development roadmap
 
 Status: Application implementation explicitly approved on 2026-10-16. Work is on `feat/careousel-prototype`, based on latest main after the intentional frontend deletion. Public deployment still requires separate authorization. See the implementation ledger below and VALIDATION.md; unchecked original tasks remain release/handoff gates rather than a claim that no application exists.
