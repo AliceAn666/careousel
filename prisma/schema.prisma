@@ -220,6 +220,7 @@ model AccountSession {
  @@index([accountId])
 }
 model ClinicMembership {
+  canAuthorMedicalTags Boolean @default(false)
  id String @id @default(cuid())
  accountId String @unique
  account Account @relation(fields:[accountId],references:[id])
@@ -278,4 +279,56 @@ model NotificationGroup {
   note String @default("")
   offers Offer[]
   @@unique([sequenceId, level])
+}
+
+model MedicalNeed {
+  id String @id @default(cuid())
+  patientId String
+  clinicId String
+  sourceBookingId String
+  title String
+  service String
+  createdById String
+  createdAt DateTime @default(now())
+  tags MedicalTag[]
+  @@unique([id, patientId, clinicId])
+}
+model MedicalTag {
+  id String @id @default(cuid())
+  needId String
+  patientId String
+  clinicId String
+  need MedicalNeed @relation(fields: [needId, patientId, clinicId], references: [id, patientId, clinicId])
+  sourceBookingId String
+  authorId String
+  updatedById String
+  reviewedById String?
+  reviewedAt DateTime?
+  sourceType String @default("CLINICIAN_VISIT")
+  kind String
+  label String
+  clinicalNotes String
+  followUpRecommendation String
+  recommendedFrom DateTime?
+  recommendedBy DateTime?
+  requiresReferral Boolean @default(false)
+  requiresAuthorization Boolean @default(false)
+  state String @default("DRAFT")
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  revisions MedicalTagRevision[]
+  @@index([clinicId, patientId, state])
+}
+model MedicalTagRevision {
+  id String @id @default(cuid())
+  tagId String
+  tag MedicalTag @relation(fields: [tagId], references: [id])
+  version Int
+  actorId String
+  action String
+  reason String
+  snapshot Json
+  createdAt DateTime @default(now())
+  @@unique([tagId, version])
 }

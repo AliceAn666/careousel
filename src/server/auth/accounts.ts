@@ -259,7 +259,12 @@ export async function redeemInvitation(raw: unknown) {
       account = existing;
       await tx.clinicMembership.update({
         where: { id: existing.membership.id },
-        data: { status: "PENDING", verifiedAt: null, verifiedById: null },
+        data: {
+          status: "PENDING",
+          canAuthorMedicalTags: false,
+          verifiedAt: null,
+          verifiedById: null,
+        },
       });
     } else {
       account = await createAccount(tx, input, hash, invitation.clinicId);
@@ -285,6 +290,13 @@ export async function redeemInvitation(raw: unknown) {
 export async function manageAccess(userId: string, raw: unknown) {
   const input = z
     .discriminatedUnion("type", [
+      z.object({
+        type: z.literal("clinicalPermission"),
+        membershipId: z.string(),
+        enabled: z.boolean(),
+        expectedEnabled: z.boolean(),
+        reason: z.string().trim().min(3).max(500),
+      }),
       z.object({ type: z.literal("approve"), membershipId: z.string() }),
       z.object({ type: z.literal("revoke"), membershipId: z.string() }),
       z.object({
@@ -314,6 +326,27 @@ export async function manageAccess(userId: string, raw: unknown) {
         where: { id: input.membershipId, clinicId: admin.membership.clinicId },
       });
       if (!member) throw new DomainError("Membership not found.", 404);
+      if (input.type === "clinicalPermission") {
+        if (member.status !== "ACTIVE")
+          throw new DomainError("Active membership required.", 403);
+        if (member.canAuthorMedicalTags !== input.expectedEnabled)
+          throw new DomainError("Permission changed; refresh and retry.");
+        await tx.clinicMembership.update({
+          where: { id: member.id },
+          data: { canAuthorMedicalTags: input.enabled },
+        });
+        await tx.audit.create({
+          data: {
+            clinicId: member.clinicId,
+            actor: userId,
+            action: `Clinical permission ${input.enabled ? "granted" : "revoked"} for ${member.id}: ${input.reason}`,
+          },
+        });
+        return {
+          message:
+            "Clinical permission saved. Credential verification remains simulated.",
+        };
+      }
       if (input.type === "approve" && member.status === "REVOKED")
         throw new DomainError(
           "Revoked access needs a new authorized enrollment.",
@@ -334,7 +367,12 @@ export async function manageAccess(userId: string, raw: unknown) {
         return { message: "Access decision already saved." };
       await tx.clinicMembership.update({
         where: { id: member.id },
-        data: { status, verifiedById: userId, verifiedAt: now },
+        data: {
+          status,
+          ...(status === "REVOKED" ? { canAuthorMedicalTags: false } : {}),
+          verifiedById: userId,
+          verifiedAt: now,
+        },
       });
       if (status === "REVOKED")
         await tx.accountSession.updateMany({
@@ -362,6 +400,7 @@ export async function accessDashboard(userId: string) {
         role: true,
         status: true,
         verificationMode: true,
+        canAuthorMedicalTags: true,
         account: {
           select: {
             username: true,

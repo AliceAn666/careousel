@@ -15,7 +15,7 @@ const patientSteps = [
   {
     route: "/appointments",
     title: "Keep your original appointment",
-    body: "Appointments and waitlists live together here. Choose Join a waitlist, then explicitly select Existing appointment to replace. Your original stays confirmed until you accept a valid earlier offer. An unlinked request does not replace it.",
+    body: "Appointments and waitlists live together here. Choose Join a waitlist, then explicitly select Existing appointment to replace. Your original stays confirmed until you accept a valid earlier offer. An unlinked request does not replace it. Health information shows your approved clinician-authored follow-up tags; viewing tags is optional and never gates booking.",
   },
   {
     route: "/notifications",
@@ -37,7 +37,7 @@ const clinicSteps = [
   {
     route: "/clinic/priorities",
     title: "Review request priorities",
-    body: "Review P1–P4 levels for individual waitlist requests at your clinic. Authorized staff approve each assignment; patients and AI cannot set priority. Historical questionnaire scores are not clinical urgency. Candidate order remains FIFO.",
+    body: "Review P1–P4 levels for individual waitlist requests at your clinic. Authorized staff approve each assignment; patients and AI cannot set priority. Historical questionnaire scores are not clinical urgency. Candidate order remains FIFO. Approved medical evidence supports your review without setting priority. Explicitly authorized clinicians can create, edit and review visit tags under Medical tags; clinical credential verification is simulated.",
   },
 ];
 export function GuidedTour({

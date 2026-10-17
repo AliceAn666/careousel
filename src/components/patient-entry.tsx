@@ -1,5 +1,6 @@
 "use client";
 import type { AppState } from "@/lib/types";
+import { MedicalTags } from "./medical-tags";
 import { SymptomLabels } from "./ui";
 export function PatientEntry({
   navigate,
@@ -72,18 +73,13 @@ export function OptionalHealthInformation({ state }: { state: AppState }) {
         <section className="card">
           <h2>No saved self-report</h2>
           <p>
-            No questionnaire is required or available here. Future
-            clinician-authored tags and authorized imports are separate work.
+            No questionnaire is required or available here. Clinician-authored
+            tags are shown separately below.
           </p>
         </section>
       )}
+      <MedicalTags key={state.user?.id} patient />
       <section className="card">
-        <h2>Clinician-authored medical tags</h2>
-        <p>
-          Planned for Phase 8. Verified clinician authorship and review will be
-          shown separately from patient self-report. Not connected in this
-          release.
-        </p>
         <h2>Patient-authorized medical record imports</h2>
         <p>
           Planned for Phase 8. Import will require your explicit authorization,
