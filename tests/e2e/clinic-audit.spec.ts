@@ -99,6 +99,75 @@ test("clinic schedule creates a real opening, persists after refresh, and remain
   }
 });
 
+test("clinic schedule shows scoped P1–P4 groups and opens exact slot review", async ({
+  page,
+  browser,
+}) => {
+  const login = await page.request.post("/api/session", {
+    headers: sameOrigin,
+    data: { id: "staff-cedar", demo: true },
+  });
+  expect(login.ok()).toBe(true);
+  const state = await (await page.request.get("/api/state")).json();
+  expect(state.user.clinicId).toBe("cedar");
+  expect(
+    state.slots.every((slot: { clinicId: string }) => slot.clinicId === "cedar"),
+  ).toBe(true);
+  await page.goto("/clinic/schedule");
+  await expect(
+    page.getByText("Showing Cedar Health appointments only.", { exact: false }),
+  ).toBeVisible();
+  await expect(page.locator("tbody tr[data-slot-id]")).toHaveCount(
+    state.slots.length,
+  );
+  const target = state.slots.find(
+    (slot: { id: string; status: string }) =>
+      slot.status === "AVAILABLE" &&
+      state.candidates.some((c: { slotId: string }) => c.slotId === slot.id),
+  );
+  expect(target, "Seed should include a matching available Cedar opening").toBeTruthy();
+  const row = page.locator(`tbody tr[data-slot-id="${target.id}"]`);
+  const groups = row.getByLabel(/Priority groups for/);
+  await expect(groups).toContainText("P1:");
+  await expect(groups).toContainText("P2:");
+  await expect(groups).toContainText("P3:");
+  await expect(groups).toContainText("P4:");
+  await row.getByRole("button", { name: "Review P1–P4 groups" }).click();
+  await expect(page).toHaveURL(
+    new RegExp(`/clinic/waitlists\\?slotId=${target.id}`),
+  );
+  const manager = page.getByRole("region", {
+    name: "Automatic group notifications",
+  });
+  await expect(manager.getByLabel("Manage opening")).toHaveValue(target.id);
+  await expect(manager.getByText("P1 — Time-Sensitive", { exact: true }))
+    .toBeVisible();
+  await expect(manager.getByText("P4 — Flexible", { exact: true }))
+    .toBeVisible();
+
+  // A different clinic cannot access the Cedar slot or its preview.
+  const other = await browser.newContext();
+  try {
+    await other.request.post("/api/session", {
+      headers: sameOrigin,
+      data: { id: "staff-harbor", demo: true },
+    });
+    const stateOther = await (await other.request.get("/api/state")).json();
+    expect(stateOther.slots.every(
+      (slot: { clinicId: string }) => slot.clinicId === "harbor",
+    )).toBe(true);
+    expect(stateOther.slots.some(
+      (slot: { id: string }) => slot.id === target.id,
+    )).toBe(false);
+    const forbidden = await other.request.get(
+      `/api/notification-sequences?slotId=${encodeURIComponent(target.id)}`,
+    );
+    expect(forbidden.status()).toBe(403);
+  } finally {
+    await other.close();
+  }
+});
+
 test("patients and anonymous browsers cannot administer clinics or invoke notification workers", async ({
   browser,
 }) => {
@@ -284,11 +353,11 @@ test("clinic overview counters open actual scoped details and filter schedule ro
   );
 
   const matchesButton = page.getByRole("button", {
-    name: "View eligible matches",
+    name: "View matched waitlist requests",
   });
   await matchesButton.click();
   const matchDetails = page.getByRole("region", {
-    name: "Eligible matches details",
+    name: "Matched waitlist requests details",
   });
   await expect(matchDetails).toBeVisible();
   await expect(matchDetails.locator(".overview-detail-item")).toHaveCount(

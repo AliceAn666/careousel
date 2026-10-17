@@ -2718,6 +2718,55 @@ fieldset {
   .account-plan-type { width: 100%; justify-content: space-between; }
 }
 
+/* Compact, clinic-scoped per-opening P1–P4 summary. */
+.schedule-priority-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 230px;
+  max-width: 100%;
+}
+.schedule-priority-groups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+.schedule-priority-count,
+.schedule-unreviewed {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  line-height: 1.6;
+  font-weight: 650;
+  white-space: nowrap;
+  background: #edf5f2;
+  color: #235d53;
+}
+.schedule-unreviewed {
+  background: #fff3df;
+  color: #855315;
+}
+.schedule-priority-summary small {
+  max-width: 24rem;
+  overflow-wrap: anywhere;
+  font-size: 0.69rem;
+}
+.schedule-review-groups {
+  margin-top: 4px;
+  min-height: 36px;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+}
+@media (max-width: 680px) {
+  .schedule-priority-summary {
+    min-width: 0;
+    width: 100%;
+  }
+}
+
 /* Clinic metrics are actual drill-down controls, not decorative counters. */
 .insight-action {
   cursor: pointer;
@@ -2824,5 +2873,17 @@ fieldset {
   }
   .overview-detail-list {
     max-height: 330px;
+  }
+}
+
+.overview-review-slot {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .overview-review-slot {
+    width: 100%;
   }
 }
