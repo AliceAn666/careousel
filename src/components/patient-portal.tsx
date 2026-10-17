@@ -71,9 +71,18 @@ export function SearchCare({
   ) => void;
   onWaitlist: (service?: string) => void;
 }) {
-  const [preferences, setPreferences] = useState(() =>
-    readSearchPreferences(state.user?.id ?? "guest"),
-  );
+  const [preferences, setPreferences] = useState(() => {
+    const saved = readSearchPreferences(state.user?.id ?? "guest");
+    return {
+      ...saved,
+      // Start with the user's saved demo insurer, but permit comparisons.
+      plan:
+        saved.plan ||
+        ((PLANS as readonly string[]).includes(state.user?.plan ?? "")
+          ? (state.user!.plan as SearchPreferences["plan"])
+          : ""),
+    };
+  });
   const {
     service,
     city,
@@ -81,8 +90,6 @@ export function SearchCare({
     price,
     date,
     planType,
-    coveredOnly,
-    patientCost,
   } = preferences;
   const update = (patch: Partial<SearchPreferences>) =>
     setPreferences((current) => ({ ...current, ...patch }));
@@ -90,11 +97,7 @@ export function SearchCare({
     update({ service });
   const setCity = (city: string) => update({ city });
   const setPlan = (plan: SearchPreferences["plan"]) =>
-    update({
-      plan,
-      coveredOnly: plan && plan !== "Self-pay" ? coveredOnly : false,
-      patientCost: plan ? patientCost : "",
-    });
+    update({ plan, coveredOnly: false, patientCost: "" });
   const setPrice = (price: string) => update({ price });
   const setDate = (date: string) => update({ date });
   useEffect(() => {
@@ -102,19 +105,8 @@ export function SearchCare({
   }, [preferences, state.user]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
-  const filtering = !!(
-    query ||
-    category ||
-    service ||
-    city ||
-    plan ||
-    price ||
-    date ||
-    coveredOnly ||
-    patientCost
-  );
+  const filtering = !!(query || category || service || city || price || date);
   const matches = (s: SlotView) => {
-    const benefit = demoCoverage(s, plan, planType);
     return (
       (!query ||
         `${s.service} ${["Primary care", "Routine examination"].includes(s.service) ? "Routine Checkups" : ["Cardiology", "Dermatology"].includes(s.service) ? "Specialist Visits" : ""} ${s.clinic.name} ${s.provider}`
@@ -128,14 +120,8 @@ export function SearchCare({
             : s.service === category)) &&
       (!service || s.service === service) &&
       (!city || s.clinic.city === city) &&
-      (!plan || s.plans.includes(plan)) &&
       (!price || s.price <= Number(price) * 100) &&
-      (!date || pacificDate(s.start) === date) &&
-      (!coveredOnly ||
-        (!!plan && plan !== "Self-pay" && benefit.estimate !== null)) &&
-      (!patientCost ||
-        (benefit.estimate !== null &&
-          benefit.estimate <= Number(patientCost) * 100))
+      (!date || pacificDate(s.start) === date)
     );
   };
   const results = state.slots
@@ -144,9 +130,37 @@ export function SearchCare({
       (a, b) =>
         +new Date(a.start) - +new Date(b.start) || a.id.localeCompare(b.id),
     );
+  // Keep out-of-network clinics in the results; rank compatible options first.
+  const groupMap = new Map<string, SlotView[]>();
+  for (const slot of results) {
+    const key = `${slot.clinicId}|${slot.service}`;
+    const group = groupMap.get(key) ?? [];
+    group.push(slot);
+    groupMap.set(key, group);
+  }
+  const clinicOptions = [...groupMap.values()]
+    .map((slots) => ({
+      slots,
+      first: slots[0],
+      compatible: plan
+        ? slots.filter((slot) => demoCoverage(slot, plan, planType).estimate !== null)
+            .length
+        : slots.length,
+    }))
+    .sort(
+      (a, b) =>
+        (plan ? Number(b.compatible > 0) - Number(a.compatible > 0) : 0) ||
+        +new Date(a.first.start) - +new Date(b.first.start) ||
+        a.first.clinic.name.localeCompare(b.first.clinic.name),
+    );
   const matchCount = results.length;
   const clear = () => {
-    setPreferences({ ...defaultSearchPreferences });
+    setPreferences({
+      ...defaultSearchPreferences,
+      plan: (PLANS as readonly string[]).includes(state.user?.plan ?? "")
+        ? (state.user!.plan as SearchPreferences["plan"])
+        : "",
+    });
     setQuery("");
     setCategory("");
   };
@@ -155,7 +169,7 @@ export function SearchCare({
       <section className="card search-intro" aria-label="Appointment search">
         <h2>Book an appointment</h2>
         <p>
-          Search participating clinics. Earliest matching openings appear first.
+          Search participating clinics by service. Compatible demo insurance appears first; other clinics remain visible.
         </p>
         <label className="field">
           Medical service or specialty
@@ -184,8 +198,7 @@ export function SearchCare({
           ))}
         </div>
         <p className="muted">
-          Synthetic openings only. Some categories may currently have no
-          participating appointments.
+          Synthetic openings only. All participating clinic, service, date and time options are fictional.
         </p>
         <button
           className="text-button"
@@ -199,6 +212,49 @@ export function SearchCare({
         >
           Find an earlier appointment · Join a waitlist
         </button>
+      </section>
+      <section className="card insurance-selection" aria-label="Insurance preferences">
+        <h3>Which insurance company do you have?</h3>
+        <p>
+          We will show matching clinics first and clearly label other options.
+          These insurers and benefits are fictional. Your saved demo profile
+          currently lists <strong>{state.user?.plan ?? "no insurer"}</strong>;
+          changing this search selection does not update your profile.
+        </p>
+        <div className="insurance-selection-fields">
+          <label>
+            Insurance company (demo)
+            <select
+              aria-label="Insurance company (demo)"
+              value={plan}
+              onChange={(e) =>
+                setPlan(e.target.value as SearchPreferences["plan"])
+              }
+            >
+              <option value="">Compare all insurers</option>
+              {PLANS.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Insurance plan type
+            <select
+              aria-label="Insurance plan type"
+              value={planType}
+              onChange={(e) => update({ planType: e.target.value as PlanType })}
+              disabled={!plan || plan === "Self-pay"}
+            >
+              <option value="PPO">PPO (demo)</option>
+              <option value="HMO">HMO (demo)</option>
+            </select>
+          </label>
+        </div>
+        <p className="muted">
+          Out-of-network clinics remain visible. If your selected demo insurance
+          does not apply, you may choose to acknowledge the displayed self-pay
+          price before confirming an appointment. No payment is collected.
+        </p>
       </section>
       <section className="filter-card">
         <label>
@@ -229,21 +285,7 @@ export function SearchCare({
             ))}
           </select>
         </label>
-        <label>
-          Insurance
-          <select
-            aria-label="Insurance"
-            value={plan}
-            onChange={(e) =>
-              setPlan(e.target.value as SearchPreferences["plan"])
-            }
-          >
-            <option value="">All demo plans</option>
-            {PLANS.map((p) => (
-              <option key={p}>{p}</option>
-            ))}
-          </select>
-        </label>
+
         <label>
           Maximum cost ($)
           <input
@@ -265,71 +307,21 @@ export function SearchCare({
           />
         </label>
       </section>
-      <details
-        open={!!plan}
-        className={onboarding.benefits}
-        aria-label="Fictional insurance comparison"
-      >
-        <summary>Compare fictional PPO / HMO estimates (optional)</summary>
-        <p>
-          Compare synthetic plan scenarios, not verified coverage. Your saved
-          patient plan is {state.user?.plan}; browsing another insurer does not
-          change it. Maximum cost above is the full listed visit price.
-        </p>
-        <div className={onboarding.fields}>
-          <label>
-            Plan type
-            <select
-              aria-label="Plan type"
-              value={planType}
-              onChange={(e) => update({ planType: e.target.value as PlanType })}
-              disabled={!plan || plan === "Self-pay"}
-            >
-              <option value="PPO">PPO · demo</option>
-              <option value="HMO">HMO · demo</option>
-            </select>
-          </label>
-          <label className={onboarding.check}>
-            <input
-              type="checkbox"
-              checked={coveredOnly}
-              disabled={!plan || plan === "Self-pay"}
-              onChange={(e) => update({ coveredOnly: e.target.checked })}
-            />
-            Show only in-network demo scenarios
-          </label>
-          <label>
-            Maximum estimated patient cost ($)
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={patientCost}
-              disabled={!plan}
-              onChange={(e) => update({ patientCost: e.target.value })}
-            />
-          </label>
-        </div>
-        <p>
-          HMO examples use a narrower fictional network and exclude Cardiology.
-          PPO examples use a fictional remaining deductible plus coinsurance.
-          Select an opening for the calculation; unknown costs are never shown
-          as $0.
-        </p>
-      </details>
+      <p className="demo-note">
+        Demo pricing is illustrative. PPO/HMO comparisons are unverified,
+        and any out-of-network or excluded service can be shown with a
+        self-pay choice at the listed visit price.
+      </p>
       <div className="section-title">
         <div>
           <h2>
             Available appointments{" "}
             <span className="result-count">
-              {filtering
-                ? `${matchCount} of ${state.slots.length} match`
-                : state.slots.length}
+              {clinicOptions.length} clinic/service options · {matchCount} openings
             </span>
           </h2>
           <p>
-            Earliest matching appointment first · Pacific time. View details
-            before confirming.
+            Demo in-network matches first · other clinics shown with warnings · Pacific time.
           </p>
         </div>
         <div className="button-row">
@@ -364,56 +356,102 @@ export function SearchCare({
             body="Adjust your filters or join a waitlist. Your existing appointment stays protected."
           />
         ) : (
-          results.map((s) => (
-            <article className="card search-result" key={s.id}>
-              <div className="grow">
-                <span className="eyebrow">{s.service}</span>
-                <h3>{s.clinic.name}</h3>
-                <p>
-                  {s.clinic.address}, {s.clinic.city}
-                </p>
-                <p>
-                  <strong>{dateLabel(s.start)}</strong> · {s.provider}
-                </p>
-                <p className="muted">
-                  {state.slots.filter(
-                    (slot) =>
-                      slot.clinicId === s.clinicId &&
-                      slot.service === s.service &&
-                      slot.provider === s.provider,
-                  ).length}{" "}
-                  available appointment{" "}
-                  {state.slots.filter(
-                    (slot) =>
-                      slot.clinicId === s.clinicId &&
-                      slot.service === s.service &&
-                      slot.provider === s.provider,
-                  ).length === 1
-                    ? "time"
-                    : "times"}{" "}
-                  to choose from
-                </p>
-                <p>
-                  {money(s.price)} estimated listed price · Fictional plans:{" "}
-                  {s.plans.join(", ")}
-                </p>
-                {plan && (
-                  <CoverageSummary
-                    slot={s}
-                    provider={plan}
-                    planType={planType}
-                  />
-                )}
-              </div>
-              <button
-                className="primary"
-                data-slot-id={s.id}
-                onClick={() => onDetail(s, { provider: plan, planType })}
+          clinicOptions.map(({ slots, first, compatible }) => {
+            const defaultSlot =
+              (plan
+                ? slots.find(
+                    (slot) => demoCoverage(slot, plan, planType).estimate !== null,
+                  )
+                : undefined) ?? first;
+            return (
+              <article
+                className="card search-result clinic-availability"
+                key={`${first.clinicId}-${first.service}`}
               >
-                View details &amp; book
-              </button>
-            </article>
-          ))
+                <div className="grow">
+                  <span className="eyebrow">{first.service}</span>
+                  <h3>{first.clinic.name}</h3>
+                  <p>{first.clinic.address}, {first.clinic.city}</p>
+                  <p>
+                    {slots.length} available appointment{" "}
+                    {slots.length === 1 ? "time" : "times"} ·{" "}
+                    {[...new Set(slots.map((slot) => slot.provider))].join(", ")}
+                  </p>
+                  {plan && plan !== "Self-pay" && (
+                    <p
+                      className={
+                        compatible > 0
+                          ? "insurance-match insurance-match-good"
+                          : "insurance-match insurance-match-warning"
+                      }
+                    >
+                      {compatible > 0
+                        ? `${compatible} opening(s) with matching fictional ${plan} ${planType} benefits`
+                        : `${plan} ${planType}: out-of-network or uncovered in this demo. Self-pay remains possible.`}
+                    </p>
+                  )}
+                  {plan === "Self-pay" && (
+                    <p className="insurance-match">
+                      Self-pay: full listed price, no insurance benefit applied
+                    </p>
+                  )}
+                  <p className="muted">Available dates and times (Pacific):</p>
+                  <div
+                    className="clinic-time-options"
+                    role="group"
+                    aria-label={`Available times at ${first.clinic.name} for ${first.service}`}
+                  >
+                    {slots.slice(0, 9).map((slot) => {
+                      const accepted =
+                        !plan ||
+                        demoCoverage(slot, plan, planType).estimate !== null;
+                      return (
+                        <button
+                          key={slot.id}
+                          type="button"
+                          className="booking-choice clinic-time-choice"
+                          onClick={() =>
+                            onDetail(slot, {
+                              provider: plan,
+                              planType,
+                            })
+                          }
+                          title={
+                            accepted
+                              ? "View this available appointment"
+                              : "Demo insurance may not apply; self-pay can be selected"
+                          }
+                        >
+                          {dateLabel(slot.start)}
+                          {plan && !accepted && (
+                            <span className="clinic-time-warning"> · Self-pay</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {slots.length > 9 && (
+                    <p className="muted">
+                      +{slots.length - 9} more openings — view all in details.
+                    </p>
+                  )}
+                  <p className="muted">
+                    Listed visit prices from {money(Math.min(...slots.map((slot) => slot.price)))}.
+                    Demo insurers are not verified.
+                  </p>
+                </div>
+                <button
+                  className="primary"
+                  data-slot-id={defaultSlot.id}
+                  onClick={() =>
+                    onDetail(defaultSlot, { provider: plan, planType })
+                  }
+                >
+                  View details &amp; book
+                </button>
+              </article>
+            );
+          })
         )}
       </section>
     </>

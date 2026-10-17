@@ -35,6 +35,30 @@ it.each(["Vaccination", "Blood test", "Routine examination", "Primary care"])(
     ).toBe("CONFIRMED");
   },
 );
+it("requires explicit self-pay acknowledgment when the selected demo insurer is incompatible", async () => {
+  const request = {
+    type: "book" as const,
+    slotId: "slot-1",
+    insuranceProvider: "Blue Horizon" as const,
+    planType: "HMO" as const,
+  };
+  await expect(performAction("avery", request, { now })).rejects.toThrow(
+    "self-pay",
+  );
+  expect(await db.booking.count({ where: { slotId: "slot-1" } })).toBe(0);
+  await performAction(
+    "avery",
+    { ...request, selfPayAcknowledged: true },
+    { now },
+  );
+  expect(
+    await db.booking.count({
+      where: { slotId: "slot-1", patientId: "avery", status: "CONFIRMED" },
+    }),
+  ).toBe(1);
+  expect((await db.user.findUniqueOrThrow({ where: { id: "avery" } })).plan)
+    .toBe("Blue Horizon");
+});
 it("joins a linked waitlist and safely accepts an earlier offer with no intake record", async () => {
   await performAction(
     "avery",
