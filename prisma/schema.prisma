@@ -15,6 +15,8 @@ model User {
   clinicId String?
   clinic Clinic? @relation(fields: [clinicId], references: [id])
   visitType String?
+  assignedPriorities WaitlistPriority[] @relation("PriorityAssigner")
+  priorityHistory PriorityHistory[] @relation("PriorityActor")
   intake Intake?
   tags SymptomTag[]
   bookings Booking[]
@@ -32,6 +34,7 @@ model Clinic {
   users User[]
   slots Slot[]
   audits Audit[]
+  priorities WaitlistPriority[]
   tags SymptomTag[]
 }
 model Slot {
@@ -86,6 +89,7 @@ model Waitlist {
   createdAt DateTime @default(now())
   offers Offer[]
   suggestions Suggestion[]
+  priorities WaitlistPriority[]
   @@unique([id, patientId])
 }
 model Suggestion {
@@ -147,4 +151,35 @@ model SymptomTag {
   clinic Clinic? @relation(fields: [clinicId], references: [id])
   updatedAt DateTime @default(now()) @updatedAt
   @@index([patientId])
+}
+
+model WaitlistPriority {
+  id String @id @default(cuid())
+  waitlistId String
+  waitlist Waitlist @relation(fields: [waitlistId], references: [id], onDelete: Restrict)
+  clinicId String
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Restrict)
+  level String?
+  reviewState String @default("UNREVIEWED")
+  assignedById String?
+  assignedBy User? @relation("PriorityAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
+  assignedAt DateTime?
+  reason String @default("")
+  version Int @default(0)
+  history PriorityHistory[]
+  @@unique([waitlistId, clinicId])
+  @@index([clinicId])
+}
+model PriorityHistory {
+  id String @id @default(cuid())
+  priorityId String
+  priority WaitlistPriority @relation(fields: [priorityId], references: [id], onDelete: Restrict)
+  previousLevel String?
+  level String?
+  actorId String
+  actor User @relation("PriorityActor", fields: [actorId], references: [id], onDelete: Restrict)
+  reason String
+  version Int
+  createdAt DateTime @default(now())
+  @@unique([priorityId, version])
 }

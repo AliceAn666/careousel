@@ -12,7 +12,8 @@ import {
 import type { Action, AppState } from "@/lib/types";
 import { dateLabel, money, SERVICES } from "@/lib/config";
 import { request } from "@/lib/api";
-import { Status, Empty, Modal, SeverityTags } from "./ui";
+import { priorityLabel } from "@/lib/waitlist-priority";
+import { Status, Empty, Modal } from "./ui";
 export function ClinicSchedule({
   state,
   act,
@@ -328,21 +329,19 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
                         </span>
                         <div>
                           <h3>{c.name}</h3>
-                          <p>Waitlist priority #{i + 1}</p>
+                          <p>FIFO position #{i + 1}</p>
                         </div>
                         <span className="status active">Eligible</span>
                       </div>
                       <div className="priority-hint">
                         <span className="eyebrow">
-                          PRIORITY HINT ·{" "}
-                          {c.visitType === "FIRST"
-                            ? "SELF-REPORTED, FIRST VISIT"
-                            : "CLINIC-ASSESSED, FOLLOW-UP"}
+                          REQUEST PRIORITY · YOUR CLINIC
                         </span>
-                        <SeverityTags
-                          tags={c.tags}
-                          empty="No severity information recorded"
-                        />
+                        <p>{priorityLabel(c.priority?.level)}</p>
+                        <small>
+                          Staff-reviewed only. This label does not change
+                          eligibility or reserve an appointment.
+                        </small>
                       </div>
                       <div className="reason-list">
                         {c.reasons.map((r) => (

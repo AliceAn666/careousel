@@ -170,3 +170,26 @@ Documentation-only branch from main 74e6c903f32b227da721d51055f73c4bd7af2aeb aft
 - No application tests rerun: no application, fixture, dependency, schema or migration change in this slice. Prior 37 unit / 34 PostgreSQL integration / 13 browser passing results are Phase 3 historical evidence, not tests of the new roadmap mechanisms.
 - No database connection, migration, reset/reseed, account provisioning or external invitation delivery performed; shared data and all existing worktrees preserved.
 - Four-level priority, manual three-hour group sends, individual account authentication and admin invitations are planned, not implemented by this documentation PR.
+
+## R1 working implementation — four-level request priority
+
+Base: main 842c15665025962a86b53cf150b35fc3f72734d2 after PR #11 merged. Main GitHub Actions run 39008257784 completed successfully before creating feat/request-priority-levels. This is a functional implementation, not a documentation-only update.
+
+Implemented strict setWaitlistPriority, request+clinic P1–P4 decisions, actor/time/reason/version and history, stale/concurrent-edit handling, idempotent repeats, patient display and staff group filter/editor/history. New intake preserves raw self-report without computing urgency; historical symptom records remain. Preference edits append re-review history and invalidate stale approvals. Existing exclusive offer and booking transactions remain unchanged.
+
+Isolation: a new PostgreSQL 17 container careousel-priority-tests bound to 127.0.0.1:5545; careousel_test only, with a distinct unused DATABASE_URL for guard checks. Existing shared demo on port 5432 and all other worktrees/databases were untouched. New migration 0004_waitlist_priority_levels was applied only in isolation; no existing migration bytes changed. An isolated transaction/schema rehearsed upgrade from 0001–0003 with linked bookings and rescheduling history, pending offer, notice, intake, legacy score and both scoped/unscoped requests; all original rows/IDs were preserved and only explicit clinic/linked-booking scopes backfilled as unreviewed.
+
+Actual final checks:
+
+- npm run db:generate and npm run db:test:prepare: passed. Repeat preparation confirmed the checksum-tracked ledger without reseeding. Initial tsx generator attempt hit local IPC EPERM in the restricted shell; rerun with the supported execution network permission succeeded, followed by fresh successful checks.
+- npm run lint, npm run typecheck: passed.
+- npm test: 39 tests passed. Legacy score-helper tests remain compatibility tests, not evidence of clinical classification.
+- npm run test:integration: 38 tests passed after final upgrade-fixture extension; existing scheduling tests unchanged. Includes clinic/patient denial, independent requests/clinics, four exact levels/history, stale and concurrent edits, idempotency, preference invalidation, direct SQL constraints, failed history-write rollback and upgrade data preservation.
+- npm run test:e2e: 14 tests passed on final full run, including all 13 prior browser tests unchanged and the new independent-browser staff-review/patient-display/original-protection/mobile workflow.
+- npm run build: passed after browser testing.
+- npm run test:persistence: passed; confirmed booking, signed patient/staff sessions, request decision and history survived production-server restart.
+- Prettier (including npm run format:check) and git diff --check: passed. Production desktop/375px mobile screenshots inspected; no page errors or horizontal overflow. Request-based heading and Pacific-time history labels were verified after the visual review. Original worktree's 21 recorded modified/untracked file hashes preserved.
+
+Earlier test failures were corrected and rerun: five new integration cases attempted candidate-scope assignment before generating the staff preview projection; fixtures now follow the actual preview flow without weakening authorization. First browser run passed the 13 originals but the new case timed out on the select's accessible name; explicit priority/filter labels fixed it and the final 14-test run passed. No acceptance checks were deleted to hide failures; superseded numeric-tag tests were replaced with request-level authorization, history and legacy retention coverage. The existing pg concurrent-query deprecation warning remains non-failing and was not suppressed.
+
+Remaining: current staff identities are pre-authorized synthetic signed demo personas, not the R3 individual-account/R4 administrator invitation system. R2 manually timed competitive group notifications remain unimplemented; saving priority sends nothing. No real employment/insurance verification, clinical triage, external messaging or production compliance claim. Shared migration rollout requires separate review/authorization.

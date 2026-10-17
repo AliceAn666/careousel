@@ -1,4 +1,5 @@
 "use client";
+import { priorityLabel } from "@/lib/waitlist-priority";
 import { useEffect, useState } from "react";
 import {
   Anchor,
@@ -601,6 +602,26 @@ export function Appointments({
                     ? "Original booking protected"
                     : "No linked appointment"}
                 </p>
+              </div>
+              <div>
+                <strong>Clinic-reviewed request priority</strong>
+                {!w.priorities.length ? (
+                  <p>Awaiting staff review</p>
+                ) : (
+                  w.priorities.map((priority) => (
+                    <p key={priority.id}>
+                      {priority.clinic.name}: {priorityLabel(priority.level)}
+                      {priority.assignedBy && (
+                        <> · Approved by {priority.assignedBy.name}</>
+                      )}
+                    </p>
+                  ))
+                )}
+                <small>
+                  Each clinic reviews this request separately. This is not a
+                  permanent patient classification. Editing preferences requires
+                  a new staff review.
+                </small>
               </div>
               <div className="card-actions">
                 <Status value={w.status} />

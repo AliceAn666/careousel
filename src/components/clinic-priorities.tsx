@@ -1,200 +1,193 @@
 "use client";
 import { useState } from "react";
-import { Plus, Save, Trash2, UserRound } from "lucide-react";
+import { Save, ShieldCheck } from "lucide-react";
 import type { Action, AppState } from "@/lib/types";
-import { MAX_SCORE, MIN_SCORE, severityLabel } from "@/lib/priority";
+import {
+  PRIORITY_LEVELS,
+  PRIORITY_LABELS,
+  priorityLabel,
+  type PriorityLevel,
+} from "@/lib/waitlist-priority";
+import { dateLabel } from "@/lib/config";
 import { Empty } from "./ui";
+import styles from "./request-priority.module.css";
 
-type PriorityPatient = AppState["priorityPatients"][number];
-type PatientTag = PriorityPatient["tags"][number];
-
-const scores = Array.from(
-  { length: MAX_SCORE - MIN_SCORE + 1 },
-  (_, i) => MIN_SCORE + i,
-);
-
-function ScoreSelect({
-  value,
-  onChange,
-  label,
-}: {
-  value: number;
-  onChange: (n: number) => void;
-  label: string;
-}) {
-  return (
-    <select
-      aria-label={label}
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-    >
-      {scores.map((n) => (
-        <option key={n} value={n}>
-          {n} · {severityLabel(n)}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function TagRow({
-  patientId,
-  tag,
-  editable,
+type Request = AppState["priorityRequests"][number];
+function RequestPriority({
+  request,
+  clinicId,
   act,
 }: {
-  patientId: string;
-  tag: PatientTag;
-  editable: boolean;
+  request: Request;
+  clinicId: string;
   act: Action;
 }) {
-  const [label, setLabel] = useState(tag.label),
-    [score, setScore] = useState(tag.score);
-  const changed = label.trim() !== tag.label || score !== tag.score;
-  if (!editable)
-    return (
-      <li className="tag-row readonly">
-        <span>{tag.label}</span>
-        <span>
-          {tag.score}/10 · {severityLabel(tag.score)}
-        </span>
-        <small>
-          {tag.source === "CLINIC"
-            ? `Set by ${tag.clinic?.name ?? "another clinic"}`
-            : "From patient questionnaire"}
-        </small>
-      </li>
-    );
+  const current = request.priorities[0];
+  const [level, setLevel] = useState<PriorityLevel | "">(""),
+    [reason, setReason] = useState(""),
+    [saving, setSaving] = useState(false);
   return (
-    <li className="tag-row">
-      <input
-        aria-label="Symptom tag"
-        value={label}
-        maxLength={40}
-        onChange={(e) => setLabel(e.target.value)}
-      />
-      <ScoreSelect
-        label={`Severity score for ${tag.label}`}
-        value={score}
-        onChange={setScore}
-      />
-      <button
-        className="secondary"
-        disabled={!changed || !label.trim()}
-        onClick={() =>
-          void act({
-            type: "setTag",
-            patientId,
-            tagId: tag.id,
-            label: label.trim(),
-            score,
-          })
-        }
-      >
-        <Save size={15} />
-        Save
-      </button>
-      <button
-        className="text-button"
-        aria-label={`Remove ${tag.label}`}
-        onClick={() => {
-          if (confirm(`Remove the “${tag.label}” tag?`))
-            void act({ type: "deleteTag", tagId: tag.id });
+    <article
+      className={`card ${styles.request}`}
+      aria-label={`${request.patient.name} ${request.service} request`}
+    >
+      <div>
+        <span className="eyebrow">INDIVIDUAL WAITLIST REQUEST</span>
+        <h3>
+          {request.patient.name} · {request.service}
+        </h3>
+        <p className="muted">
+          Request {request.id} ·{" "}
+          {request.bookingId
+            ? "Original appointment protected"
+            : "No linked appointment"}
+        </p>
+        <p className={styles.badge}>{priorityLabel(current?.level)}</p>
+        {current?.assignedBy && (
+          <p className="muted">
+            Approved by {current.assignedBy.name} ·{" "}
+            {dateLabel(current.assignedAt!)}
+          </p>
+        )}
+      </div>
+      <form
+        className={styles.form}
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (!level || saving) return;
+          setSaving(true);
+          try {
+            if (
+              await act({
+                type: "setWaitlistPriority",
+                waitlistId: request.id,
+                clinicId,
+                level,
+                reason: reason.trim(),
+                expectedVersion: current?.version ?? 0,
+              })
+            ) {
+              setReason("");
+              setLevel("");
+            }
+          } finally {
+            setSaving(false);
+          }
         }}
       >
-        <Trash2 size={15} />
-        Remove
-      </button>
-    </li>
+        <label>
+          Request priority
+          <select
+            aria-label="Request priority"
+            required
+            value={level}
+            onChange={(e) => setLevel(e.target.value as PriorityLevel | "")}
+          >
+            <option value="">Choose a reviewed level</option>
+            {PRIORITY_LEVELS.map((value) => (
+              <option value={value} key={value}>
+                {value} — {PRIORITY_LABELS[value]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Assignment reason (synthetic information only)
+          <textarea
+            required
+            minLength={3}
+            maxLength={500}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </label>
+        <button
+          className="primary"
+          disabled={saving || !level || reason.trim().length < 3}
+        >
+          <Save size={16} />
+          {saving ? "Saving…" : "Approve request priority"}
+        </button>
+      </form>
+      {!!current?.history.length && (
+        <details>
+          <summary>Priority history ({current.history.length})</summary>
+          <ol className={styles.history}>
+            {current.history.map((entry) => (
+              <li key={entry.id}>
+                <strong>
+                  {priorityLabel(entry.previousLevel)} →{" "}
+                  {priorityLabel(entry.level)}
+                </strong>
+                <p>{entry.reason}</p>
+                <small>
+                  {entry.actor.name} · {dateLabel(entry.createdAt)} · revision{" "}
+                  {entry.version}
+                </small>
+              </li>
+            ))}
+          </ol>
+        </details>
+      )}
+    </article>
   );
 }
-
-function NewTag({ patientId, act }: { patientId: string; act: Action }) {
-  const [label, setLabel] = useState(""),
-    [score, setScore] = useState(5);
-  return (
-    <form
-      className="tag-row new"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        if (
-          await act({ type: "setTag", patientId, label: label.trim(), score })
-        ) {
-          setLabel("");
-          setScore(5);
-        }
-      }}
-    >
-      <input
-        aria-label="New symptom tag"
-        placeholder="e.g. Chest pain"
-        value={label}
-        maxLength={40}
-        required
-        onChange={(e) => setLabel(e.target.value)}
-      />
-      <ScoreSelect
-        label="Severity score for new tag"
-        value={score}
-        onChange={setScore}
-      />
-      <button className="primary" disabled={!label.trim()}>
-        <Plus size={15} />
-        Add tag
-      </button>
-    </form>
-  );
-}
-
 export function Priorities({ state, act }: { state: AppState; act: Action }) {
-  const clinicId = state.user?.clinicId;
+  const [filter, setFilter] = useState("ALL");
+  const requests = state.priorityRequests.filter(
+    (request) =>
+      filter === "ALL" ||
+      (request.priorities[0]?.level ?? "UNREVIEWED") === filter,
+  );
   return (
     <>
       <div className="info-banner">
-        <UserRound />
+        <ShieldCheck />
         <div>
-          <strong>Follow-up patient priorities.</strong>
+          <strong>Staff-reviewed request priorities</strong>
           <p>
-            Give each returning patient one or more symptom tags, each with its
-            own severity score (1–10). Scores appear next to the patient in
-            Waitlist matches as a hint; they never change eligibility or order.
+            P1 Time-Sensitive · P2 High Priority · P3 Routine · P4 Flexible.
+            Each level belongs to one request at your clinic. Patients and AI
+            cannot assign clinical urgency. Unreviewed requests have no approved
+            group.
+          </p>
+          <p>
+            These are synthetic demonstration assignments. Saving a priority
+            sends no invitation and changes no appointment. Eligibility and
+            current FIFO matching remain unchanged.
           </p>
         </div>
       </div>
-      {!state.priorityPatients.length ? (
+      <label className={styles.filter}>
+        Show priority group
+        <select
+          aria-label="Show priority group"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        >
+          <option value="ALL">All requests</option>
+          <option value="UNREVIEWED">Awaiting staff review</option>
+          {PRIORITY_LEVELS.map((level) => (
+            <option key={level} value={level}>
+              {priorityLabel(level)}
+            </option>
+          ))}
+        </select>
+      </label>
+      {!requests.length ? (
         <Empty
-          title="No returning patients yet"
-          body="Patients with a booking at your clinic appear here."
+          title="No requests in this group"
+          body="Requests appear when linked to your clinic, explicitly preferring it, or eligible for an opening here. Unreviewed requests need an authorized staff decision."
         />
       ) : (
         <div className="stack">
-          {state.priorityPatients.map((p) => (
-            <article className="card priority-card" key={p.id}>
-              <div className="candidate-heading">
-                <span className="avatar mint">
-                  {p.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </span>
-                <div>
-                  <h3>{p.name}</h3>
-                  <p>Follow-up patient · {p.tags.length} tags</p>
-                </div>
-              </div>
-              <ul className="tag-rows">
-                {p.tags.map((t) => (
-                  <TagRow
-                    key={`${t.id}-${t.label}-${t.score}`}
-                    patientId={p.id}
-                    tag={t}
-                    editable={t.source === "CLINIC" && t.clinicId === clinicId}
-                    act={act}
-                  />
-                ))}
-              </ul>
-              <NewTag patientId={p.id} act={act} />
-            </article>
+          {requests.map((request) => (
+            <RequestPriority
+              key={`${request.id}-${request.priorities[0]?.version ?? 0}`}
+              request={request}
+              clinicId={state.user!.clinicId!}
+              act={act}
+            />
           ))}
         </div>
       )}

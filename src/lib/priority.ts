@@ -1,5 +1,6 @@
-// Demo priority scoring. Scores are self-reported (first visit) or clinic-entered
-// (follow-up) hints shown to staff; they never change eligibility or FIFO order.
+// Legacy score compatibility helpers, retained for historical data/tests only.
+// New intake and request priority assignments never call this scoring function.
+// Authoritative request-level labels live in waitlist-priority.ts.
 export const MIN_SCORE = 1;
 export const MAX_SCORE = 10;
 

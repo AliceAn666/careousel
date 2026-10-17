@@ -19,7 +19,7 @@ const blank = (area: SymptomArea): SymptomAnswer => ({
   worsening: false,
 });
 
-// First-visit intake. The server derives the tags and scores from these answers.
+// First-visit synthetic self-report; no computed clinical priority.
 export function IntakeQuestionnaire({ act }: { act: Action }) {
   const [symptoms, setSymptoms] = useState<SymptomAnswer[]>([]),
     [signs, setSigns] = useState<WarningSign[]>([]),

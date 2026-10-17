@@ -19,7 +19,7 @@ import {
 import type { Action, AppState, Waitlist, SlotView } from "@/lib/types";
 import { dateLabel, money, VISIT_TYPES } from "@/lib/config";
 import { request } from "@/lib/api";
-import { FeedbackContext, Modal, SeverityTags } from "./ui";
+import { FeedbackContext, Modal, SymptomLabels } from "./ui";
 import {
   SearchCare,
   Appointments,
@@ -198,7 +198,7 @@ export function CareouselApp() {
           : path === "/clinic/waitlists"
             ? "Waitlist matches"
             : path === "/clinic/priorities"
-              ? "Patient priorities"
+              ? "Request priorities"
               : path === "/clinic/activity"
                 ? "Clinic activity"
                 : path === "/demo"
@@ -513,16 +513,11 @@ export function CareouselApp() {
             onClose={() => setShowSummary(false)}
           >
             <p className="muted">
-              Based on your answers. Clinics see these tags and scores as a hint
-              when reviewing waitlist matches; staff make every decision.
+              Your synthetic answers are saved. Waitlist priority belongs to
+              each request and requires clinic staff review; this questionnaire
+              does not assign urgency or approve treatment.
             </p>
-            <div className="summary-score">
-              <span>Overall severity</span>
-              <strong>
-                {Math.max(0, ...state.myTags.map((t) => t.score))}/10
-              </strong>
-            </div>
-            <SeverityTags tags={state.myTags} />
+            <SymptomLabels tags={state.myTags} />
             <button
               className="primary full"
               onClick={() => {
