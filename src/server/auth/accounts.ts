@@ -1,3 +1,4 @@
+import { administratorPlan } from "./provisioning-plan";
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
@@ -32,7 +33,18 @@ export const patientRegistration = z
   .object({ ...credentials, plan: z.enum(PLANS) })
   .strict();
 export const staffRegistration = z
-  .object({ ...credentials, invitationToken: z.string().min(32).max(128) })
+  .object({
+    ...credentials,
+    invitationToken: z
+      .string()
+      .trim()
+      .min(32, "Invitation token must contain 32–128 characters.")
+      .max(128, "Invitation token must contain 32–128 characters.")
+      .regex(
+        /^[a-f0-9]+$/i,
+        "Invitation token must contain hexadecimal characters.",
+      ),
+  })
   .strict();
 export const loginSchema = z
   .object({ username, password, entrance: z.enum(["PATIENT", "STAFF"]) })
@@ -251,8 +263,8 @@ export async function redeemInvitation(raw: unknown) {
         !(await verifyPassword(input.password, existing.passwordHash))
       )
         throw new DomainError(
-          "This existing account cannot use this staff invitation.",
-          403,
+          "Username or email is unavailable. This existing account cannot use this staff invitation.",
+          409,
         );
       // Re-enroll a revoked staff identity with fresh institution authorization;
       // preserve its user/history and never revive its old revoked sessions.
@@ -282,8 +294,7 @@ export async function redeemInvitation(raw: unknown) {
       data: { status: "USED", usedById: account.id },
     });
     return {
-      message:
-        "Staff account created. Clinic administrator approval is required before login. Verification is simulated.",
+      message: "Staff account created. Awaiting administrator approval.",
     };
   });
 }
@@ -442,32 +453,26 @@ export async function provisionMockAdministrator(raw: unknown) {
       throw new DomainError(
         "This clinic already has an administrator; use authorized administration.",
       );
-    const account = await createAccount(
-      tx,
-      { ...input, invitationToken: "bootstrap-only" },
-      hash,
-      input.clinicId,
-    );
-    await tx.clinicMembership.create({
-      data: {
-        accountId: account.id,
-        clinicId: input.clinicId,
-        role: "ADMIN",
-        status: "ACTIVE",
-        verifiedById: account.userId,
-        verifiedAt: await executionTime(tx),
-      },
-    });
-    await tx.audit.create({
-      data: {
-        clinicId: input.clinicId,
-        actor: input.name,
-        action: "Explicit mock administrator bootstrap",
-      },
-    });
+    const plan = administratorPlan(input, hash);
+    for (const statement of plan.statements)
+      await tx.$executeRawUnsafe(statement);
     return {
       message:
         "Mock administrator provisioned without changing clinic scheduling data.",
     };
   });
+}
+
+// Same bootstrap plan for environments where the approved Neon connector is the SQL transport.
+export async function exportMockAdministratorPlan(raw: unknown) {
+  if (process.env.DEMO_MODE !== "true")
+    throw new DomainError(
+      "Mock administrator provisioning requires DEMO_MODE.",
+      403,
+    );
+  const input = z
+    .object({ ...credentials, clinicId: z.string() })
+    .strict()
+    .parse(raw);
+  return administratorPlan(input, await hashPassword(input.password));
 }

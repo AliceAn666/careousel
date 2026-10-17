@@ -10,35 +10,43 @@ type FieldErrors = Partial<Record<FieldName, string>>;
 
 const demoEmail = /@(?:[^@]+\.)?(?:example\.(?:com|org|net)|example|test)$/i;
 const usernameFormat = /^[a-z0-9][a-z0-9_.-]{2,39}$/i;
-const emailHint = "Use a fictional address such as patient@example.com. Gmail and real email domains are not accepted in this demo.";
+const emailHint =
+  "Use a fictional address such as patient@example.com. Gmail and real email domains are not accepted in this demo.";
 
-function validate(values: Record<string, string>, registering: boolean): FieldErrors {
+function validate(
+  values: Record<string, string>,
+  registering: boolean,
+): FieldErrors {
   const errors: FieldErrors = {};
   const username = (values.username ?? "").trim();
   const password = values.password ?? "";
   if (!username) errors.username = "Username is required.";
   else if (!usernameFormat.test(username))
-    errors.username = "Use 3–40 letters, numbers, dots, underscores, or hyphens. Start with a letter or number.";
+    errors.username =
+      "Use 3–40 letters, numbers, dots, underscores, or hyphens. Start with a letter or number.";
   if (!password) errors.password = "Password is required.";
   else if (registering && (password.length < 12 || password.length > 128))
     errors.password = "Choose a password between 12 and 128 characters.";
   if (registering) {
-    if (!(values.name ?? "").trim())
-      errors.name = "Display name is required.";
+    if (!(values.name ?? "").trim()) errors.name = "Display name is required.";
     else if (values.name.trim().length < 2)
       errors.name = "Display name must be at least 2 characters.";
     const email = (values.email ?? "").trim();
-    if (!email)
-      errors.email = "Email is required.";
+    if (!email) errors.email = "Email is required.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       errors.email = "Enter a valid fictional email address.";
     else if (!demoEmail.test(email))
-      errors.email = "Only fictional example/test email addresses are accepted. Try patient@example.com.";
+      errors.email =
+        "Only fictional example/test email addresses are accepted. Try patient@example.com.";
     if ("invitationToken" in values) {
       const token = values.invitationToken?.trim() ?? "";
       if (!token) errors.invitationToken = "Invitation token is required.";
       else if (token.length < 32 || token.length > 128)
-        errors.invitationToken = "Invitation token must contain between 32 and 128 characters. Paste the complete token provided by your clinic administrator.";
+        errors.invitationToken =
+          "Invitation token must contain between 32 and 128 characters. Paste the complete token provided by your clinic administrator.";
+      else if (!/^[a-f0-9]+$/i.test(token))
+        errors.invitationToken =
+          "Invitation token must contain hexadecimal characters. Paste the complete administrator-issued token.";
     }
   }
   return errors;
@@ -79,9 +87,19 @@ export function AccountAccess({
   }
 
   const inputError = (field: FieldName) => ({
-    "aria-invalid": Boolean(fieldErrors[field]) || (tab === "login" && Boolean(error) && (field === "username" || field === "password")),
+    "aria-invalid":
+      Boolean(fieldErrors[field]) ||
+      (tab === "login" &&
+        Boolean(error) &&
+        (field === "username" || field === "password")),
     "aria-describedby": fieldErrors[field] ? `${field}-error` : undefined,
-    className: fieldErrors[field] || (tab === "login" && error && (field === "username" || field === "password")) ? styles.invalidInput : undefined,
+    className:
+      fieldErrors[field] ||
+      (tab === "login" &&
+        error &&
+        (field === "username" || field === "password"))
+        ? styles.invalidInput
+        : undefined,
   });
 
   return (
@@ -141,7 +159,8 @@ export function AccountAccess({
               className={styles.form}
               noValidate
               onChange={(event) => {
-                const target = event.target as unknown as HTMLInputElement | HTMLSelectElement;
+                const target = event.target as unknown as
+                  HTMLInputElement | HTMLSelectElement;
                 if (target.name) clearEditedError(target.name);
               }}
               onSubmit={async (event) => {
@@ -157,9 +176,9 @@ export function AccountAccess({
                 setFieldErrors(errors);
                 const firstInvalid = Object.keys(errors)[0];
                 if (firstInvalid) {
-                  form.querySelector<HTMLInputElement>(
-                    `[name="${firstInvalid}"]`,
-                  )?.focus();
+                  form
+                    .querySelector<HTMLInputElement>(`[name="${firstInvalid}"]`)
+                    ?.focus();
                   return;
                 }
                 setBusy(true);
@@ -184,19 +203,51 @@ export function AccountAccess({
                     setMessage(result.message);
                   }
                 } catch (e) {
-                  const detail = e instanceof Error ? e.message : "Request failed.";
-                  if (/fictional example\/test email|fictional example\/test/i.test(detail))
-                    setFieldErrors({ email: "Only fictional example/test email addresses are accepted. Try patient@example.com." });
-                  else if (registering && entrance === "STAFF" && /too small.*32 characters|invitation.?token.*(length|characters)/i.test(detail))
-                    setFieldErrors({ invitationToken: "Invitation token must contain between 32 and 128 characters. Paste the complete token provided by your clinic administrator." });
-                  else if (!registering && /invalid credentials|invalid username or password/i.test(detail))
+                  const detail =
+                    e instanceof Error ? e.message : "Request failed.";
+                  if (
+                    /fictional example\/test email|fictional example\/test/i.test(
+                      detail,
+                    )
+                  )
+                    setFieldErrors({
+                      email:
+                        "Only fictional example/test email addresses are accepted. Try patient@example.com.",
+                    });
+                  else if (
+                    registering &&
+                    entrance === "STAFF" &&
+                    /too small.*32 characters|invitation.?token.*(length|characters|hexadecimal)/i.test(
+                      detail,
+                    )
+                  )
+                    setFieldErrors({
+                      invitationToken:
+                        "Invitation token must contain between 32 and 128 characters. Paste the complete token provided by your clinic administrator.",
+                    });
+                  else if (
+                    !registering &&
+                    /invalid credentials|invalid username or password/i.test(
+                      detail,
+                    )
+                  )
                     setError("Invalid username or password.");
-                  else if (registering && entrance === "STAFF" && /invalid invitation|invitation.*(expired|invalid|not found|used)/i.test(detail))
-                    setFieldErrors({ invitationToken: "This invitation is invalid, expired, or already used. Request a new invitation from your clinic administrator." });
+                  else if (
+                    registering &&
+                    entrance === "STAFF" &&
+                    /invalid invitation|invitation.*(expired|invalid|not found|used)/i.test(
+                      detail,
+                    )
+                  )
+                    setFieldErrors({
+                      invitationToken:
+                        "This invitation cannot be redeemed. Confirm the exact invited email and token with your clinic administrator; it may be invalid, expired, revoked, or already used.",
+                    });
                   else if (/username or email is unavailable/i.test(detail))
-                    setError("That username or email is already in use. Choose a different fictional account.");
-                  else
-                    setError(detail);
+                    setError(
+                      "That username or email is already in use. Choose a different fictional account.",
+                    );
+                  else setError(detail);
                 } finally {
                   setBusy(false);
                 }
@@ -213,7 +264,11 @@ export function AccountAccess({
                 />
               </label>
               {fieldErrors.username && (
-                <p id="username-error" role="alert" className={styles.fieldError}>
+                <p
+                  id="username-error"
+                  role="alert"
+                  className={styles.fieldError}
+                >
                   {fieldErrors.username}
                 </p>
               )}
@@ -221,10 +276,19 @@ export function AccountAccess({
                 <>
                   <label>
                     Display name (fictional)
-                    <input name="name" minLength={2} maxLength={60} {...inputError("name")} />
+                    <input
+                      name="name"
+                      minLength={2}
+                      maxLength={60}
+                      {...inputError("name")}
+                    />
                   </label>
                   {fieldErrors.name && (
-                    <p id="name-error" role="alert" className={styles.fieldError}>
+                    <p
+                      id="name-error"
+                      role="alert"
+                      className={styles.fieldError}
+                    >
                       {fieldErrors.name}
                     </p>
                   )}
@@ -238,14 +302,22 @@ export function AccountAccess({
                       autoComplete="off"
                       placeholder="patient@example.com"
                       {...inputError("email")}
-                      aria-describedby={fieldErrors.email ? "email-error email-hint" : "email-hint"}
+                      aria-describedby={
+                        fieldErrors.email
+                          ? "email-error email-hint"
+                          : "email-hint"
+                      }
                     />
                   </label>
                   <p id="email-hint" className={styles.hint}>
                     {emailHint}
                   </p>
                   {fieldErrors.email && (
-                    <p id="email-error" role="alert" className={styles.fieldError}>
+                    <p
+                      id="email-error"
+                      role="alert"
+                      className={styles.fieldError}
+                    >
                       {fieldErrors.email}
                     </p>
                   )}
@@ -270,12 +342,20 @@ export function AccountAccess({
                           {...inputError("invitationToken")}
                         />
                       </label>
-                      <p className={styles.hint}>Paste the full 32–128 character invitation token supplied by your clinic administrator.</p>
                       {fieldErrors.invitationToken && (
-                        <p id="invitationToken-error" role="alert" className={styles.fieldError}>
+                        <p
+                          id="invitationToken-error"
+                          role="alert"
+                          className={styles.fieldError}
+                        >
                           {fieldErrors.invitationToken}
                         </p>
                       )}
+                      <p className={styles.hint}>
+                        A real administrator-issued mock invitation is required.
+                        Paste the full 32–128 character hexadecimal invitation
+                        token supplied by your clinic administrator.
+                      </p>
                     </>
                   )}
                 </>
@@ -285,14 +365,20 @@ export function AccountAccess({
                 <input
                   name="password"
                   type="password"
-                  autoComplete={registering ? "new-password" : "current-password"}
+                  autoComplete={
+                    registering ? "new-password" : "current-password"
+                  }
                   minLength={12}
                   maxLength={128}
                   {...inputError("password")}
                 />
               </label>
               {fieldErrors.password && (
-                <p id="password-error" role="alert" className={styles.fieldError}>
+                <p
+                  id="password-error"
+                  role="alert"
+                  className={styles.fieldError}
+                >
                   {fieldErrors.password}
                 </p>
               )}

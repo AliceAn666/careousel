@@ -148,87 +148,118 @@ test("patient individual account, onboarding, logout and navigation never switch
     page.getByText(/Demo Mode · synthetic personas only/),
   ).toBeVisible();
 });
-test("administrator invites, staff registers, admin approves, staff logs in and loses access after revocation", async ({
-  page,
-  browser,
-}) => {
-  await bootstrapAdmin();
-  await page.goto("/login/staff");
-  await page.getByLabel("Username", { exact: true }).fill("cedar.admin");
-  await page.getByLabel("Password (at least 12 characters)").fill(password);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await page.getByRole("button", { name: "Staff access", exact: true }).click();
-  await page
-    .getByLabel("Staff work email (mock)")
-    .fill("nurse@cedar.example.test");
-  await page.getByRole("button", { name: "Create mock invitation" }).click();
-  await expect(page.getByRole("status")).toContainText("No email was sent");
-  const token = await page
-    .locator("div")
-    .filter({
-      has: page.getByText("Copy this one-time invitation token now", {
-        exact: true,
-      }),
-    })
-    .last()
-    .locator("p")
-    .first()
-    .innerText();
-  const context = await browser.newContext();
-  try {
-    const staff = await context.newPage();
-    await staff.goto("/login/staff");
-    await staff
-      .getByRole("button", { name: "Redeem staff invitation" })
+for (const viewport of [
+  { name: "desktop", width: 1280, height: 900 },
+  { name: "mobile", width: 375, height: 812 },
+]) {
+  test(`administrator invites, staff registers, admin approves, staff logs in and loses access after revocation (${viewport.name})`, async ({
+    page,
+    browser,
+  }) => {
+    await page.setViewportSize(viewport);
+    await bootstrapAdmin();
+    await page.goto("/login/staff");
+    await page.getByLabel("Username", { exact: true }).fill("cedar.admin");
+    await page.getByLabel("Password (at least 12 characters)").fill(password);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Staff access", exact: true })
       .click();
-    await staff.getByLabel("Username", { exact: true }).fill("cedar.nurse");
-    await staff.getByLabel("Display name (fictional)").fill("Synthetic Nurse");
-    await staff
-      .getByLabel("Invited work email (mock)")
+    await page
+      .getByLabel("Staff work email (mock)")
       .fill("nurse@cedar.example.test");
-    await staff.getByLabel("Invitation token").fill(token);
-    await staff.getByLabel("Password (at least 12 characters)").fill(password);
-    await staff
-      .getByRole("button", { name: "Create invited staff account" })
-      .click();
-    await expect(staff.getByRole("status")).toContainText(
-      "administrator approval",
-    );
-    await page.reload();
-    const member = page
-      .getByRole("article")
-      .filter({ hasText: "Synthetic Nurse" });
-    await member.getByRole("button", { name: "Approve staff access" }).click();
-    await expect(member).toContainText("ACTIVE");
-    await staff.getByLabel("Username", { exact: true }).fill("cedar.nurse");
-    await staff.getByLabel("Password (at least 12 characters)").fill(password);
-    await staff.getByRole("button", { name: "Sign in", exact: true }).click();
-    await expect(staff).toHaveURL(/clinic\/schedule$/);
-    await expect(staff.getByLabel("Switch demo persona")).toHaveCount(0);
-    const snapshot = await (await staff.request.get("/api/state")).json();
-    expect(snapshot.user.clinicId).toBe("cedar");
-    expect(
-      snapshot.slots.every((s: { clinicId: string }) => s.clinicId === "cedar"),
-    ).toBe(true);
-    expect((await staff.request.get("/api/clinic/access")).status()).toBe(403);
-    page.once("dialog", (d) => d.accept());
-    await member.getByRole("button", { name: "Revoke access" }).click();
-    await expect(member).toContainText("REVOKED");
-    expect(
-      (await (await staff.request.get("/api/state")).json()).user,
-    ).toBeNull();
-    expect(
-      (
-        await staff.request.post("/api/actions", {
-          headers,
-          data: { type: "cancel", bookingId: "cedar-cancellation" },
-        })
-      ).status(),
-    ).toBe(401);
-  } finally {
-    await context.close();
-  }
-});
+    await page.getByRole("button", { name: "Create mock invitation" }).click();
+    await expect(page.getByRole("status")).toContainText("No email was sent");
+    const token = await page
+      .locator("div")
+      .filter({
+        has: page.getByText("Copy this one-time invitation token now", {
+          exact: true,
+        }),
+      })
+      .last()
+      .locator("p")
+      .first()
+      .innerText();
+    const context = await browser.newContext({ viewport });
+    try {
+      const staff = await context.newPage();
+      await staff.goto("/login/staff");
+      await staff
+        .getByRole("button", { name: "Redeem staff invitation" })
+        .click();
+      await staff.getByLabel("Username", { exact: true }).fill("cedar.nurse");
+      await staff
+        .getByLabel("Display name (fictional)")
+        .fill("Synthetic Nurse");
+      await staff
+        .getByLabel("Invited work email (mock)")
+        .fill("nurse@cedar.example.test");
+      await staff.getByLabel("Invitation token").fill(`  ${token}  `);
+      await staff
+        .getByLabel("Password (at least 12 characters)")
+        .fill(password);
+      await staff
+        .getByRole("button", { name: "Create invited staff account" })
+        .click();
+      await expect(staff.getByRole("status")).toContainText(
+        "administrator approval",
+      );
+      await expect(staff.getByRole("status")).toHaveText(
+        "Staff account created. Awaiting administrator approval.",
+      );
+      await expect(
+        staff.getByRole("heading", { name: "Clinic Staff Login", exact: true }),
+      ).toBeVisible();
+      expect(
+        await staff.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      ).toBe(true);
+      await page.reload();
+      const member = page
+        .getByRole("article")
+        .filter({ hasText: "Synthetic Nurse" });
+      await member
+        .getByRole("button", { name: "Approve staff access" })
+        .click();
+      await expect(member).toContainText("ACTIVE");
+      await staff.getByLabel("Username", { exact: true }).fill("cedar.nurse");
+      await staff
+        .getByLabel("Password (at least 12 characters)")
+        .fill(password);
+      await staff.getByRole("button", { name: "Sign in", exact: true }).click();
+      await expect(staff).toHaveURL(/clinic\/schedule$/);
+      await expect(staff.getByLabel("Switch demo persona")).toHaveCount(0);
+      const snapshot = await (await staff.request.get("/api/state")).json();
+      expect(snapshot.user.clinicId).toBe("cedar");
+      expect(
+        snapshot.slots.every(
+          (s: { clinicId: string }) => s.clinicId === "cedar",
+        ),
+      ).toBe(true);
+      expect((await staff.request.get("/api/clinic/access")).status()).toBe(
+        403,
+      );
+      page.once("dialog", (d) => d.accept());
+      await member.getByRole("button", { name: "Revoke access" }).click();
+      await expect(member).toContainText("REVOKED");
+      expect(
+        (await (await staff.request.get("/api/state")).json()).user,
+      ).toBeNull();
+      expect(
+        (
+          await staff.request.post("/api/actions", {
+            headers,
+            data: { type: "cancel", bookingId: "cedar-cancellation" },
+          })
+        ).status(),
+      ).toBe(401);
+    } finally {
+      await context.close();
+    }
+  });
+}
 
 test("account endpoints enforce CSRF, prevent self-granted staff and reject expired sessions", async ({
   request,
@@ -319,9 +350,7 @@ test("account forms show email validation beside the field and failed login belo
   page,
 }) => {
   await page.goto("/login/patient");
-  await page
-    .getByRole("button", { name: "Create patient account" })
-    .click();
+  await page.getByRole("button", { name: "Create patient account" }).click();
   await page.getByLabel("Username", { exact: true }).fill("form.patient");
   await page
     .getByLabel("Display name (fictional)")
@@ -329,9 +358,9 @@ test("account forms show email validation beside the field and failed login belo
   await page.getByLabel("Email (fictional)").fill("person@gmail.com");
   await page.getByLabel("Password (at least 12 characters)").fill(password);
   await page.getByRole("button", { name: "Register patient" }).click();
-  await expect(
-    page.locator("form").getByRole("alert"),
-  ).toContainText("Only fictional example/test email addresses");
+  await expect(page.locator("form").getByRole("alert")).toContainText(
+    "Only fictional example/test email addresses",
+  );
   await expect(page.getByLabel("Email (fictional)")).toHaveAttribute(
     "aria-invalid",
     "true",
@@ -347,15 +376,13 @@ test("account forms show email validation beside the field and failed login belo
     .getByLabel("Password (at least 12 characters)")
     .fill("IncorrectPassword!123");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(
-    page.locator("form").getByRole("alert"),
-  ).toHaveText("Invalid username or password.");
+  await expect(page.locator("form").getByRole("alert")).toHaveText(
+    "Invalid username or password.",
+  );
   await expect(
     page.getByLabel("Password (at least 12 characters)"),
   ).toHaveAttribute("aria-invalid", "true");
-  await page
-    .getByLabel("Password (at least 12 characters)")
-    .fill(password);
+  await page.getByLabel("Password (at least 12 characters)").fill(password);
   await expect(page.locator("form").getByRole("alert")).toHaveCount(0);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/search$/);
