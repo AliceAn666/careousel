@@ -15,6 +15,7 @@ export function MedicalTags({ patient = false }: { patient?: boolean }) {
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false),
+    [formVersion, setFormVersion] = useState(0),
     [editing, setEditing] = useState<Tag | null>(null);
   const load = useCallback(async (signal?: AbortSignal) => {
     const response = await fetch("/api/medical-tags", {
@@ -43,6 +44,7 @@ export function MedicalTags({ patient = false }: { patient?: boolean }) {
       const result = await request("/api/medical-tags", input);
       setMessage(result.message);
       setEditing(null);
+      setFormVersion((v) => v + 1);
       setData(await load());
     } catch (e) {
       setError((e as Error).message);
@@ -91,7 +93,7 @@ export function MedicalTags({ patient = false }: { patient?: boolean }) {
       {data?.canAuthor && (
         <form
           className="card stack"
-          key={editing?.id ?? "new"}
+          key={`${editing?.id ?? "new"}:${formVersion}`}
           onSubmit={(event) => {
             event.preventDefault();
             const form = new FormData(event.currentTarget);
@@ -143,8 +145,8 @@ export function MedicalTags({ patient = false }: { patient?: boolean }) {
               </label>
               {!data.encounters.length && (
                 <p>
-                  No started visits available at your clinic. Future or
-                  cancelled bookings cannot be used.
+                  No started visits available at your clinic. Future, cancelled
+                  or replaced bookings cannot be used.
                 </p>
               )}
               <label>

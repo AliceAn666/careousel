@@ -84,6 +84,7 @@ test("clinician creates, reviews and edits visit evidence; patient sees only app
     name: "Medical tag Synthetic follow-up recommendation",
   });
   await expect(card).toContainText("DRAFT");
+  await expect(page.getByLabel("Tag label", { exact: true })).toHaveValue("");
   page.once("dialog", (dialog) =>
     dialog.accept("Reviewed synthetic visit evidence"),
   );

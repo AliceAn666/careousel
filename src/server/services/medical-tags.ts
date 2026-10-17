@@ -65,7 +65,7 @@ export async function medicalTagsDashboard(userId: string) {
       ? await tx.booking.findMany({
           where: {
             slot: { clinicId: user.clinicId!, start: { lte: new Date() } },
-            status: { in: ["CONFIRMED", "RESCHEDULED"] },
+            status: "CONFIRMED",
           },
           select: {
             id: true,
@@ -143,7 +143,7 @@ export async function mutateMedicalTag(userId: string, raw: unknown) {
         where: {
           id: input.sourceBookingId,
           slot: { clinicId: user.clinicId!, start: { lte: now } },
-          status: { in: ["CONFIRMED", "RESCHEDULED"] },
+          status: "CONFIRMED",
         },
         include: { slot: true },
       });

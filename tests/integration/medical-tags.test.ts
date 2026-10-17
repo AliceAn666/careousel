@@ -125,7 +125,7 @@ it("persists patient need, provenance, notes, review and complete version snapsh
   ).toMatchObject({ state: "DRAFT", reviewedAt: null, version: 3 });
   expect(await db.medicalTagRevision.count()).toBe(3);
 });
-it("denies patients, unknown actors and other clinics; rejects future and cancelled sources", async () => {
+it("denies patients, unknown actors and other clinics; rejects future, cancelled and replaced sources", async () => {
   for (const id of ["avery", "patient-1", "staff-harbor", "missing"])
     await expect(mutateMedicalTag(id, draft)).rejects.toThrow();
   await db.slot.update({
@@ -148,6 +148,16 @@ it("denies patients, unknown actors and other clinics; rejects future and cancel
     data: { status: "CANCELLED" },
   });
   await expect(create()).rejects.toThrow(/visit/);
+  await db.booking.update({
+    where: { id: "phase8-visit" },
+    data: { status: "RESCHEDULED" },
+  });
+  await expect(create()).rejects.toThrow(/visit/);
+  expect(
+    (await medicalTagsDashboard("staff-cedar")).encounters.some(
+      (e) => e.id === "phase8-visit",
+    ),
+  ).toBe(false);
   expect(await db.medicalTag.count()).toBe(0);
 });
 it("serializes concurrent edits, rejects stale reviews, retains retired histories and protects audit snapshots", async () => {
