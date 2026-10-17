@@ -372,13 +372,8 @@ export function SearchCare({
               >
                 <div className="grow">
                   <span className="eyebrow">{first.service}</span>
-                  <h3>{first.clinic.name}</h3>
-                  <p>{first.clinic.address}, {first.clinic.city}</p>
-                  <p>
-                    {slots.length} available appointment{" "}
-                    {slots.length === 1 ? "time" : "times"} ·{" "}
-                    {[...new Set(slots.map((slot) => slot.provider))].join(", ")}
-                  </p>
+                  <div className="clinic-title-row">
+                    <h3>{first.clinic.name}</h3>
                   {plan && plan !== "Self-pay" && (
                     <p
                       className={
@@ -399,6 +394,13 @@ export function SearchCare({
                       Self-pay: full listed price, no insurance benefit applied
                     </p>
                   )}
+                  </div>
+                  <p>{first.clinic.address}, {first.clinic.city}</p>
+                  <p>
+                    {slots.length} available appointment{" "}
+                    {slots.length === 1 ? "time" : "times"} ·{" "}
+                    {[...new Set(slots.map((slot) => slot.provider))].join(", ")}
+                  </p>
                   <p className="muted">
                     Select an available time to confirm your appointment
                     (Pacific):
