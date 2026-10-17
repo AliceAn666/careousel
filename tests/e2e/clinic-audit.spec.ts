@@ -231,3 +231,85 @@ test("unreviewed cross-clinic waitlist stays excluded from automatic P1–P4 sen
     await patient.close();
   }
 });
+
+test("clinic overview counters open actual scoped details and filter schedule rows", async ({
+  page,
+}) => {
+  const staff = await page.request.post("/api/session", {
+    headers: sameOrigin,
+    data: { id: "staff-cedar", demo: true },
+  });
+  expect(staff.ok()).toBe(true);
+  await page.goto("/clinic/schedule");
+  const snapshot = await (await page.request.get("/api/state")).json();
+  const confirmed = snapshot.bookings.filter(
+    (booking: { status: string }) => booking.status === "CONFIRMED",
+  );
+  const available = snapshot.slots.filter(
+    (slot: { status: string }) => slot.status === "AVAILABLE",
+  );
+  const matches = snapshot.candidates;
+
+  const confirmedButton = page.getByRole("button", {
+    name: "View confirmed appointments",
+  });
+  await expect(confirmedButton).toHaveAttribute("aria-expanded", "false");
+  await confirmedButton.click();
+  const confirmedDetails = page.getByRole("region", {
+    name: "Confirmed appointments details",
+  });
+  await expect(confirmedDetails).toBeVisible();
+  await expect(confirmedButton).toHaveAttribute("aria-expanded", "true");
+  await expect(confirmedDetails.locator(".overview-detail-item")).toHaveCount(
+    confirmed.length,
+  );
+  await expect(page.locator(".table-scroll tbody tr")).toHaveCount(
+    confirmed.length,
+  );
+
+  const availableButton = page.getByRole("button", {
+    name: "View available openings",
+  });
+  await availableButton.click();
+  const availableDetails = page.getByRole("region", {
+    name: "Available openings details",
+  });
+  await expect(availableDetails).toBeVisible();
+  await expect(confirmedDetails).toHaveCount(0);
+  await expect(availableDetails.locator(".overview-detail-item")).toHaveCount(
+    available.length,
+  );
+  await expect(page.locator(".table-scroll tbody tr")).toHaveCount(
+    available.length,
+  );
+
+  const matchesButton = page.getByRole("button", {
+    name: "View eligible matches",
+  });
+  await matchesButton.click();
+  const matchDetails = page.getByRole("region", {
+    name: "Eligible matches details",
+  });
+  await expect(matchDetails).toBeVisible();
+  await expect(matchDetails.locator(".overview-detail-item")).toHaveCount(
+    matches.length,
+  );
+  await expect(
+    matchDetails.getByRole("link", { name: "Review waitlist matches" }),
+  ).toHaveAttribute("href", "/clinic/waitlists");
+
+  await page.setViewportSize({ width: 375, height: 812 });
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+  ).toBe(true);
+  await page.getByRole("button", { name: "Close overview details" }).click();
+  await expect(matchDetails).toHaveCount(0);
+  await expect(page.locator(".table-scroll tbody tr")).toHaveCount(
+    snapshot.slots.length,
+  );
+  await matchesButton.click();
+  await matchDetails
+    .getByRole("link", { name: "Review waitlist matches" })
+    .click();
+  await expect(page).toHaveURL(/\/clinic\/waitlists$/);
+});
