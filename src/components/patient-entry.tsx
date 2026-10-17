@@ -13,21 +13,23 @@ export function PatientEntry({
     <section className="stack" aria-label="Patient entry">
       <div className="patient-entry-grid">
         <article className="card">
-          <h2>Book an Appointment</h2>
+          <h2>Book Basic Care</h2>
           <p>
-            Search for vaccinations, blood tests, routine examinations and other
-            eligible care. No symptom questionnaire is required. Each opening
-            still has its own eligibility requirements.
+            Search for vaccinations, blood tests, routine examinations only.
+            Specialist consultations use clinic-reviewed waitlist invitations.
+            No symptom questionnaire is required. Each opening still has its own
+            eligibility requirements.
           </p>
           <button className="primary" onClick={() => navigate("/search")}>
-            Book an Appointment
+            Book Basic Care
           </button>
         </article>
         <article className="card">
           <h2>Find an Earlier Appointment</h2>
           <p>
-            Already have an appointment? Register what you need and join a
-            waitlist while keeping your original booking.
+            Join the shared waitlist with or without an existing appointment,
+            including specialist consultations. Register what you need while
+            protecting any original booking.
           </p>
           <button className="primary" onClick={() => navigate("/earlier")}>
             Find an Earlier Appointment

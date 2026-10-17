@@ -101,9 +101,10 @@ export function LandingPage({
               </span>
             </h1>
             <p>
-              Find appointments that fit your needs, insurance plan, location
-              and schedule. When a suitable earlier opening comes along, we help
-              you take the next step.
+              Recover unused appointment capacity from cancellations and receive
+              care sooner. Book Basic Care for vaccinations, blood tests and
+              routine examinations. Find an Earlier Appointment through
+              clinic-reviewed waitlists, including specialist care.
             </p>
             <div className={styles.actions}>
               <button

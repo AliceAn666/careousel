@@ -23,6 +23,11 @@ const preferences = {
 };
 beforeEach(async () => {
   await locked((tx) => seedData(tx, now));
+  // Direct-booking fixtures use a basic service; specialist invitation fixtures stay unchanged.
+  await db.slot.update({
+    where: { id: "slot-0" },
+    data: { service: "Vaccination" },
+  });
 });
 afterAll(async () => {
   await db.$disconnect();

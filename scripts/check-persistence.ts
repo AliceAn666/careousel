@@ -89,7 +89,11 @@ try {
     },
     patientCookie,
   );
-  await post("/api/actions", { type: "book", slotId: "slot-0" }, patientCookie);
+  await post(
+    "/api/actions",
+    { type: "book", slotId: "demo-open-cedar-3-0-0" },
+    patientCookie,
+  );
   // Build the own-clinic candidate projection just as the staff UI does.
   const preview = await fetch(base + "/api/state", {
     headers: { cookie: staffCookie },
@@ -407,7 +411,7 @@ try {
   if (
     !state.bookings.some(
       (b: { slotId: string; status: string }) =>
-        b.slotId === "slot-0" && b.status === "CONFIRMED",
+        b.slotId === "demo-open-cedar-3-0-0" && b.status === "CONFIRMED",
     )
   )
     throw new Error("Booking did not survive server restart.");

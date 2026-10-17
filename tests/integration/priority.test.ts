@@ -29,6 +29,11 @@ const assign = (
 });
 beforeEach(async () => {
   await locked((tx) => seedData(tx, now));
+  // Direct-booking fixtures use a basic service; specialist invitation fixtures stay unchanged.
+  await db.slot.update({
+    where: { id: "slot-0" },
+    data: { service: "Vaccination" },
+  });
   // The staff UI obtains this authorized candidate projection before editing.
   await getState(await user("staff-cedar"));
 });

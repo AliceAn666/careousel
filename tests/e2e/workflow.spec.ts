@@ -115,7 +115,7 @@ test("search filters keep clinics visible, prioritize insurer matches and suppor
   const baseline = await openings.count();
   await page
     .getByLabel("Specialty", { exact: true })
-    .selectOption("Cardiology");
+    .selectOption("Vaccination");
   await page.getByLabel("Location", { exact: true }).selectOption("Oakland");
   await page.getByLabel("Maximum cost ($)").fill("1");
   await expect(
@@ -128,15 +128,20 @@ test("search filters keep clinics visible, prioritize insurer matches and suppor
     page.getByRole("region", { name: "Insurance from your account" }),
   ).toContainText("Blue Horizon");
   await expect(page.getByLabel("Insurance company (demo)")).toHaveCount(0);
-  await page.getByLabel("Specialty", { exact: true }).selectOption("Cardiology");
+  await page
+    .getByLabel("Specialty", { exact: true })
+    .selectOption("Vaccination");
   await expect(openings).toHaveCount(4);
-  await expect(page.locator(".appointment-results .insurance-match-good"))
-    .toHaveCount(0);
-  await expect(page.locator(".appointment-results .insurance-match-warning"))
-    .toHaveCount(0);
+  await expect(
+    page.locator(".appointment-results .insurance-match-good"),
+  ).toHaveCount(0);
+  await expect(
+    page.locator(".appointment-results .insurance-match-warning"),
+  ).toHaveCount(0);
   await page.getByLabel("Insurance plan type").selectOption("HMO");
-  await expect(page.locator(".appointment-results .insurance-match-warning"))
-    .toHaveCount(4);
+  await expect(
+    page.locator(".appointment-results .insurance-match-warning"),
+  ).toHaveCount(2);
   await expect(openings).toHaveCount(4);
   await page.getByLabel("Insurance plan type").selectOption("PPO");
   const selectedTime = openings.first().locator(".clinic-time-choice").first();
@@ -165,7 +170,7 @@ test("search filters keep clinics visible, prioritize insurer matches and suppor
   ).toBe("CONFIRMED");
   await page.setViewportSize({ width: 375, height: 812 });
   await page
-    .getByRole("button", { name: "Book an Appointment", exact: true })
+    .getByRole("button", { name: "Book Basic Care", exact: true })
     .click();
   await expect(
     page.getByRole("heading", { name: "Find your next appointment." }),

@@ -39,13 +39,32 @@ test("clinic-first service grouping, selectable times, and optional waitlist pre
   expect(ids.length).toBeGreaterThan(0);
   expect(new Set(ids).size).toBe(ids.length);
   expect([...ids].sort()).toEqual(
-    state.slots.map((s: { id: string }) => s.id).sort(),
+    state.slots
+      .filter(
+        (s: { service: string; status: string }) =>
+          ["Vaccination", "Blood test", "Routine examination"].includes(
+            s.service,
+          ) && s.status === "AVAILABLE",
+      )
+      .map((s: { id: string }) => s.id)
+      .sort(),
   );
   for (const id of ids)
     expect(state.slots.some((s: { id: string }) => s.id === id)).toBe(true);
   for (const card of await cards.all()) {
     await expect(card.getByRole("heading")).toBeVisible();
-    await expect(card.locator(".clinic-time-choice").first()).toBeVisible();
+    if (
+      ["Vaccination", "Blood test", "Routine examination"].includes(
+        (await card.locator(".eyebrow").innerText()).trim(),
+      )
+    )
+      await expect(card.locator(".clinic-time-choice").first()).toBeVisible();
+    else {
+      await expect(card.locator(".clinic-time-choice")).toHaveCount(0);
+      await expect(
+        card.getByRole("button", { name: "Join Waitlist", exact: true }),
+      ).toBeVisible();
+    }
     await expect(
       card.getByRole("button", { name: "View details & book" }),
     ).toHaveCount(0);
@@ -53,7 +72,7 @@ test("clinic-first service grouping, selectable times, and optional waitlist pre
   // Every opening is visible and opens confirmation for that exact time.
   const cedarCard = cards
     .filter({ hasText: "Cedar Health" })
-    .filter({ hasText: "Cardiology" })
+    .filter({ hasText: "Vaccination" })
     .first();
   const choices = cedarCard.locator("button[data-slot-id]");
   await expect.poll(() => choices.count()).toBeGreaterThan(3);
@@ -134,7 +153,7 @@ test("clinic-first service grouping, selectable times, and optional waitlist pre
     .click();
   await expect(page).toHaveURL(/\/appointments$/);
   await page
-    .getByRole("button", { name: "Book an Appointment", exact: true })
+    .getByRole("button", { name: "Book Basic Care", exact: true })
     .click();
   await page.setViewportSize({ width: 375, height: 812 });
   expect(

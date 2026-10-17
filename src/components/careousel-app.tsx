@@ -1,4 +1,5 @@
 "use client";
+import { canDirectBook } from "@/lib/service-eligibility";
 import { useCallback, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -52,7 +53,7 @@ import onboarding from "./onboarding.module.css";
 import { LandingPage } from "./landing-page";
 // Demo guide and Activity stay reachable by URL but are hidden from navigation.
 const navPatient = [
-  ["/search", "Book an Appointment", Search],
+  ["/search", "Book Basic Care", Search],
   ["/waitlists", "Find an Earlier Appointment", Clock3],
   ["/appointments", "Manage My Appointments and Waitlists", CalendarDays],
   ["/notifications", "Notifications", Bell],
@@ -504,9 +505,11 @@ export function CareouselApp() {
                         Keep your appointment while we find an earlier one
                       </h2>
                       <p>
-                        Select the appointment you want to replace and your
-                        preferences. Your original stays confirmed until you
-                        explicitly accept a valid earlier invitation.
+                        Join with or without an existing appointment. Select an
+                        optional original and your preferences. Specialist
+                        openings require clinic-reviewed invitations. Your
+                        original stays confirmed until you accept a valid
+                        replacement.
                       </p>
                       <button className="primary" onClick={() => join()}>
                         {path === "/earlier"
@@ -524,6 +527,10 @@ export function CareouselApp() {
                   state={state}
                   key={user.id}
                   onDetail={(slot, selection) => {
+                    if (!canDirectBook(slot.service)) {
+                      join(undefined, undefined, slot.service);
+                      return;
+                    }
                     setDetail(slot);
                     setCoverage(selection);
                   }}
@@ -546,7 +553,7 @@ export function CareouselApp() {
             onClose={() => setTour(false)}
           />
         )}
-        {detail && (
+        {detail && canDirectBook(detail.service) && (
           <Modal title="Appointment details" onClose={() => setDetail(null)}>
             <div className="detail-banner">
               <span className={`clinic-symbol ${detail.clinicId}`}>
@@ -582,7 +589,8 @@ export function CareouselApp() {
               </div>
             </dl>
             <p className="muted">
-              Insurance on your account: <strong>{appointmentInsurer || "Not provided"}</strong>.
+              Insurance on your account:{" "}
+              <strong>{appointmentInsurer || "Not provided"}</strong>.
               {appointmentInsurer && appointmentInsurer !== "Self-pay"
                 ? ` Demo ${coverage.planType} estimate.`
                 : " Self-pay pricing is displayed below."}

@@ -54,3 +54,6 @@ No real hospital, insurer, referral-validation, external cancellation or deploym
 Latest-main integration: PR #27 (`2e0c42f`) merged while final verification was underway; its [main CI 39026775255](https://github.com/AliceAn666/careousel/actions/runs/39026775255) subsequently succeeded. This branch retains clinic-first grouped search, richer synthetic opening fixtures and explicitly acknowledged demo self-pay booking; it does not restore monthly icon-calendar search or symptom gates. Regressions were rerun on the combined branch.
 
 Final visual synchronization: PR #28 (`785436a`) was merged into this branch without conflicts. Its larger typography and roomier layouts are retained; the full 31-test Chromium suite, including independent medical needs on 375px screens and readable layouts at three widths, passed. Scheduling backend/schema behavior is unchanged by that stylesheet synchronization.
+
+
+Final booking restriction: need-specific direct booking now uses the shared exact service allowlist (Vaccination, Blood test, Routine examination). Specialist and Primary care needs join clinic-reviewed waitlists; only valid invitations can create specialist bookings. Self-pay never bypasses this restriction. All independent-need and external-original protections above remain unchanged. See [booking policy](booking-policy.md).

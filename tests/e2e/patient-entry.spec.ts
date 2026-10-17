@@ -20,7 +20,7 @@ test("patient joins a linked waitlist directly from entry, with no symptoms and 
   });
   await page.goto("/patient");
   for (const name of [
-    "Book an Appointment",
+    "Book Basic Care",
     "Find an Earlier Appointment",
     "Manage My Appointments and Waitlists",
   ])
@@ -107,7 +107,7 @@ test("basic vaccination booking skips symptoms, health-history route stays read-
   await page.goto("/patient");
   await page
     .locator(".patient-entry-grid")
-    .getByRole("button", { name: "Book an Appointment", exact: true })
+    .getByRole("button", { name: "Book Basic Care", exact: true })
     .click();
   await page
     .getByLabel("Specialty", { exact: true })
