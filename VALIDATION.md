@@ -389,3 +389,9 @@ Independent verification on isolated local PostgreSQL 17 `localhost:5548/careous
 ### Latest-main synchronization
 
 While verifying this fix, main advanced to 5bb96d5 (PR #34: signed-in insurance and out-of-network-only warnings). Fast-forwarded the feature base without conflicts or reverting those five main files. Repeated all **35 Chromium E2E tests**, production build and production/worker restart persistence on this updated base: all passed. The backend and unit/integration code was unchanged by main's insurance-UI update; the 72/118 results above cover the identical backend. No shared data or additional migrations were involved.
+
+## PR #36 conflict resolution against main 109cd9c
+
+Resolved the password input overlap by retaining main's accessible show/hide toggle together with invitation registration validation, field errors and approval protections. No server permission, invitation provisioning, schema or deployment changes. Account preservation browser assertion now compares ID/status/start/end facts sorted by ID rather than relying on undefined ordering of equal-time slots; data preservation assertions are stronger.
+
+Verified in a newly created PostgreSQL 17 careousel_test container, local port 5558: lint/typecheck passed (inherited Cloudflare warning), 72 unit tests passed, 14 focused account/provisioning PostgreSQL integration tests passed, all 6 account Chromium journeys passed (desktop/mobile invitation registration, approval/login/revocation, password visibility, field feedback, account/data preservation), production build passed, changed-file formatting and whitespace checks passed. No live database, invitation activation, reset/reseed, merge to main or deployment performed during this conflict fix. Full prior validation above describes the original PR; this follow-up reruns the checks relevant to the component merge.

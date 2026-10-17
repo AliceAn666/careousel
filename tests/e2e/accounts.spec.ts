@@ -138,9 +138,15 @@ test("patient individual account, onboarding, logout and navigation never switch
   });
   expect((await stale.json()).user).toBeNull();
   const after = await (await request.get("/api/state")).json();
-  expect(after.slots.map((s: { id: string }) => s.id)).toEqual(
-    before.slots.map((s: { id: string }) => s.id),
-  );
+  // Equal-time openings have no guaranteed database tie order. Compare the
+  // actual preserved appointment facts, independently of that incidental order.
+  const slotFacts = (
+    slots: { id: string; status: string; start: string; end: string }[],
+  ) =>
+    slots
+      .map(({ id, status, start, end }) => ({ id, status, start, end }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+  expect(slotFacts(after.slots)).toEqual(slotFacts(before.slots));
   await page
     .getByRole("button", { name: "Enter Demo Mode", exact: true })
     .click();
@@ -386,4 +392,50 @@ test("account forms show email validation beside the field and failed login belo
   await expect(page.locator("form").getByRole("alert")).toHaveCount(0);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/search$/);
+});
+
+test("password visibility works for patient and staff login/registration without losing typed text", async ({
+  page,
+}) => {
+  for (const entrance of ["patient", "staff"] as const) {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto(`/login/${entrance}`);
+    const passwordInput = page.locator('input[name="password"]');
+    const value = "DemoVisibility!123";
+    await passwordInput.fill(value);
+    await expect(passwordInput).toHaveAttribute("type", "password");
+    const show = page.getByRole("button", { name: "Show password" });
+    await expect(show).toHaveAttribute("type", "button");
+    await show.click();
+    await expect(passwordInput).toHaveAttribute("type", "text");
+    await expect(passwordInput).toHaveValue(value);
+    const hide = page.getByRole("button", { name: "Hide password" });
+    await expect(hide).toHaveAttribute("aria-pressed", "true");
+    await hide.focus();
+    await page.keyboard.press("Enter");
+    await expect(passwordInput).toHaveAttribute("type", "password");
+    await expect(passwordInput).toHaveValue(value);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+
+    await page
+      .getByRole("button", {
+        name:
+          entrance === "patient"
+            ? "Create patient account"
+            : "Redeem staff invitation",
+      })
+      .click();
+    await expect(passwordInput).toHaveAttribute("type", "password");
+    await passwordInput.fill(value);
+    await page.getByRole("button", { name: "Show password" }).click();
+    await expect(passwordInput).toHaveAttribute("type", "text");
+    await expect(passwordInput).toHaveValue(value);
+    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    await expect(passwordInput).toHaveAttribute("type", "password");
+    await expect(passwordInput).toHaveValue(value);
+  }
 });
