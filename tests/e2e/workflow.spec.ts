@@ -107,15 +107,13 @@ test("search filters keep clinics visible, prioritize insurer matches and suppor
     .first()
     .click();
   await expectImmediateSearchAccess(page);
-  const openings = page.locator(".appointment-results button[data-slot-id]");
+  const openings = page.locator(".appointment-results .search-result");
   await expect(
     page.getByRole("region", { name: "Appointment results" }),
   ).toBeVisible();
   await expect.poll(() => openings.count()).toBeGreaterThan(0);
   const baseline = await openings.count();
-  await page
-    .getByLabel("Specialty", { exact: true })
-    .selectOption("Cardiology");
+  await page.getByLabel("Specialty", { exact: true }).selectOption("Cardiology");
   await page.getByLabel("Location", { exact: true }).selectOption("Oakland");
   await page.getByLabel("Maximum cost ($)").fill("1");
   await expect(
@@ -127,26 +125,27 @@ test("search filters keep clinics visible, prioritize insurer matches and suppor
   const insurer = page.getByLabel("Insurance company (demo)");
   await insurer.selectOption("Pacific Care");
   await expect(openings).toHaveCount(baseline);
+  await expect(
+    page.locator(".appointment-results .insurance-match-warning").first(),
+  ).toBeVisible();
   await insurer.selectOption("Blue Horizon");
-  await page
-    .getByLabel("Specialty", { exact: true })
-    .selectOption("Cardiology");
+  await page.getByLabel("Specialty", { exact: true }).selectOption("Cardiology");
   await expect(openings).toHaveCount(4);
   await expect(
     page.locator(".appointment-results .insurance-match-good").first(),
   ).toBeVisible();
-  await expect(
-    page.locator(".appointment-results .insurance-match-warning").first(),
-  ).toBeVisible();
-  const id = await openings.first().getAttribute("data-slot-id");
+  await expect(page.locator(".appointment-results .insurance-match-warning"))
+    .toHaveCount(0);
+  const selectedTime = openings.first().locator(".clinic-time-choice").first();
+  const id = await selectedTime.getAttribute("data-slot-id");
   const snapshot = await (await page.request.get("/api/state")).json();
   const slot = snapshot.slots.find((s: { id: string }) => s.id === id);
   expect(slot.plans).toContain("Blue Horizon");
-  await openings.first().click();
+  await selectedTime.click();
   const details = page.getByRole("dialog", { name: "Appointment details" });
-  await expect(
-    details.getByRole("group", { name: "Available appointment times" }),
-  ).toBeVisible();
+  await expect(details).toContainText("Please confirm the appointment time");
+  await expect(details.getByRole("group", { name: "Available appointment times" }))
+    .toHaveCount(0);
   await details.getByRole("button", { name: "Confirm appointment" }).click();
   await expect(page.getByRole("status")).toContainText("Appointment confirmed");
   await page.setViewportSize({ width: 375, height: 812 });
