@@ -11,6 +11,7 @@ import {
 import { DURATIONS, SYMPTOM_AREAS, WARNING_SIGNS } from "../../lib/priority";
 import { PRIORITY_LEVELS } from "../../lib/waitlist-priority";
 import { priorityInclude, priorityRequestScope } from "./waitlist-priority";
+import { ensureStaffAccess } from "../auth/access";
 import { seedData } from "../../../prisma/seed-data";
 export class DomainError extends Error {
   constructor(
@@ -221,6 +222,7 @@ export async function performAction(
     const now = options.clock?.() ?? options.now ?? new Date();
     const user = await tx.user.findUnique({ where: { id: userId } });
     if (!user) fail("Please select a demo persona.", 401);
+    if (user.role === "STAFF") await ensureStaffAccess(tx, user);
     await expireOffers(tx, now);
     const staff = (clinicId?: string) => {
       if (
@@ -720,6 +722,11 @@ export async function performAction(
       }
       case "reset": {
         staff();
+        if (await tx.account.findUnique({ where: { userId: user.id } }))
+          fail(
+            "Reset requires an explicit synthetic Demo Mode staff session.",
+            403,
+          );
         if (process.env.DEMO_MODE !== "true")
           fail("Demo reset is disabled.", 403);
         await seedData(tx, now);
@@ -764,8 +771,12 @@ export async function restartDemo(
     .parse(raw);
   return performAction(userId, { type: "reset", ...confirmation }, options);
 }
-export async function getState(user: User | null) {
+export async function getState(
+  user: User | null,
+  options: { demoMode?: boolean } = {},
+) {
   return locked(async (tx) => {
+    if (user?.role === "STAFF") await ensureStaffAccess(tx, user);
     const now = new Date();
     await expireOffers(tx, now);
     await refreshMatches(tx, now);
@@ -776,7 +787,7 @@ export async function getState(user: User | null) {
       orderBy: { start: "asc" },
     });
     const personas =
-      process.env.DEMO_MODE === "true"
+      process.env.DEMO_MODE === "true" && options.demoMode !== false
         ? (
             await tx.user.findMany({
               where: { id: { in: [...DEMO_PERSONAS] } },

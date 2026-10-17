@@ -21,6 +21,11 @@ import styles from "./landing-page.module.css";
 type Persona = { id: string; name: string; role: string };
 type Props = {
   personas: Persona[];
+  demoMode?: boolean;
+  demoAvailable?: boolean;
+  onDemoStart?: () => void;
+  onLogout?: () => void;
+  currentName?: string;
   currentRole?: string;
   loading: boolean;
   busy: boolean;
@@ -32,6 +37,11 @@ type Props = {
 
 export function LandingPage({
   personas,
+  demoMode = false,
+  demoAvailable = false,
+  onDemoStart,
+  onLogout,
+  currentName,
   currentRole,
   loading,
   busy,
@@ -43,7 +53,10 @@ export function LandingPage({
   const [audience, setAudience] = useState<"PATIENT" | "STAFF">("PATIENT");
   const unavailable = loading || busy || personas.length === 0;
   const entryUnavailable = (role: "PATIENT" | "STAFF") =>
-    loading || busy || (!personas.length && currentRole !== role);
+    loading ||
+    busy ||
+    !!error ||
+    (demoMode && !personas.length && currentRole !== role);
   const entrance = (role: "PATIENT" | "STAFF") => {
     setAudience(role);
     onEnter(role);
@@ -67,7 +80,8 @@ export function LandingPage({
           disabled={entryUnavailable("PATIENT")}
           onClick={() => entrance("PATIENT")}
         >
-          Find Care <ArrowRight size={16} aria-hidden="true" />
+          {demoMode ? "Find Care" : "Patient Login"}{" "}
+          <ArrowRight size={16} aria-hidden="true" />
         </button>
       </header>
 
@@ -124,9 +138,18 @@ export function LandingPage({
               </div>
             )}
             <p className={styles.demoHint}>
-              Explore the synthetic demo as Avery Morgan, or enter the Cedar
-              Health clinic workspace below. An existing session in the same
-              role is kept.
+              {demoMode
+                ? "Demo Mode · synthetic personas only. Existing same-role sessions are kept."
+                : "Individual patient and clinic staff accounts. Switching accounts requires logout; no signup can grant itself clinic privileges."}
+              {currentName && (
+                <>
+                  {" "}
+                  Signed in as {currentName} · {currentRole}.{" "}
+                  <button className={styles.secondary} onClick={onLogout}>
+                    Log out
+                  </button>
+                </>
+              )}
             </p>
           </div>
           <div
@@ -332,10 +355,13 @@ export function LandingPage({
               disabled={entryUnavailable("STAFF")}
               onClick={() => entrance("STAFF")}
             >
-              Open clinic demo <ArrowRight size={18} aria-hidden="true" />
+              {demoMode ? "Open clinic demo" : "Clinic Staff Login"}{" "}
+              <ArrowRight size={18} aria-hidden="true" />
             </button>
             <span className={styles.clinicHint}>
-              Cedar Health · Synthetic staff workspace
+              {demoMode
+                ? "Cedar Health · Synthetic staff workspace"
+                : "Approved staff accounts · Mock institution verification"}
             </span>
           </div>
         </section>
@@ -352,49 +378,78 @@ export function LandingPage({
               not a production healthcare service.
             </p>
           </div>
-          <div className={styles.demoControls}>
-            {loading && <p role="status">Connecting to demo workspaces…</p>}
-            {!loading && !error && personas.length === 0 && (
-              <p>Demo persona switching is unavailable in this environment.</p>
-            )}
-            {busy && <p role="status">Opening your demo workspace…</p>}
-            <details>
-              <summary>Explore other demo personas</summary>
-              <label>
-                Workspace
-                <select
-                  aria-label="Demo workspace type"
-                  value={audience}
-                  onChange={(e) =>
-                    setAudience(e.target.value as "PATIENT" | "STAFF")
-                  }
-                >
-                  <option value="PATIENT">Patient</option>
-                  <option value="STAFF">Clinic staff</option>
-                </select>
-              </label>
-              <label>
-                Demo persona
-                <select
-                  aria-label="Choose a demo persona"
-                  value=""
-                  disabled={unavailable}
-                  onChange={(e) => {
-                    if (e.target.value) onSelectPersona(e.target.value);
-                  }}
-                >
-                  <option value="">Choose a persona…</option>
-                  {personas
-                    .filter((p) => p.role === audience)
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-            </details>
-          </div>
+          {!demoMode ? (
+            <div className={styles.demoControls}>
+              {demoAvailable ? (
+                <>
+                  <p>
+                    Convenient synthetic identity switching is available only
+                    inside explicitly labeled Demo Mode. Entering it never
+                    resets data.
+                  </p>
+                  <button
+                    className={styles.secondary}
+                    disabled={busy || !!currentRole}
+                    onClick={onDemoStart}
+                  >
+                    Enter Demo Mode
+                  </button>
+                  {currentRole && <p>Log out before entering Demo Mode.</p>}
+                </>
+              ) : (
+                <p>Demo Mode is disabled.</p>
+              )}
+            </div>
+          ) : (
+            <div className={styles.demoControls}>
+              {loading && <p role="status">Connecting to demo workspaces…</p>}
+              {!loading && !error && personas.length === 0 && (
+                <p>
+                  Demo persona switching is unavailable in this environment.
+                </p>
+              )}
+              {busy && <p role="status">Opening your demo workspace…</p>}
+              <details>
+                <summary>Explore other demo personas</summary>
+                <label>
+                  Workspace
+                  <select
+                    aria-label="Demo workspace type"
+                    value={audience}
+                    onChange={(e) =>
+                      setAudience(e.target.value as "PATIENT" | "STAFF")
+                    }
+                  >
+                    <option value="PATIENT">Patient</option>
+                    <option value="STAFF">Clinic staff</option>
+                  </select>
+                </label>
+                <label>
+                  Demo persona
+                  <select
+                    aria-label="Choose a demo persona"
+                    value=""
+                    disabled={unavailable}
+                    onChange={(e) => {
+                      if (e.target.value) onSelectPersona(e.target.value);
+                    }}
+                  >
+                    <option value="">Choose a persona…</option>
+                    {personas
+                      .filter((p) => p.role === audience)
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              </details>
+              <button className={styles.secondary} onClick={onLogout}>
+                Exit Demo Mode
+              </button>
+            </div>
+          )}
         </section>
       </main>
       <footer className={styles.footer}>

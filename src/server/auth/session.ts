@@ -1,5 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { tokenHash } from "./passwords";
+import { DEMO_PERSONAS } from "../../lib/config";
 import { db } from "../db";
 import { DomainError } from "../services/scheduling";
 const developmentSecret = randomBytes(32).toString("hex");
@@ -36,11 +38,75 @@ export function verifySession(value: string) {
     return null;
   }
 }
-export async function currentUser() {
+export async function currentIdentity() {
   const value = (await cookies()).get("careousel_session")?.value;
   if (!value) return null;
+  if (value.startsWith("a_")) {
+    const session = await db.accountSession.findUnique({
+      where: { tokenHash: tokenHash(value) },
+      include: { account: { include: { user: true, membership: true } } },
+    });
+    if (
+      !session ||
+      session.revokedAt ||
+      session.expiresAt <= new Date() ||
+      session.account.status !== "ACTIVE"
+    )
+      return null;
+    const { user, membership } = session.account;
+    if (
+      user.role === "STAFF" &&
+      (membership?.status !== "ACTIVE" || membership.clinicId !== user.clinicId)
+    )
+      return null;
+    return {
+      user,
+      mode: "account" as const,
+      username: session.account.username,
+      clinicRole: membership?.role ?? null,
+    };
+  }
+  if (process.env.DEMO_MODE !== "true") return null;
   const id = verifySession(value);
-  return id ? db.user.findUnique({ where: { id } }) : null;
+  if (!id || !(DEMO_PERSONAS as readonly string[]).includes(id)) return null;
+  const user = await db.user.findUnique({
+    where: { id },
+    include: { account: { select: { id: true } } },
+  });
+  return user && !user.account
+    ? { user, mode: "demo" as const, username: null, clinicRole: null }
+    : null;
+}
+export async function currentUser() {
+  return (await currentIdentity())?.user ?? null;
+}
+export async function logoutSession() {
+  const store = await cookies(),
+    value = store.get("careousel_session")?.value;
+  if (value?.startsWith("a_"))
+    await db.accountSession.updateMany({
+      where: { tokenHash: tokenHash(value), revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  store.delete("careousel_session");
+  store.delete("careousel_demo");
+}
+export async function setSessionCookie(value: string, request: Request) {
+  (await cookies()).set("careousel_session", value, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: new URL(request.url).protocol === "https:",
+    path: "/",
+    maxAge: 86400,
+  });
+}
+export async function explicitDemoMode() {
+  return (
+    process.env.DEMO_MODE === "true" &&
+    (verifySession((await cookies()).get("careousel_demo")?.value ?? "") ===
+      "demo-mode" ||
+      (await currentIdentity())?.mode === "demo")
+  );
 }
 export function assertOrigin(request: Request) {
   const origin = request.headers.get("origin");

@@ -77,6 +77,23 @@ it("upgrades existing SQL data without inventing priorities or dropping historic
         version: 0,
       },
     ]);
+    await client.query(
+      await readFile(
+        "prisma/migrations/0005_accounts_clinic_access/migration.sql",
+        "utf8",
+      ),
+    );
+    expect(
+      (await client.query('SELECT count(*)::int AS total FROM "Account"'))
+        .rows[0].total,
+    ).toBe(0);
+    expect(
+      (
+        await client.query(
+          'SELECT count(*)::int AS total FROM "ClinicMembership"',
+        )
+      ).rows[0].total,
+    ).toBe(0);
     for (const [table, rows] of original)
       expect(
         (await client.query(`SELECT * FROM "${table}" ORDER BY 1`)).rows,

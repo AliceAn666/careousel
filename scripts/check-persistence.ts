@@ -64,7 +64,7 @@ async function post(path: string, data: unknown, cookie = "") {
 try {
   await start();
   const staffCookie = (
-    await post("/api/session", { id: "staff-cedar" })
+    await post("/api/session", { id: "staff-cedar", demo: true })
   ).headers
     .get("set-cookie")!
     .split(";")[0];
@@ -73,7 +73,9 @@ try {
     { type: "reset", confirmation: "RESET" },
     staffCookie,
   );
-  const patientCookie = (await post("/api/session", { id: "avery" })).headers
+  const patientCookie = (
+    await post("/api/session", { id: "avery", demo: true })
+  ).headers
     .get("set-cookie")!
     .split(";")[0];
   await post(
@@ -105,8 +107,35 @@ try {
     },
     staffCookie,
   );
+  await post("/api/auth/register", {
+    username: "persistence.patient",
+    email: "persistence@example.test",
+    name: "Synthetic Persistence Patient",
+    password: "SyntheticPersistence!123",
+    plan: "Blue Horizon",
+  });
+  const accountCookie = (
+    await post("/api/auth/login", {
+      username: "persistence.patient",
+      password: "SyntheticPersistence!123",
+      entrance: "PATIENT",
+    })
+  ).headers
+    .get("set-cookie")!
+    .split(";")[0];
   await stop();
   await start();
+  const accountState = await (
+    await fetch(base + "/api/state", { headers: { cookie: accountCookie } })
+  ).json();
+  if (
+    accountState.auth?.mode !== "account" ||
+    accountState.auth.username !== "persistence.patient" ||
+    accountState.user?.name !== "Synthetic Persistence Patient"
+  )
+    throw new Error(
+      "Individual account session did not survive production restart.",
+    );
   const state = await (
     await fetch(base + "/api/state", { headers: { cookie: patientCookie } })
   ).json();
@@ -132,7 +161,7 @@ try {
       "Staff request priority/history did not survive server restart.",
     );
   console.log(
-    "PASS: confirmed booking, signed patient/staff sessions and request priority/history survived a production-server restart against PostgreSQL.",
+    "PASS: confirmed booking, signed demo sessions, individual account session and request priority/history survived a production-server restart against PostgreSQL.",
   );
 } finally {
   await stop();

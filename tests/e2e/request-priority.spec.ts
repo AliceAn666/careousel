@@ -1,10 +1,13 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./demo-fixture";
 const headers = { origin: "http://localhost:3100" };
 test("staff reviews one request, patient sees it across refresh and original booking remains safe", async ({
   browser,
   request,
 }) => {
-  await request.post("/api/session", { headers, data: { id: "staff-cedar" } });
+  await request.post("/api/session", {
+    headers,
+    data: { id: "staff-cedar", demo: true },
+  });
   expect(
     (
       await request.post("/api/actions", {
@@ -18,7 +21,7 @@ test("staff reviews one request, patient sees it across refresh and original boo
   try {
     await patient.request.post("/api/session", {
       headers,
-      data: { id: "avery" },
+      data: { id: "avery", demo: true },
     });
     expect(
       (
@@ -65,7 +68,7 @@ test("staff reviews one request, patient sees it across refresh and original boo
     expect(forbidden.status()).toBe(403);
     await staff.request.post("/api/session", {
       headers,
-      data: { id: "staff-cedar" },
+      data: { id: "staff-cedar", demo: true },
     });
     expect(
       (

@@ -68,15 +68,16 @@ export function DemoGuide({ staff, act }: { staff: boolean; act: Action }) {
         <section className="card reset-card">
           <h3>Restore the synthetic demo</h3>
           <p>
-            Deletes all demo actions and restores future-dated fixtures. This is
-            available only in demo mode.
+            Deletes all synthetic demo actions, registered accounts and
+            sessions, and restores future-dated fixtures. This is available only
+            in explicit Demo Mode, never normal account sessions.
           </p>
           <button
             className="danger"
             onClick={() => {
               if (
                 prompt(
-                  "Type RESET to delete all demo changes and restore the baseline.",
+                  "Type RESET to delete all synthetic changes, registered accounts and sessions and restore the baseline.",
                 ) === "RESET"
               )
                 void act({ type: "reset", confirmation: "RESET" });

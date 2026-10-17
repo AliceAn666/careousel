@@ -196,6 +196,9 @@ describe("real PostgreSQL scheduling", () => {
       bookingId: firstReplacement.id,
     });
     const start = new Date(+now + 3 * 86400000);
+    // A deterministic daytime fixture: inheriting the wall-clock time made
+    // this history test cross clinic midnight when run near 00:00 Pacific.
+    start.setUTCHours(17, 0, 0, 0);
     await db.slot.create({
       data: {
         id: "even-earlier",

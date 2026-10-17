@@ -29,6 +29,9 @@ import {
 } from "./patient-portal";
 import { IntakeQuestionnaire } from "./patient-intake";
 import { ClinicSchedule, Matches, ActivityFeed } from "./clinic-portal";
+import accountStyles from "./account-access.module.css";
+import { AccountAccess } from "./account-access";
+import { ClinicAccess } from "./clinic-access";
 import { Priorities } from "./clinic-priorities";
 import { DemoGuide } from "./demo-guide";
 import { GuidedTour } from "./guided-tour";
@@ -102,7 +105,7 @@ export function CareouselApp() {
     setBusy(true);
     setError("");
     try {
-      await request("/api/session", { id });
+      await request("/api/session", { id, demo: true });
       await load();
       router.push(id.startsWith("staff-") ? "/clinic/schedule" : "/search");
     } catch (e) {
@@ -141,12 +144,56 @@ export function CareouselApp() {
     setTour(false);
     router.push("/");
   }
+  async function logout() {
+    setBusy(true);
+    setError("");
+    try {
+      await request("/api/session", undefined, "DELETE");
+      setTour(false);
+      setDetail(null);
+      setShowWaitlist(false);
+      setShowSummary(false);
+      setNotice("");
+      await load();
+      router.push("/");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const demoMode = state?.auth?.demoMode ?? false;
+  if (path.startsWith("/login/") && state) {
+    const entrance = path === "/login/staff" ? "STAFF" : "PATIENT";
+    return (
+      <AccountAccess
+        key={entrance}
+        entrance={entrance}
+        authenticated={!!state.user}
+        onHome={goHome}
+        onLogout={logout}
+        onDone={async () => {
+          await load();
+          router.push(entrance === "STAFF" ? "/clinic/schedule" : "/search");
+        }}
+      />
+    );
+  }
   // Public home is independent of session loading. Entering a workspace never
   // resets data and a same-role entry resumes this browser's existing persona.
   if (path === "/" || (state && !state.user))
     return (
       <LandingPage
         personas={state?.personas ?? []}
+        demoMode={demoMode}
+        demoAvailable={state?.auth?.demoAvailable ?? false}
+        currentName={state?.user?.name}
+        onLogout={() => void logout()}
+        onDemoStart={() => {
+          void request("/api/demo/context", { confirm: true })
+            .then(load)
+            .catch((e) => setError(e.message));
+        }}
         currentRole={state?.user?.role}
         loading={!state && !error}
         busy={busy}
@@ -159,8 +206,10 @@ export function CareouselApp() {
         onEnter={(role) => {
           if (state?.user?.role === role) {
             router.push(role === "STAFF" ? "/clinic/schedule" : "/search");
-          } else {
+          } else if (demoMode) {
             void selectPersona(role === "STAFF" ? "staff-cedar" : "avery");
+          } else {
+            router.push(role === "STAFF" ? "/login/staff" : "/login/patient");
           }
         }}
       />
@@ -195,15 +244,17 @@ export function CareouselApp() {
         ? "Your inbox"
         : path === "/clinic/schedule"
           ? "Clinic overview"
-          : path === "/clinic/waitlists"
-            ? "Waitlist matches"
-            : path === "/clinic/priorities"
-              ? "Request priorities"
-              : path === "/clinic/activity"
-                ? "Clinic activity"
-                : path === "/demo"
-                  ? "A better-care walkthrough"
-                  : "Find your next appointment";
+          : path === "/clinic/access"
+            ? "Clinic staff access"
+            : path === "/clinic/waitlists"
+              ? "Waitlist matches"
+              : path === "/clinic/priorities"
+                ? "Request priorities"
+                : path === "/clinic/activity"
+                  ? "Clinic activity"
+                  : path === "/demo"
+                    ? "A better-care walkthrough"
+                    : "Find your next appointment";
   const personaOptions = state.personas.map((p) => (
     <option key={p.id} value={p.id}>
       {personaLabel(p)}
@@ -263,33 +314,15 @@ export function CareouselApp() {
                 <strong>{user.name}</strong>
                 <small>
                   {staff
-                    ? "Clinic staff"
-                    : `Demo patient · ${visitLabel(user.visitType) ?? "Patient"}`}
+                    ? `Clinic ${state.auth?.clinicRole === "ADMIN" ? "administrator" : "staff"}`
+                    : `${demoMode ? "Demo patient" : "Patient"} · ${visitLabel(user.visitType) ?? "Patient"}`}
                 </small>
               </div>
             </div>
-            <label className="persona-switch">
-              Switch demo persona
-              <select
-                value={user.id}
-                disabled={busy}
-                onChange={(e) => void selectPersona(e.target.value)}
-              >
-                {personaOptions}
-              </select>
-            </label>
-          </div>
-        </aside>
-        <div className="workspace">
-          <header className="topbar">
-            <span>
-              <span className="live-dot" /> Synthetic demo environment
-            </span>
-            <div>
-              <label className="mobile-persona">
-                Demo persona
+            {demoMode && (
+              <label className="persona-switch">
+                Switch demo persona
                 <select
-                  aria-label="Mobile demo persona"
                   value={user.id}
                   disabled={busy}
                   onChange={(e) => void selectPersona(e.target.value)}
@@ -297,6 +330,31 @@ export function CareouselApp() {
                   {personaOptions}
                 </select>
               </label>
+            )}
+          </div>
+        </aside>
+        <div className="workspace">
+          <header className={`topbar ${accountStyles.topbar}`}>
+            <span>
+              <span className="live-dot" />{" "}
+              {demoMode
+                ? "Demo Mode · synthetic identities"
+                : `${user.name} · ${staff ? "Clinic staff" : "Patient"}`}
+            </span>
+            <div>
+              {demoMode && (
+                <label className="mobile-persona">
+                  Demo persona
+                  <select
+                    aria-label="Mobile demo persona"
+                    value={user.id}
+                    disabled={busy}
+                    onChange={(e) => void selectPersona(e.target.value)}
+                  >
+                    {personaOptions}
+                  </select>
+                </label>
+              )}
               <button
                 className={`secondary tour-launch ${onboarding.launch}`}
                 aria-label="Quick tour"
@@ -310,6 +368,21 @@ export function CareouselApp() {
               >
                 Quick tour
               </button>
+              <button
+                className="secondary"
+                disabled={busy}
+                onClick={() => void logout()}
+              >
+                {demoMode ? "Exit Demo Mode" : "Log out"}
+              </button>
+              {staff && state.auth?.clinicRole === "ADMIN" && (
+                <button
+                  className="secondary"
+                  onClick={() => router.push("/clinic/access")}
+                >
+                  Staff access
+                </button>
+              )}
               <span className="timezone">Pacific time</span>
               <button
                 className="icon-button"
@@ -393,9 +466,11 @@ export function CareouselApp() {
               {needsIntake ? (
                 <IntakeQuestionnaire act={submitIntake} />
               ) : path === "/demo" ? (
-                <DemoGuide staff={staff} act={act} />
+                <DemoGuide staff={staff && demoMode} act={act} />
               ) : staff ? (
-                path === "/clinic/waitlists" ? (
+                path === "/clinic/access" ? (
+                  <ClinicAccess />
+                ) : path === "/clinic/waitlists" ? (
                   <Matches state={state} act={act} />
                 ) : path === "/clinic/priorities" ? (
                   <Priorities state={state} act={act} />

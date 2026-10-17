@@ -1,11 +1,14 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./demo-fixture";
 const headers = { origin: "http://localhost:3100" };
 
 test("two independent browsers retain shared waitlist and atomically reschedule", async ({
   browser,
   request,
 }) => {
-  await request.post("/api/session", { headers, data: { id: "staff-cedar" } });
+  await request.post("/api/session", {
+    headers,
+    data: { id: "staff-cedar", demo: true },
+  });
   expect(
     (
       await request.post("/api/actions", {
@@ -17,6 +20,11 @@ test("two independent browsers retain shared waitlist and atomically reschedule"
   const patient = await browser.newContext();
   const clinic = await browser.newContext();
   try {
+    for (const context of [patient, clinic])
+      await context.request.post("/api/demo/context", {
+        headers,
+        data: { confirm: true },
+      });
     const p = await patient.newPage(),
       c = await clinic.newPage();
     await p.goto("/");
@@ -118,11 +126,14 @@ test("both reset routes require session, staff, confirmation and same origin", a
       : { type: "reset", confirmation: "RESET" };
     await request.delete("/api/session", { headers });
     expect((await request.post(path, { headers, data })).status()).toBe(401);
-    await request.post("/api/session", { headers, data: { id: "avery" } });
+    await request.post("/api/session", {
+      headers,
+      data: { id: "avery", demo: true },
+    });
     expect((await request.post(path, { headers, data })).status()).toBe(403);
     await request.post("/api/session", {
       headers,
-      data: { id: "staff-cedar" },
+      data: { id: "staff-cedar", demo: true },
     });
     expect(
       (
