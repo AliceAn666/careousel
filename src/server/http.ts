@@ -16,6 +16,11 @@ export function apiError(error: unknown) {
     category: failure?.message?.includes("connect") ? "connection" :
       failure?.message?.includes("timeout") ? "timeout" :
       failure?.message?.includes("relation") ? "schema" : "other",
+    // Expose only filename, not full file paths, secrets, request input or SQL.
+    file: typeof (failure as NodeJS.ErrnoException | null)?.path === "string"
+      ? (failure as NodeJS.ErrnoException).path!.split(/[\\/]/).pop() : undefined,
+    syscall: typeof (failure as NodeJS.ErrnoException | null)?.syscall === "string"
+      ? (failure as NodeJS.ErrnoException).syscall : undefined,
   });
   return Response.json(
     {
