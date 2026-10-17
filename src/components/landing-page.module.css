@@ -834,3 +834,44 @@
   letter-spacing: 0.4px;
   max-width: 100%;
 }
+
+/* Larger global text needs breathing room on the public landing page. */
+.page p {
+  line-height: 1.85;
+}
+.header {
+  gap: 32px;
+}
+.hero {
+  gap: 52px;
+}
+.heroCopy > p {
+  max-width: 48ch;
+}
+.actions {
+  gap: 20px;
+  margin: 36px 0 24px;
+}
+.demoControls details {
+  padding: 24px 0;
+}
+.demoControls summary {
+  line-height: 1.55;
+}
+@media (max-width: 1000px) {
+  .hero {
+    gap: 30px;
+  }
+}
+@media (max-width: 720px) {
+  .header nav {
+    gap: 14px 20px;
+    flex-wrap: wrap;
+  }
+  .hero {
+    gap: 35px;
+  }
+  .actions {
+    gap: 16px;
+  }
+}

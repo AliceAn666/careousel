@@ -1,7 +1,8 @@
 :root {
-  font-size: 100%;
+  /* Base 18px at standard browser settings; browser text scaling still applies. */
+  font-size: 112.5%;
   --ink: #193a39;
-  --muted: #6b7d7a;
+  --muted: #526962;
   --teal: #14695e;
   --line: #e3ebe7;
   --mint: #eaf5ee;
@@ -18,7 +19,7 @@ body {
   background: var(--bg);
   font-family: "DM Sans", system-ui, sans-serif;
   font-size: 1rem;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 h1,
 h2,
@@ -48,6 +49,7 @@ h3 {
 }
 p {
   color: var(--muted);
+  line-height: 1.75;
 }
 button,
 input,
@@ -2343,5 +2345,282 @@ textarea {
   }
   .clinic-availability .grow {
     width: 100%;
+  }
+}
+
+/* Second readability pass: space and real text hierarchy, not only font sizes. */
+.sidebar {
+  width: 275px;
+}
+.workspace {
+  margin-left: 275px;
+  width: calc(100% - 275px);
+}
+.sidebar .nav-item {
+  min-height: 52px;
+  padding: 15px;
+  line-height: 1.45;
+}
+.workspace .topbar {
+  font-size: 1rem;
+  gap: 14px;
+}
+.main-content {
+  padding: 44px 50px 32px;
+}
+.main-content > .card,
+.main-content > section {
+  margin-bottom: 26px;
+}
+.page-heading {
+  margin-bottom: 38px;
+}
+.page-heading,
+.section-title {
+  flex-wrap: wrap;
+}
+.section-title {
+  margin: 36px 0 24px;
+}
+.section-title h2 {
+  line-height: 1.35;
+}
+.section-title p,
+.page-heading p {
+  max-width: 68ch;
+}
+.filter-card {
+  padding: 28px 30px;
+  gap: 22px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+}
+.appointment-grid {
+  gap: 26px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+}
+.card {
+  padding: 30px;
+}
+.appointment-card,
+.search-intro,
+.search-result {
+  padding: 32px;
+}
+.search-intro .field {
+  margin: 25px 0;
+}
+.search-result {
+  align-items: flex-start;
+  gap: 32px;
+}
+.patient-entry-grid {
+  gap: 24px;
+}
+.patient-entry-grid article {
+  gap: 18px;
+}
+.primary,
+.secondary,
+.danger {
+  min-height: 48px;
+}
+.stack {
+  gap: 26px;
+}
+.booking-card,
+.request-card,
+.notification {
+  gap: 24px;
+  align-items: flex-start;
+}
+.booking-card p,
+.request-card p,
+.notification p,
+.recommendation p,
+.opening > span,
+.booking-card small,
+.request-card small {
+  line-height: 1.75;
+}
+.insight-row {
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 34px;
+}
+.insight {
+  flex: 1 1 220px;
+}
+.matches-layout {
+  grid-template-columns: 295px minmax(0, 1fr);
+  gap: 30px;
+}
+.openings {
+  padding: 24px;
+}
+.opening {
+  padding: 19px;
+  margin-bottom: 16px;
+  gap: 10px;
+}
+.candidate,
+.recommendation {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.status {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  white-space: normal;
+}
+.table-scroll {
+  overflow-x: auto;
+  padding: 0;
+}
+table {
+  min-width: 780px;
+  white-space: normal;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+th,
+td {
+  padding: 22px 20px;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+th {
+  font-size: 0.9375rem;
+  color: #53685e;
+}
+fieldset {
+  margin: 24px 0;
+}
+.form-grid,
+.detail-grid {
+  gap: 24px;
+}
+.detail-grid dd {
+  font-size: 1rem;
+}
+.check-row {
+  gap: 15px 20px;
+}
+.check-row input {
+  width: 19px;
+  height: 19px;
+}
+.button-row {
+  gap: 14px;
+}
+.booking-choice-group {
+  gap: 12px;
+}
+.booking-choice {
+  min-height: 50px;
+  padding: 11px 16px;
+}
+@media (max-width: 1150px) {
+  .sidebar {
+    width: 235px;
+  }
+  .workspace {
+    margin-left: 235px;
+    width: calc(100% - 235px);
+  }
+  .matches-layout {
+    grid-template-columns: 1fr;
+  }
+  .openings {
+    max-height: none;
+  }
+}
+@media (max-width: 850px) {
+  .sidebar {
+    width: 100%;
+  }
+  .workspace {
+    margin-left: 0;
+    width: 100%;
+  }
+  .main-content {
+    padding: 30px 24px;
+  }
+  .sidebar nav,
+  .sidebar nav.patient-navigation,
+  .sidebar nav:not(.patient-navigation) {
+    gap: 10px;
+  }
+  .sidebar nav .nav-item {
+    min-height: 50px;
+    padding: 12px;
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 600px) {
+  .main-content {
+    padding: 28px 16px;
+  }
+  .filter-card,
+  .form-grid,
+  .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .filter-card {
+    padding: 24px;
+    gap: 22px;
+  }
+  .filter-card label:last-child {
+    grid-column: auto;
+  }
+  .card,
+  .appointment-card,
+  .search-intro,
+  .search-result {
+    padding: 24px;
+  }
+  .appointment-grid,
+  .stack {
+    gap: 24px;
+  }
+  .insight {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+  .page-heading,
+  .section-title {
+    gap: 18px;
+  }
+  .booking-card,
+  .request-card,
+  .notification {
+    gap: 18px;
+  }
+}
+/* Preserve PR #27 clinic-first booking while making its new labels readable. */
+.insurance-match {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  padding: 10px 14px;
+}
+.insurance-booking-warning {
+  font-size: 1rem;
+  line-height: 1.65;
+  padding: 17px 20px;
+}
+.insurance-selection {
+  padding: 30px;
+  margin-bottom: 26px;
+}
+.insurance-selection-fields {
+  gap: 22px;
+  margin: 22px 0;
+}
+.clinic-time-options {
+  gap: 12px;
+  margin: 20px 0;
+}
+@media (max-width: 680px) {
+  .insurance-selection {
+    padding: 24px;
   }
 }

@@ -48,3 +48,31 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Four priority groups stay easy to review at a glance. */
+.request {
+  gap: 26px;
+}
+.form {
+  gap: 22px;
+}
+.form textarea {
+  min-height: 110px;
+  padding: 15px;
+  line-height: 1.65;
+}
+.history {
+  gap: 24px;
+  padding-left: 28px;
+}
+.filter {
+  margin: 28px 0;
+}
+@media (max-width: 650px) {
+  .form {
+    grid-template-columns: 1fr;
+  }
+  .history {
+    padding-left: 22px;
+  }
+}
