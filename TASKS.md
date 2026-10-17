@@ -18,7 +18,7 @@ Ownership: **the user working independently with Codex**. No five-person assignm
 - [x] Run lint/typecheck/unit/PostgreSQL integration/browser/build and production restart persistence; actual results are recorded in VALIDATION.md.
 - [x] User review and merge of Phase 2 PR #9; do not merge automatically. No change to shared demo data or migration files.
 
-## Current Phase 3 — onboarding and insurance
+## Phase 3 — onboarding and insurance, merged in PR #10
 
 Sole owner: user + Codex. Base main 2e65bff, CI 39006504739 passed before work; adapt e6a802e selectively. Scope is P3-01–04 in PRD, supporting BP02/07/11/13 and existing T5/T6 work, not completion of every proposal requirement.
 
@@ -27,7 +27,19 @@ Sole owner: user + Codex. Base main 2e65bff, CI 39006504739 passed before work; 
 - [x] Add fictional PPO/HMO calculator, network/service and patient-cost filters to calendar/popups/details; keep listed price and browsing comparison distinct from saved patient booking plan.
 - [x] Scope browser-local preferences/progress to persona; validate storage and handle unavailable storage. Clear transient old-persona overlays during switching.
 - [x] Run lint/typecheck/unit/PostgreSQL integration/browser/build and record actual results in VALIDATION.md; all passed, including 37 unit, 34 integration and 13 browser tests; preserve all Phase 1/2 assertions.
-- [ ] User review of Phase 3 PR targeting main; no automatic merge/deploy. No shared database changes or schema/migration work.
+- [x] User reviewed and merged Phase 3 PR #10; no automatic merge/deploy. No shared database changes or schema/migration work.
+
+## Current October 17 roadmap update — not runtime implementation
+
+- [x] Inspect main 74e6c90 after PR #10 and require successful main CI run 39007746312 before branching.
+- [x] Review batch 51fcedc and registration 37189f7 without wholesale integration; record reusable work and rejected assumptions in docs/priority-account-integration.md.
+- [x] Add PRD R1–R4 contracts and AT-R0/R1/R2a/R2b/R3/R4/R5 acceptance mapping; update agent instructions.
+- [ ] Implement R1 request/clinic-scoped P1–P4 priorities, history/backfill and authorized UI/API.
+- [ ] Implement R3 persisted accounts, session/logout and explicit Demo Mode; then R4 clinic-admin invitations, approval/revocation and access checks.
+- [ ] Implement R2a/R2b manual simultaneous group invitations with 180-minute timing and complete competitive capacity invariants.
+- [ ] Execute R5 isolated upgrade, SQL/concurrency and full regression gates per feature PR; report actual evidence.
+
+Sole owner is user + Codex. Feature PRs follow the dependency order in the PRD October 17 table. Documentation tests do not establish that runtime requirements pass. No shared migration, reset/reseed or account provisioning in this PR.
 
 ## Subsequent tasks and dependencies
 
@@ -49,20 +61,22 @@ Implement the following only in later authorized scopes. Cut optional AI, deposi
 ## Concrete milestone sequence
 
 1. **Completed Phase 2:** documentation + public landing merged in PR #9. Preserve all baseline behavior. Current Phase 3 adapts onboarding and fictional insurance comparisons.
-2. **Next integration:** adapt synthetic registration/clinic notifications behind existing sessions, with honest demo identity wording and scoped tests. Preserve safe reset and intake behavior; remove any inherited automatic restart code.
+2. **Next integration:** R1 four-level request priorities; R3 individual accounts and explicit Demo Mode; R4 administrator-approved clinic staff; then R2 manual group engine/UI. Reuse forms and notification ideas selectively, never public self-granted staff or placeholder authentication.
 3. **Qualified internal clinic slice:** T1/T2 minimum contracts, one low-complexity service, internal queue and staff stage → offer → patient response. T5 UI and T6 tests accompany services.
 4. **Authorized network slice:** T3 explicit release/consent plus T4 atomic cross-clinic replacement. Retain independent needs, original protection, expiry, no-match and concurrency cases.
-5. **Impact and rehearsal:** T7 minimal dashboard and T6 final safety/claim/accessibility checks. Rehearse from explicitly approved fixtures with visibly synthetic short timing policies.
+5. **Impact and rehearsal:** T7 minimal dashboard and T6 final safety/claim/accessibility checks. Rehearse from explicitly approved fixtures; group sends retain the fixed 180-minute guard. Use controlled clocks only in isolated tests.
 6. **Optional adaptation:** separate language provider/strings from batch state semantics; retain the Phase 3 fictional calculator/calendar adaptation and optional guide; integrate future coverage changes without implying real verification. T8 notes AI and T9 deposits remain below core.
 
 ## Branch and migration review gates
 
-The batch branch uses 0003_notification_batches while main already has 0003_priority_scoring. Directory names are checksum keys, but application semantics differ too: batch permits multiple pending reservable offers and first-response wins, whereas current baseline and proposed staged model use a single exclusive offer. Decide the contract before changing the SQL or invitations. Preserve useful group-selection UI/localization and tests without silently weakening occupancy/fairness safeguards.
+The batch branch uses 0003_notification_batches while main already has 0003_priority_scoring. Directory names are checksum keys, but application semantics differ too: batch permits multiple pending reservable offers and first-response wins, whereas current baseline uses one exclusive offer. The October 17 contract now requires competitive P1–P4 group invitations with a single capacity winner and manual 180-minute sends; establish its complete replacement invariant before changing the SQL or invitations. Preserve useful group-selection UI/localization and tests without silently weakening occupancy/fairness safeguards.
 
-Registration has 0004_demo_registration and 0005_clinic_notifications; inspect the actual target ledger before any later additive migration. Never rename/edit already-applied SQL or assume branch numbering proves compatible upgrade order. Phase 2 does not modify any schema/migration file. No shared reset/reseed/migration by implication; future database impact must be explained and approved separately.
+Registration has 0004_demo_registration and 0005_clinic_notifications; inspect the actual target ledger before any later additive migration. Never rename/edit already-applied SQL or assume branch numbering proves compatible upgrade order. This roadmap PR does not modify any schema/migration file. No shared reset/reseed/migration by implication; future database impact must be explained and approved separately.
 
 ## Traceability and definition of done
 
 Canonical requirement/status/task/test table: PRD section 3; acceptance definitions: section 9. Coverage: BP01→T1/T2/T5; BP02→T1/T2/T5; BP03→T1/T3/T5/T6; BP04→T1/T3/T5; BP05→T1/T3/T4/T5; BP06→T1/T2/T4/T5; BP07→T0/T3/T4/T5; BP08→T0/T4/T6; BP09→T2/T8; BP10→T1/T7/T6; BP11→T5/T7; BP12→T9; BP13→T5/T6/T7/T8. Each BPnn maps to AT-BPnn. Planned test IDs are not passing evidence.
 
 Each PR states concrete behavior, related task/BP/acceptance IDs, actual tests and limitations, screenshots for visible changes, API compatibility and later migration rollout if relevant. Done requires persisted usable behavior, tested authorization/invariants, failure states and truthful synthetic labels. Only user and Codex handle work. No direct main pushes, automatic merges, force-push/history rewriting or public deployment.
+
+See PRD October 17 R1–R4 requirements and incremental PR/AT-R* table for the superseding priority, account and group contracts. T1/T3/T4/T5/T6 must implement these together with existing BP requirements; old single-exclusive and 30-minute proposals do not apply to the new group path. Internal-before-network authorization remains a distinct gate, not automatically implemented by this roadmap.
