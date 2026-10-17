@@ -36,7 +36,7 @@ async function verifyGitHubIdentity(request: Request): Promise<boolean> {
       claims.iss !== ISSUER || claims.aud !== AUDIENCE ||
       claims.repository !== REPOSITORY || claims.repository_id !== REPOSITORY_ID ||
       claims.ref !== "refs/heads/main" ||
-      claims.sub !== "repo:AliceAn666/careousel:ref:refs/heads/main" ||
+      claims.sub !== "repo:AliceAn666@241894385/careousel@1422474927:ref:refs/heads/main" ||
       claims.workflow_ref !== WORKFLOW_REF ||
       !["schedule", "workflow_dispatch", "push"].includes(claims.event_name ?? "") ||
       typeof claims.iat !== "number" || typeof claims.exp !== "number" ||
