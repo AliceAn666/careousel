@@ -257,7 +257,7 @@ export function CareouselApp() {
   const user = state.user,
     staff = user?.role === "STAFF",
     unread = state.notifications.filter((n) => !n.read).length;
-  const appointmentInsurer = coverage.provider || state.user?.plan || "";
+  const appointmentInsurer = state.user?.plan ?? "";
   const selectedBenefit = detail
     ? demoCoverage(detail, appointmentInsurer, coverage.planType)
     : null;
@@ -581,54 +581,21 @@ export function CareouselApp() {
                 <dd>{money(detail.price)}</dd>
               </div>
             </dl>
-            <div className="insurance-selection-fields">
-              <label>
-                Insurance company for this appointment (demo)
-                <select
-                  aria-label="Insurance company for appointment"
-                  value={appointmentInsurer}
-                  onChange={(e) =>
-                    setCoverage((current) => ({
-                      ...current,
-                      provider: e.target.value,
-                    }))
-                  }
-                >
-                  {PLANS.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Plan type
-                <select
-                  aria-label="Appointment insurance plan type"
-                  value={coverage.planType}
-                  disabled={appointmentInsurer === "Self-pay"}
-                  onChange={(e) =>
-                    setCoverage((current) => ({
-                      ...current,
-                      planType: e.target.value as PlanType,
-                    }))
-                  }
-                >
-                  <option value="PPO">PPO · demo</option>
-                  <option value="HMO">HMO · demo</option>
-                </select>
-              </label>
-            </div>
+            <p className="muted">
+              Insurance on your account: <strong>{appointmentInsurer || "Not provided"}</strong>.
+              {appointmentInsurer && appointmentInsurer !== "Self-pay"
+                ? ` Demo ${coverage.planType} estimate.`
+                : " Self-pay pricing is displayed below."}
+            </p>
             <CoverageSummary
               slot={detail}
               provider={appointmentInsurer}
               planType={coverage.planType}
             />
             <p className="demo-note">
-              Your saved demo profile lists {user.plan}. This booking uses the
-              insurer selected above for fictional comparisons; coverage and
-              referral requirements have not been verified. Your saved profile
-              is unchanged. No payment will be collected.
+              This synthetic booking uses the insurance saved in your account.
+              Coverage and referral requirements are not verified. No payment
+              will be collected.
             </p>
             {needsSelfPay && (
               <p className="insurance-booking-warning" role="status">
