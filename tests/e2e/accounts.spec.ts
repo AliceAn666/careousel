@@ -360,3 +360,49 @@ test("account forms show email validation beside the field and failed login belo
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(/\/search$/);
 });
+
+test("password visibility works for patient and staff login/registration without losing typed text", async ({
+  page,
+}) => {
+  for (const entrance of ["patient", "staff"] as const) {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto(`/login/${entrance}`);
+    const passwordInput = page.locator('input[name="password"]');
+    const value = "DemoVisibility!123";
+    await passwordInput.fill(value);
+    await expect(passwordInput).toHaveAttribute("type", "password");
+    const show = page.getByRole("button", { name: "Show password" });
+    await expect(show).toHaveAttribute("type", "button");
+    await show.click();
+    await expect(passwordInput).toHaveAttribute("type", "text");
+    await expect(passwordInput).toHaveValue(value);
+    const hide = page.getByRole("button", { name: "Hide password" });
+    await expect(hide).toHaveAttribute("aria-pressed", "true");
+    await hide.focus();
+    await page.keyboard.press("Enter");
+    await expect(passwordInput).toHaveAttribute("type", "password");
+    await expect(passwordInput).toHaveValue(value);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+
+    await page
+      .getByRole("button", {
+        name:
+          entrance === "patient"
+            ? "Create patient account"
+            : "Redeem staff invitation",
+      })
+      .click();
+    await expect(passwordInput).toHaveAttribute("type", "password");
+    await passwordInput.fill(value);
+    await page.getByRole("button", { name: "Show password" }).click();
+    await expect(passwordInput).toHaveAttribute("type", "text");
+    await expect(passwordInput).toHaveValue(value);
+    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    await expect(passwordInput).toHaveAttribute("type", "password");
+    await expect(passwordInput).toHaveValue(value);
+  }
+});
