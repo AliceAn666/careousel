@@ -5,7 +5,6 @@ import {
   ArrowRight,
   Bell,
   CalendarDays,
-  Clock3,
   CheckCircle2,
   Gauge,
   Heart,
@@ -53,8 +52,8 @@ import { LandingPage } from "./landing-page";
 // Demo guide and Activity stay reachable by URL but are hidden from navigation.
 const navPatient = [
   ["/search", "Book an Appointment", Search],
-  ["/waitlists", "Find an Earlier Appointment", Clock3],
-  ["/appointments", "Manage My Appointments and Waitlists", CalendarDays],
+  ["/appointments", "My Appointments & Waitlists", CalendarDays],
+  ["/health-information", "Health Information", Heart],
   ["/notifications", "Notifications", Bell],
 ] as const;
 const navClinic = [
@@ -265,30 +264,34 @@ export function CareouselApp() {
     appointmentInsurer === "Self-pay" ||
     (selectedBenefit !== null && selectedBenefit.estimate === null);
   const nav = staff ? navClinic : navPatient;
-  const heading =
-    path === "/waitlists" || path === "/earlier"
-      ? "Find an Earlier Appointment"
-      : path === "/appointments" || path === "/needs"
-        ? "Appointments and waitlists"
-        : path === "/notifications"
-          ? "Your inbox"
-          : path === "/clinic/schedule"
-            ? "Clinic overview"
-            : path === "/clinic/access"
-              ? "Clinic staff access"
-              : path === "/clinic/medical-records"
-                ? "Authorized record review"
-                : path === "/clinic/medical-tags"
-                  ? "Clinical medical tags"
-                  : path === "/clinic/waitlists"
-                    ? "Waitlist matches"
-                    : path === "/clinic/priorities"
-                      ? "Request priorities"
-                      : path === "/clinic/activity"
-                        ? "Clinic activity"
-                        : path === "/demo"
-                          ? "A better-care walkthrough"
-                          : "Find your next appointment";
+  const heading = [
+    "/appointments",
+    "/waitlists",
+    "/earlier",
+    "/needs",
+  ].includes(path)
+    ? "My Appointments & Waitlists"
+    : path === "/health-information"
+      ? "Health information"
+      : path === "/notifications"
+        ? "Your inbox"
+        : path === "/clinic/schedule"
+          ? "Clinic overview"
+          : path === "/clinic/access"
+            ? "Clinic staff access"
+            : path === "/clinic/medical-records"
+              ? "Authorized record review"
+              : path === "/clinic/medical-tags"
+                ? "Clinical medical tags"
+                : path === "/clinic/waitlists"
+                  ? "Waitlist matches"
+                  : path === "/clinic/priorities"
+                    ? "Request priorities"
+                    : path === "/clinic/activity"
+                      ? "Clinic activity"
+                      : path === "/demo"
+                        ? "A better-care walkthrough"
+                        : "Find your next appointment";
   const personaOptions = state.personas.map((p) => (
     <option key={p.id} value={p.id}>
       {personaLabel(p)}
@@ -313,7 +316,14 @@ export function CareouselApp() {
             {nav.map(([href, label, Icon]) => (
               <button
                 key={href}
-                className={path === href ? "nav-item active" : "nav-item"}
+                className={
+                  path === href ||
+                  (!staff &&
+                    href === "/appointments" &&
+                    ["/waitlists", "/earlier", "/needs"].includes(path))
+                    ? "nav-item active"
+                    : "nav-item"
+                }
                 onClick={() => router.push(href)}
               >
                 <Icon size={19} />
@@ -497,25 +507,8 @@ export function CareouselApp() {
                   "/needs",
                 ].includes(path) ? (
                 <>
-                  <PatientNeeds key={user.id} act={act} />
-                  {(path === "/waitlists" || path === "/earlier") && (
-                    <section className="card search-intro">
-                      <h2>
-                        Keep your appointment while we find an earlier one
-                      </h2>
-                      <p>
-                        Select the appointment you want to replace and your
-                        preferences. Your original stays confirmed until you
-                        explicitly accept a valid earlier invitation.
-                      </p>
-                      <button className="primary" onClick={() => join()}>
-                        {path === "/earlier"
-                          ? "Register need and join waitlist"
-                          : "Create earlier appointment request"}
-                      </button>
-                    </section>
-                  )}
                   <Appointments state={state} act={act} onWaitlist={join} />
+                  <PatientNeeds key={user.id} act={act} />
                 </>
               ) : path === "/notifications" ? (
                 <Inbox state={state} act={act} />
@@ -582,7 +575,8 @@ export function CareouselApp() {
               </div>
             </dl>
             <p className="muted">
-              Insurance on your account: <strong>{appointmentInsurer || "Not provided"}</strong>.
+              Insurance on your account:{" "}
+              <strong>{appointmentInsurer || "Not provided"}</strong>.
               {appointmentInsurer && appointmentInsurer !== "Self-pay"
                 ? ` Demo ${coverage.planType} estimate.`
                 : " Self-pay pricing is displayed below."}

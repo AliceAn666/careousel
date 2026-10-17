@@ -22,7 +22,7 @@ async function expectImmediateSearchAccess(
   ).toHaveCount(0);
   await expect(
     page.getByRole("button", {
-      name: "Manage My Appointments and Waitlists",
+      name: "My Appointments & Waitlists",
       exact: true,
     }),
   ).toBeEnabled();
@@ -38,7 +38,7 @@ test("complete patient → cancellation → staff approval → accepted replacem
   await expectImmediateSearchAccess(page);
   await page
     .getByRole("button", {
-      name: "Manage My Appointments and Waitlists",
+      name: "My Appointments & Waitlists",
       exact: true,
     })
     .click();
@@ -85,7 +85,7 @@ test("complete patient → cancellation → staff approval → accepted replacem
   );
   await page
     .getByRole("button", {
-      name: "Manage My Appointments and Waitlists",
+      name: "My Appointments & Waitlists",
       exact: true,
     })
     .click();
@@ -281,7 +281,7 @@ test("declining through the inbox preserves the original appointment", async ({
   await expect(page.locator(".offer-box")).toContainText("declined");
   await page
     .getByRole("button", {
-      name: "Manage My Appointments and Waitlists",
+      name: "My Appointments & Waitlists",
       exact: true,
     })
     .click();
@@ -317,7 +317,7 @@ test("expired invitation is visibly inactive after refresh", async ({
   ).toHaveCount(0);
   await page
     .getByRole("button", {
-      name: "Manage My Appointments and Waitlists",
+      name: "My Appointments & Waitlists",
       exact: true,
     })
     .click();

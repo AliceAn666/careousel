@@ -317,6 +317,18 @@ export function PatientNeeds({ act }: { act: Action }) {
       });
     return () => controller.abort();
   }, [load]);
+  useEffect(() => {
+    const focusNeed = () => {
+      const id = window.location.hash.slice(1);
+      if (!id.startsWith("need-")) return;
+      const element = document.getElementById(id);
+      element?.scrollIntoView({ behavior: "smooth", block: "start" });
+      element?.focus({ preventScroll: true });
+    };
+    focusNeed();
+    window.addEventListener("hashchange", focusNeed);
+    return () => window.removeEventListener("hashchange", focusNeed);
+  }, [data]);
   async function perform(input: unknown) {
     setBusy(true);
     setError("");
@@ -364,7 +376,7 @@ export function PatientNeeds({ act }: { act: Action }) {
       aria-busy={!data && !error}
     >
       <div className="card">
-        <h2>Your independent medical needs</h2>
+        <h2>Your care needs</h2>
         <p>
           Manage each service and original appointment separately. Completing
           one need never cancels another need or appointment. No symptoms or
@@ -448,14 +460,16 @@ export function PatientNeeds({ act }: { act: Action }) {
           </details>
           {!data.needs.length && (
             <p>
-              No independent needs yet. Existing appointments and legacy
-              waitlists below remain unchanged.
+              Add a care need when you want to track a separate service or an
+              appointment booked outside Careousel.
             </p>
           )}
           {data.needs.map((need) => (
             <article
               className="card stack"
               key={need.id}
+              id={`need-${need.id}`}
+              tabIndex={-1}
               aria-label={`Medical need ${need.title}`}
             >
               <h3>{need.title}</h3>

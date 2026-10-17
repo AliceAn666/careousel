@@ -24,24 +24,14 @@ export function PatientEntry({
           </button>
         </article>
         <article className="card">
-          <h2>Find an Earlier Appointment</h2>
+          <h2>My Appointments & Waitlists</h2>
           <p>
-            Already have an appointment? Register what you need and join a
-            waitlist while keeping your original booking.
+            View your appointments, find an earlier time, and manage saved
+            waitlists. Track separate care needs and appointments booked outside
+            Careousel in the same place.
           </p>
-          <button className="primary" onClick={() => navigate("/earlier")}>
-            Find an Earlier Appointment
-          </button>
-        </article>
-        <article className="card">
-          <h2>Manage My Appointments and Waitlists</h2>
-          <p>
-            Manage independent medical needs, unverified external appointments,
-            saved requests and clinic-reviewed priorities. Stored health
-            information remains read-only.
-          </p>
-          <button className="primary" onClick={() => navigate("/needs")}>
-            Manage My Appointments and Waitlists
+          <button className="primary" onClick={() => navigate("/appointments")}>
+            My Appointments & Waitlists
           </button>
         </article>
       </div>
