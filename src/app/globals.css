@@ -2624,3 +2624,61 @@ fieldset {
     padding: 24px;
   }
 }
+
+/* Direct time selection: date groups replace the redundant detail button. */
+.clinic-date-groups {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 16px;
+  max-width: 100%;
+  min-width: 0;
+}
+.clinic-date-group {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  min-width: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.clinic-date-label {
+  flex: 0 0 100px;
+  padding-top: 10px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.clinic-date-group .clinic-time-options {
+  margin: 0;
+  flex: 1 1 210px;
+  min-width: 0;
+}
+.clinic-date-group .clinic-time-choice {
+  min-width: 84px;
+  min-height: 44px;
+  font-size: 13px;
+}
+@media (max-width: 680px) {
+  .clinic-date-label {
+    flex: 1 0 100%;
+    padding-top: 0;
+  }
+  .clinic-date-group .clinic-time-options {
+    flex: 1 1 100%;
+  }
+  .clinic-date-group .clinic-time-choice {
+    flex: 1 1 auto;
+  }
+}
+
+.clinic-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-bottom: 5px;
+  min-width: 0;
+}
+.clinic-title-row .insurance-match {
+  margin: 0;
+}
