@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { request } from "@/lib/api";
 import { PLANS } from "@/lib/config";
 import styles from "./account-access.module.css";
@@ -62,6 +63,7 @@ export function AccountAccess({
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const registering = tab === "register";
 
   function changeTab(next: "login" | "register") {
@@ -69,6 +71,7 @@ export function AccountAccess({
     setError("");
     setMessage("");
     setFieldErrors({});
+    setShowPassword(false);
   }
 
   function clearEditedError(field: string) {
@@ -180,6 +183,7 @@ export function AccountAccess({
                     );
                     form.reset();
                     setFieldErrors({});
+                    setShowPassword(false);
                     setTab("login");
                     setMessage(result.message);
                   }
@@ -282,14 +286,32 @@ export function AccountAccess({
               )}
               <label>
                 Password (at least 12 characters)
-                <input
-                  name="password"
-                  type="password"
-                  autoComplete={registering ? "new-password" : "current-password"}
-                  minLength={12}
-                  maxLength={128}
-                  {...inputError("password")}
-                />
+                <span className={styles.passwordField}>
+                  <input
+                    id="account-password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete={registering ? "new-password" : "current-password"}
+                    minLength={12}
+                    maxLength={128}
+                    {...inputError("password")}
+                  />
+                  <button
+                    type="button"
+                    className={styles.passwordToggle}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    aria-controls="account-password"
+                    title={showPassword ? "Hide password" : "Show password"}
+                    onClick={() => setShowPassword((visible) => !visible)}
+                  >
+                    {showPassword ? (
+                      <EyeOff size={20} aria-hidden="true" />
+                    ) : (
+                      <Eye size={20} aria-hidden="true" />
+                    )}
+                  </button>
+                </span>
               </label>
               {fieldErrors.password && (
                 <p id="password-error" role="alert" className={styles.fieldError}>
