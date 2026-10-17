@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { NotificationManager } from "./notification-manager";
 import {
   ArrowDownLeft,
@@ -37,52 +38,210 @@ export function ClinicSchedule({
     clinicSlotIds.has(b.slotId),
   );
   const [date, setDate] = useState(""),
-    [show, setShow] = useState(false);
-  const visible = clinicSlots.filter(
-    (s) =>
+    [show, setShow] = useState(false),
+    [detailView, setDetailView] = useState<
+      "confirmed" | "openings" | "matches" | null
+    >(null);
+  const confirmedBookings = clinicBookings.filter(
+    (booking) => booking.status === "CONFIRMED",
+  );
+  const availableSlots = clinicSlots.filter(
+    (slot) => slot.status === "AVAILABLE",
+  );
+  const visible = clinicSlots.filter((slot) => {
+    const matchesDate =
       !date ||
       new Intl.DateTimeFormat("en-CA", {
-        timeZone: s.clinic.timezone,
+        timeZone: slot.clinic.timezone,
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
-      }).format(new Date(s.start)) === date,
-  );
+      }).format(new Date(slot.start)) === date;
+    if (!matchesDate) return false;
+    if (detailView === "openings") return slot.status === "AVAILABLE";
+    if (detailView === "confirmed")
+      return confirmedBookings.some((booking) => booking.slotId === slot.id);
+    return true;
+  });
+  const toggleDetail = (view: "confirmed" | "openings" | "matches") => {
+    setDetailView((previous) => (previous === view ? null : view));
+    setDate("");
+  };
   return (
     <>
       <div className="insight-row">
-        <div className="card insight">
-          <CalendarDays />
-          <div>
+        <button
+          type="button"
+          className={"card insight insight-action" + (detailView === "confirmed" ? " insight-active" : "")}
+          onClick={() => toggleDetail("confirmed")}
+          aria-label="View confirmed appointments"
+          aria-expanded={detailView === "confirmed"}
+          aria-controls="clinic-overview-details"
+        >
+          <CalendarDays aria-hidden="true" />
+          <span className="insight-content">
             <span>Confirmed appointments</span>
-            <strong>
-              {clinicBookings.filter((b) => b.status === "CONFIRMED").length}
-            </strong>
-          </div>
-        </div>
-        <div className="card insight">
-          <ArrowDownLeft />
-          <div>
+            <strong>{confirmedBookings.length}</strong>
+            <span className="insight-link">View appointments →</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          className={"card insight insight-action" + (detailView === "openings" ? " insight-active" : "")}
+          onClick={() => toggleDetail("openings")}
+          aria-label="View available openings"
+          aria-expanded={detailView === "openings"}
+          aria-controls="clinic-overview-details"
+        >
+          <ArrowDownLeft aria-hidden="true" />
+          <span className="insight-content">
             <span>Available openings</span>
-            <strong>
-              {clinicSlots.filter((s) => s.status === "AVAILABLE").length}
-            </strong>
-          </div>
-        </div>
-        <div className="card insight">
-          <Users />
-          <div>
+            <strong>{availableSlots.length}</strong>
+            <span className="insight-link">View openings →</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          className={"card insight insight-action" + (detailView === "matches" ? " insight-active" : "")}
+          onClick={() => toggleDetail("matches")}
+          aria-label="View matched waitlist requests"
+          aria-expanded={detailView === "matches"}
+          aria-controls="clinic-overview-details"
+        >
+          <Users aria-hidden="true" />
+          <span className="insight-content">
             <span>Matched waitlist requests</span>
             <strong>{clinicCandidates.length}</strong>
-          </div>
-        </div>
+            <span className="insight-link">View matched patients →</span>
+          </span>
+        </button>
       </div>
+      {detailView && (
+        <section
+          id="clinic-overview-details"
+          className="card overview-detail-panel"
+          role="region"
+          aria-label={
+            detailView === "confirmed"
+              ? "Confirmed appointments details"
+              : detailView === "openings"
+                ? "Available openings details"
+                : "Matched waitlist requests details"
+          }
+        >
+          <div className="overview-detail-heading">
+            <div>
+              <h2>
+                {detailView === "confirmed"
+                  ? "Confirmed appointments"
+                  : detailView === "openings"
+                    ? "Available openings"
+                    : "Matched waitlist requests"}
+              </h2>
+              <p>
+                {detailView === "confirmed"
+                  ? "Confirmed patients and scheduled appointments at this clinic."
+                  : detailView === "openings"
+                    ? "Available appointment times and services at this clinic."
+                    : "Patient–opening matches within this clinic. A patient may match multiple openings."}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => setDetailView(null)}
+              aria-label="Close overview details"
+            >
+              Close
+            </button>
+          </div>
+          {detailView === "confirmed" ? (
+            confirmedBookings.length ? (
+              <ul className="overview-detail-list">
+                {confirmedBookings.map((booking) => (
+                  <li className="overview-detail-item" key={booking.id}>
+                    <div>
+                      <strong>{booking.patient.name}</strong>
+                      <p>{booking.slot.service} · {booking.slot.provider}</p>
+                      <small>{dateLabel(booking.slot.start)}</small>
+                    </div>
+                    <Status value={booking.status} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <Empty title="No confirmed appointments" body="Confirmed bookings will appear here." />
+            )
+          ) : detailView === "openings" ? (
+            availableSlots.length ? (
+              <ul className="overview-detail-list">
+                {availableSlots.map((slot) => (
+                  <li className="overview-detail-item" key={slot.id}>
+                    <div>
+                      <strong>{slot.service} · {slot.provider}</strong>
+                      <p>{dateLabel(slot.start)} · {money(slot.price)} estimated</p>
+                    </div>
+                    <Status value={slot.status} />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <Empty title="No available openings" body="Create a new opening to make a slot available." />
+            )
+          ) : (
+            <>
+              {clinicCandidates.length ? (
+                <ul className="overview-detail-list">
+                  {clinicCandidates.map((candidate) => {
+                    const slot = clinicSlots.find(
+                      (item) => item.id === candidate.slotId,
+                    );
+                    return (
+                      <li className="overview-detail-item" key={candidate.id}>
+                        <div>
+                          <strong>{candidate.name}</strong>
+                          <p>
+                            {slot ? (
+                              <>{slot.service} · {dateLabel(slot.start)}</>
+                            ) : (
+                              "Matched waitlist request"
+                            )}
+                          </p>
+                          <small>
+                            {priorityLabel(candidate.priority?.level)} · Staff review / clearance may be required
+                          </small>
+                        </div>
+                        <Link
+                          className="secondary overview-review-slot"
+                          href={"/clinic/waitlists?slotId=" + encodeURIComponent(candidate.slotId)}
+                        >
+                          Review this slot
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <Empty title="No matched waitlist requests" body="Matched waitlist candidates will appear here." />
+              )}
+              <Link className="secondary overview-review-link" href="/clinic/waitlists">
+                Review waitlist matches <ArrowRight size={17} aria-hidden="true" />
+              </Link>
+            </>
+          )}
+        </section>
+      )}
       <div className="section-title">
         <div>
           <h2>Appointment schedule</h2>
           <p>
             {clinic ? `Showing ${clinic.name} appointments only.` : "Your clinic schedule"}
             {" "}Waitlist candidates may come from any participating clinic.
+            {detailView === "confirmed"
+              ? " Filtered to confirmed appointments."
+              : detailView === "openings"
+                ? " Filtered to available openings."
+                : ""}
           </p>
         </div>
         <button className="primary" onClick={() => setShow(true)}>
