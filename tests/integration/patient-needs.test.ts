@@ -527,6 +527,10 @@ it("does not book an incompatible insurance plan and rejects forged patient or a
         slotId: "not-covered",
         needId: a.id,
         expectedNeedVersion: 1,
+        // Cedar's synthetic clinic-wide network excludes Aster Health.
+        // A selected out-of-network insurer still requires an explicit
+        // self-pay acknowledgement before an appointment can be booked.
+        insuranceProvider: "Aster Health",
       },
       { now },
     ),
