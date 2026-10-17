@@ -2766,3 +2766,124 @@ fieldset {
     width: 100%;
   }
 }
+
+/* Clinic metrics are actual drill-down controls, not decorative counters. */
+.insight-action {
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  min-width: 0;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+.insight-action:hover {
+  border-color: #87b8a7;
+  background: #f8fcfa;
+}
+.insight-action.insight-active {
+  border-color: #348e76;
+  box-shadow: 0 0 0 2px #cee7dc;
+}
+.insight-action:focus-visible {
+  outline: 3px solid #21836c;
+  outline-offset: 3px;
+}
+.insight-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.insight-action .insight-link {
+  color: #136657;
+  font-size: 0.875rem;
+  font-weight: 650;
+  margin-top: 7px;
+}
+.overview-detail-panel {
+  margin: -8px 0 34px;
+}
+.overview-detail-heading {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.overview-detail-heading h2 {
+  margin: 0 0 8px;
+  font-size: 1.375rem;
+}
+.overview-detail-heading p {
+  margin: 0;
+  line-height: 1.65;
+  max-width: 66ch;
+}
+.overview-detail-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  max-height: 380px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.overview-detail-item {
+  padding: 18px 3px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.overview-detail-item > div {
+  min-width: 0;
+}
+.overview-detail-item strong {
+  display: block;
+  line-height: 1.45;
+}
+.overview-detail-item p {
+  margin: 5px 0;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.overview-detail-item small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.overview-detail-item .status {
+  flex-shrink: 0;
+}
+.overview-review-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+@media (max-width: 600px) {
+  .overview-detail-panel {
+    padding: 20px;
+  }
+  .overview-detail-item {
+    flex-wrap: wrap;
+  }
+  .overview-detail-list {
+    max-height: 330px;
+  }
+}
+
+.overview-review-slot {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .overview-review-slot {
+    width: 100%;
+  }
+}
