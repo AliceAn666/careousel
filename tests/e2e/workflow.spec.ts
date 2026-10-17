@@ -113,7 +113,9 @@ test("search filters keep clinics visible, prioritize insurer matches and suppor
   ).toBeVisible();
   await expect.poll(() => openings.count()).toBeGreaterThan(0);
   const baseline = await openings.count();
-  await page.getByLabel("Specialty", { exact: true }).selectOption("Cardiology");
+  await page
+    .getByLabel("Specialty", { exact: true })
+    .selectOption("Cardiology");
   await page.getByLabel("Location", { exact: true }).selectOption("Oakland");
   await page.getByLabel("Maximum cost ($)").fill("1");
   await expect(
@@ -126,7 +128,9 @@ test("search filters keep clinics visible, prioritize insurer matches and suppor
   await insurer.selectOption("Pacific Care");
   await expect(openings).toHaveCount(baseline);
   await insurer.selectOption("Blue Horizon");
-  await page.getByLabel("Specialty", { exact: true }).selectOption("Cardiology");
+  await page
+    .getByLabel("Specialty", { exact: true })
+    .selectOption("Cardiology");
   await expect(openings).toHaveCount(4);
   await expect(
     page.locator(".appointment-results .insurance-match-good").first(),
@@ -140,8 +144,9 @@ test("search filters keep clinics visible, prioritize insurer matches and suppor
   expect(slot.plans).toContain("Blue Horizon");
   await openings.first().click();
   const details = page.getByRole("dialog", { name: "Appointment details" });
-  await expect(details.getByRole("group", { name: "Available appointment times" }))
-    .toBeVisible();
+  await expect(
+    details.getByRole("group", { name: "Available appointment times" }),
+  ).toBeVisible();
   await details.getByRole("button", { name: "Confirm appointment" }).click();
   await expect(page.getByRole("status")).toContainText("Appointment confirmed");
   await page.setViewportSize({ width: 375, height: 812 });

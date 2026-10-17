@@ -1,3 +1,10 @@
+import { patientNeedActions } from "../../lib/patient-needs";
+import {
+  checkedNeed,
+  handlePatientNeed,
+  stopNeedRequests,
+  touchNeed,
+} from "./patient-needs";
 import {
   finishSequence,
   requirementsMet,
@@ -6,7 +13,7 @@ import {
 import { Prisma, type User } from "@prisma/client";
 import { z } from "zod";
 import { db } from "../db";
-import { eligibility, overlaps } from "./matching";
+import { eligibility, overlaps, schedulingConflicts } from "./matching";
 import {
   DEMO_PERSONAS,
   OFFER_MINUTES,
@@ -44,9 +51,12 @@ const preferences = {
   weekdays: z.array(z.number().int().min(0).max(6)).min(1).max(7),
 };
 export const actionSchema = z.discriminatedUnion("type", [
+  ...patientNeedActions,
   z.object({
     type: z.literal("book"),
     slotId: id,
+    needId: id.optional(),
+    expectedNeedVersion: z.number().int().positive().optional(),
     insuranceProvider: z.enum(PLANS).optional(),
     planType: z.enum(["PPO", "HMO"]).optional(),
     selfPayAcknowledged: z.boolean().optional(),
@@ -181,13 +191,14 @@ export async function refreshMatches(tx: Prisma.TransactionClient, now: Date) {
     }),
     tx.waitlist.findMany({
       where: { status: "ACTIVE" },
-      include: { booking: { include: { slot: true } } },
+      include: {
+        booking: { include: { slot: true } },
+        patientNeed: true,
+        externalAppointment: true,
+      },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     }),
-    tx.booking.findMany({
-      where: { status: "CONFIRMED" },
-      include: { slot: true },
-    }),
+    schedulingConflicts(tx),
   ]);
   // Compute matches in memory, then persist them in one bulk operation.
   // Previously one SQL insert was issued per match on every state refresh.
@@ -203,8 +214,7 @@ export async function refreshMatches(tx: Prisma.TransactionClient, now: Date) {
         });
     }
   await tx.suggestion.deleteMany();
-  if (suggestions.length)
-    await tx.suggestion.createMany({ data: suggestions });
+  if (suggestions.length) await tx.suggestion.createMany({ data: suggestions });
 }
 async function revokeRequests(
   tx: Prisma.TransactionClient,
@@ -224,6 +234,7 @@ async function assertBookable(
   excludeBooking?: string,
   allowHeld = false,
   now = new Date(),
+  excludeExternal?: string,
 ) {
   const s = await tx.slot.findUnique({
     where: { id: slotId },
@@ -241,6 +252,13 @@ async function assertBookable(
   });
   if (bookings.some((b) => b.id !== excludeBooking && overlaps(b.slot, s)))
     fail("This time overlaps another confirmed appointment.");
+  const external = await tx.externalAppointment.findMany({
+    where: { patientId, reportedConfirmed: true, reportedCancelled: false },
+  });
+  if (external.some((e) => e.id !== excludeExternal && overlaps(e, s)))
+    fail(
+      "This time overlaps a patient-reported external appointment. Verify or update that report first.",
+    );
   return s;
 }
 export async function performAction(
@@ -274,8 +292,26 @@ export async function performAction(
     };
     let message = "Changes saved.";
     switch (input.type) {
+      case "createNeed":
+      case "editNeed":
+      case "requestNeed":
+      case "completeNeed":
+      case "closeNeed":
+      case "reopenNeed":
+      case "editExternal": {
+        const result = await handlePatientNeed(tx, user, input, now);
+        message = result.message;
+        break;
+      }
       case "book": {
         patient();
+        const need = input.needId
+          ? await checkedNeed(tx, user, input.needId, input.expectedNeedVersion)
+          : null;
+        if (need && input.expectedNeedVersion === undefined)
+          fail("Need version required.", 400);
+        if (need && ["CLOSED", "COMPLETED"].includes(need.state))
+          fail("Reopen this need before booking.");
         const existing = await tx.booking.findFirst({
           where: {
             patientId: user.id,
@@ -283,15 +319,39 @@ export async function performAction(
             status: "CONFIRMED",
           },
         });
-        if (existing) return { message: "Appointment already confirmed." };
+        if (existing) {
+          if (need && existing.needId !== need.id)
+            fail("This appointment belongs to a different medical need.");
+          return { message: "Appointment already confirmed." };
+        }
+        const original =
+          need?.currentBooking?.status === "CONFIRMED"
+            ? need.currentBooking
+            : null;
+        const external =
+          !original &&
+          need?.externalAppointment &&
+          !need.externalAppointment.reportedCancelled
+            ? need.externalAppointment
+            : null;
         const s = await assertBookable(
           tx,
           user.id,
           input.slotId,
-          undefined,
+          original?.id,
           false,
           now,
+          external?.id,
         );
+        if (need && s.service !== need.service)
+          fail("Choose the same service as this medical need.", 400);
+        if (
+          (original && s.start >= original.slot.start) ||
+          (external && s.start >= external.start)
+        )
+          fail(
+            "Choose an appointment strictly earlier than this need's current original.",
+          );
         const sequence = await tx.notificationSequence.findFirst({
           where: { slotId: s.id },
           orderBy: { createdAt: "desc" },
@@ -311,27 +371,76 @@ export async function performAction(
           fail(
             "This opening is in a priority-group workflow. Respond to your authorized invitation instead.",
           );
-        if (s.requiresReferral || s.requiresAuthorization)
+        if (
+          s.requiresReferral ||
+          s.requiresAuthorization ||
+          need?.requiresReferral ||
+          need?.requiresAuthorization
+        )
           fail(
             "This opening requires staff-reviewed referral/authorization clearance through a waitlist invitation.",
           );
         const selectedInsurer = input.insuranceProvider ?? user.plan;
-        const coverage = demoCoverage(s, selectedInsurer, input.planType ?? "PPO");
-        const selfPay = selectedInsurer === "Self-pay" || coverage.estimate === null;
+        const coverage = demoCoverage(
+          s,
+          selectedInsurer,
+          input.planType ?? "PPO",
+        );
+        const selfPay =
+          selectedInsurer === "Self-pay" || coverage.estimate === null;
         // Incompatible synthetic insurance does not block care: the patient
         // must explicitly opt into the published self-pay demonstration price.
         if (selfPay && !input.selfPayAcknowledged)
           fail(
             "This demo insurance scenario does not cover the selected opening. Confirm the listed self-pay price to continue.",
           );
-        await tx.booking.create({ data: { patientId: user.id, slotId: s.id } });
+        const booked = await tx.booking.create({
+          data: { patientId: user.id, slotId: s.id, needId: need?.id },
+        });
+        if (original) {
+          await tx.booking.update({
+            where: { id: original.id },
+            data: { status: "RESCHEDULED", replacementId: booked.id },
+          });
+          await tx.slot.update({
+            where: { id: original.slotId },
+            data: { status: "AVAILABLE" },
+          });
+        }
+        if (need) {
+          await stopNeedRequests(tx, need.id);
+          await touchNeed(
+            tx,
+            need.id,
+            user.id,
+            "BOOK",
+            { currentBookingId: booked.id, state: "SECURED" },
+            {
+              bookingId: booked.id,
+              previousBookingId: original?.id,
+              externalUnchanged: external?.id,
+              insuranceComparison: {
+                provider: selectedInsurer,
+                planType: input.planType ?? "PPO",
+                selfPayAcknowledged: selfPay,
+                listedPrice: s.price,
+              },
+            },
+          );
+        }
+        if (options.failAfterReplacement)
+          throw new Error("Injected replacement failure");
         await tx.slot.update({
           where: { id: s.id },
           data: { status: "BOOKED" },
         });
         // A new booking can invalidate another pending invitation through overlap.
         const pending = await tx.offer.findMany({
-          where: { patientId: user.id, status: "PENDING" },
+          where: {
+            patientId: user.id,
+            status: "PENDING",
+            waitlist: { needId: need?.id ?? null },
+          },
           include: { slot: true },
         });
         for (const o of pending)
@@ -344,9 +453,11 @@ export async function performAction(
             ? "Synthetic appointment booked with explicit self-pay acknowledgment"
             : "Synthetic appointment booked using fictional insurance comparison",
         );
-        message = selfPay
-          ? "Demo appointment confirmed with self-pay acknowledgment. No payment was collected."
-          : "Appointment confirmed. Fictional insurance benefits are unverified.";
+        message = external
+          ? "Appointment confirmed. Your external appointment remains unchanged; contact its clinic yourself if you want to cancel it."
+          : selfPay
+            ? "Demo appointment confirmed with self-pay acknowledgment. No payment was collected."
+            : "Appointment confirmed. Fictional insurance benefits are unverified.";
         break;
       }
       case "cancel": {
@@ -375,6 +486,25 @@ export async function performAction(
           where: { id: b.slotId },
           data: { status: "AVAILABLE" },
         });
+        if (b.needId) {
+          const n = await tx.patientNeed.findUnique({
+            where: { id: b.needId },
+          });
+          if (n?.currentBookingId === b.id)
+            await touchNeed(
+              tx,
+              n.id,
+              user.id,
+              "CANCEL_BOOKING",
+              {
+                currentBookingId: null,
+                state: ["CLOSED", "COMPLETED"].includes(n.state)
+                  ? n.state
+                  : "OPEN",
+              },
+              { bookingId: b.id },
+            );
+        }
         await audit(
           tx,
           b.slot.clinicId,
@@ -401,6 +531,7 @@ export async function performAction(
             !b ||
             b.patientId !== user.id ||
             b.status !== "CONFIRMED" ||
+            b.needId !== null ||
             b.slot.service !== input.service
           )
             fail("Choose your confirmed appointment for this service.", 400);
@@ -419,11 +550,17 @@ export async function performAction(
             patientId: user.id,
             service: input.service,
             status: "ACTIVE",
+            needId: null,
           },
         });
         if (waitlistId) {
           const w = await tx.waitlist.findUnique({ where: { id: waitlistId } });
-          if (!w || w.patientId !== user.id || w.status !== "ACTIVE")
+          if (
+            !w ||
+            w.patientId !== user.id ||
+            w.status !== "ACTIVE" ||
+            w.needId
+          )
             fail("Waitlist request not found.", 404);
           if (existing && existing.id !== w.id)
             fail("You already have an active waitlist for this service.");
@@ -487,6 +624,15 @@ export async function performAction(
           where: { id: w.id },
           data: { status: "WITHDRAWN" },
         });
+        if (w.needId)
+          await touchNeed(
+            tx,
+            w.needId,
+            user.id,
+            "WITHDRAW",
+            {},
+            { waitlistId: w.id },
+          );
         message = "Waitlist withdrawn. Your existing booking is unchanged.";
         break;
       }
@@ -518,12 +664,13 @@ export async function performAction(
           fail("Another booking or offer already holds this slot.");
         const w = await tx.waitlist.findUnique({
           where: { id: input.waitlistId },
-          include: { booking: { include: { slot: true } } },
+          include: {
+            booking: { include: { slot: true } },
+            patientNeed: true,
+            externalAppointment: true,
+          },
         });
-        const bookings = await tx.booking.findMany({
-          where: { status: "CONFIRMED" },
-          include: { slot: true },
-        });
+        const bookings = await schedulingConflicts(tx);
         if (!w || !eligibility(w, s, bookings, now))
           fail("This patient no longer meets the eligibility requirements.");
         const clearance = await tx.waitlistPriority.findUnique({
@@ -531,7 +678,7 @@ export async function performAction(
             waitlistId_clinicId: { waitlistId: w.id, clinicId: s.clinicId },
           },
         });
-        if (!requirementsMet(s, clearance))
+        if (!requirementsMet(s, clearance, w))
           fail(
             "Required referral or authorization is not approved by this clinic.",
           );
@@ -575,7 +722,13 @@ export async function performAction(
           where: { id: input.offerId },
           include: {
             slot: { include: { clinic: true } },
-            waitlist: { include: { booking: { include: { slot: true } } } },
+            waitlist: {
+              include: {
+                booking: { include: { slot: true } },
+                patientNeed: true,
+                externalAppointment: true,
+              },
+            },
           },
         });
         if (!o || o.patientId !== user.id) fail("Invitation not found.", 404);
@@ -588,6 +741,10 @@ export async function performAction(
             "This invitation is no longer active. Your original appointment is unchanged.",
           );
         if (input.accept) {
+          if (!o.slot.plans.includes(user.plan))
+            fail(
+              "Your saved insurance plan is not accepted. Your original appointment is unchanged.",
+            );
           const clearance = await tx.waitlistPriority.findUnique({
             where: {
               waitlistId_clinicId: {
@@ -596,7 +753,7 @@ export async function performAction(
               },
             },
           });
-          if (!requirementsMet(o.slot, clearance))
+          if (!requirementsMet(o.slot, clearance, o.waitlist))
             fail("Required referral or authorization is no longer approved.");
           if (o.groupId)
             await validateGroupInvitation(
@@ -618,10 +775,7 @@ export async function performAction(
             "Invitation declined. Your original appointment is unchanged.";
           break;
         }
-        const bookings = await tx.booking.findMany({
-          where: { status: "CONFIRMED" },
-          include: { slot: true },
-        });
+        const bookings = await schedulingConflicts(tx);
         if (!eligibility(o.waitlist, o.slot, bookings, now))
           fail(
             "Your preferences or appointments changed. This offer cannot be accepted.",
@@ -633,9 +787,14 @@ export async function performAction(
           o.waitlist.bookingId ?? undefined,
           !o.groupId,
           now,
+          o.waitlist.externalAppointmentId ?? undefined,
         );
         const replacement = await tx.booking.create({
-          data: { patientId: user.id, slotId: o.slotId },
+          data: {
+            patientId: user.id,
+            slotId: o.slotId,
+            needId: o.waitlist.needId,
+          },
         });
         if (o.waitlist.bookingId) {
           const old = o.waitlist.booking!;
@@ -668,9 +827,28 @@ export async function performAction(
           where: { id: o.waitlistId },
           data: { status: "FULFILLED" },
         });
+        if (o.waitlist.needId) {
+          await stopNeedRequests(tx, o.waitlist.needId, o.waitlistId);
+          await touchNeed(
+            tx,
+            o.waitlist.needId,
+            user.id,
+            "ACCEPT",
+            { currentBookingId: replacement.id, state: "SECURED" },
+            {
+              bookingId: replacement.id,
+              requestId: o.waitlistId,
+              externalUnchanged: o.waitlist.externalAppointmentId,
+            },
+          );
+        }
         if (o.groupId) await finishSequence(tx, o.slotId, "COMPLETED", now);
         const others = await tx.offer.findMany({
-          where: { patientId: user.id, status: "PENDING" },
+          where: {
+            patientId: user.id,
+            status: "PENDING",
+            waitlist: { needId: o.waitlist.needId ?? null },
+          },
           include: { slot: true },
         });
         for (const other of others)
@@ -680,7 +858,9 @@ export async function performAction(
           data: {
             patientId: user.id,
             title: "Your earlier appointment is confirmed",
-            body: `Your ${o.slot.service} appointment at ${o.slot.clinic.name} is confirmed. Any linked original booking has been rescheduled.`,
+            body: o.waitlist.externalAppointmentId
+              ? `Your ${o.slot.service} appointment is confirmed. Your external appointment is unchanged and unverified; contact its clinic yourself about cancellation.`
+              : `Your ${o.slot.service} appointment at ${o.slot.clinic.name} is confirmed. Any linked original booking has been rescheduled.`,
           },
         });
         await audit(
@@ -689,8 +869,9 @@ export async function performAction(
           user.name,
           "Earlier appointment accepted and confirmed",
         );
-        message =
-          "Earlier appointment confirmed. Your schedule has been updated.";
+        message = o.waitlist.externalAppointmentId
+          ? "Earlier appointment confirmed. The external appointment has NOT been cancelled. Contact its clinic yourself."
+          : "Earlier appointment confirmed. Your schedule has been updated.";
         break;
       }
       case "read": {
@@ -975,7 +1156,18 @@ export async function getState(
           where: staff
             ? { slot: { clinicId: user.clinicId! } }
             : { patientId: user.id },
-          include: { slot: { include: { clinic: true } } },
+          include: {
+            slot: { include: { clinic: true } },
+            waitlist: {
+              select: {
+                needId: true,
+                externalAppointmentId: true,
+                requiresReferral: true,
+                requiresAuthorization: true,
+                patientNeed: { select: { title: true } },
+              },
+            },
+          },
           orderBy: { createdAt: "desc" },
         }),
         tx.notification.findMany({
@@ -1022,6 +1214,18 @@ export async function getState(
             createdAt: true,
             bookingId: true,
             patientId: true,
+            needId: true,
+            requiresReferral: true,
+            requiresAuthorization: true,
+            patientNeed: { select: { title: true } },
+            externalAppointment: {
+              select: {
+                clinicName: true,
+                start: true,
+                reportedConfirmed: true,
+                verification: true,
+              },
+            },
             patient: { select: { name: true } },
             priorities: {
               where: { clinicId: user.clinicId! },
@@ -1055,13 +1259,18 @@ export async function getState(
             requiresAuthorization: true,
             reviewedAt: true,
             need: { select: { service: true } },
+            patientNeedLinks: { select: { needId: true } },
           },
         })
       : [];
     const priorityRequests = scopedPriorityRequests.map((r) => ({
       ...r,
       medicalEvidence: approvedEvidence.filter(
-        (t) => t.patientId === r.patientId && t.need.service === r.service,
+        (t) =>
+          t.patientId === r.patientId &&
+          t.need.service === r.service &&
+          (!r.needId ||
+            t.patientNeedLinks.some((link) => link.needId === r.needId)),
       ),
     }));
     const candidates = suggestions

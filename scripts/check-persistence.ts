@@ -213,8 +213,110 @@ try {
   const medicalBefore = JSON.stringify(
     (await medicalTagsDashboard("staff-cedar")).tags,
   );
+  // Two independent external reports and one secured replacement survive a real process restart.
+  const needsNow = new Date();
+  for (const [index, title] of [
+    "Persistent need A",
+    "Persistent need B",
+  ].entries()) {
+    const start = new Date(+needsNow + (25 + index) * 86400000);
+    await post(
+      "/api/patient-needs",
+      {
+        type: "createNeed",
+        title,
+        service: "Vaccination",
+        preferences: {
+          plan: "Blue Horizon",
+          city: "",
+          clinicIds: [],
+          maxPrice: 30000,
+          earliest: needsNow,
+          latest: new Date(+needsNow + 90 * 86400000),
+          startHour: 0,
+          endHour: 24,
+          weekdays: [0, 1, 2, 3, 4, 5, 6],
+        },
+        requiresReferral: false,
+        requiresAuthorization: false,
+        tagIds: [],
+        original: {
+          type: "EXTERNAL",
+          appointment: {
+            clinicName: "Synthetic outside clinic",
+            start,
+            end: new Date(+start + 1800000),
+            location: "Synthetic location",
+            reference: `PERSIST-${index}`,
+            reportedConfirmed: true,
+          },
+        },
+      },
+      accountCookie,
+    );
+  }
+  const ownNeeds = await medicalDb.patientNeed.findMany({
+    where: { patientId: recordPatient.userId },
+    orderBy: { title: "asc" },
+  });
+  await medicalDb.slot.create({
+    data: {
+      id: "persistent-need-slot",
+      clinicId: "cedar",
+      service: "Vaccination",
+      provider: "Synthetic",
+      start: new Date(+needsNow + 7 * 86400000),
+      end: new Date(+needsNow + 7 * 86400000 + 1800000),
+      price: 1000,
+      plans: ["Blue Horizon"],
+      status: "AVAILABLE",
+    },
+  });
+  await post(
+    "/api/actions",
+    {
+      type: "book",
+      slotId: "persistent-need-slot",
+      needId: ownNeeds[0].id,
+      expectedNeedVersion: ownNeeds[0].version,
+    },
+    accountCookie,
+  );
+  await post(
+    "/api/patient-needs",
+    {
+      type: "requestNeed",
+      needId: ownNeeds[1].id,
+      expectedVersion: ownNeeds[1].version,
+    },
+    accountCookie,
+  );
+  const needsBefore = await (
+    await fetch(base + "/api/patient-needs", {
+      headers: { cookie: accountCookie },
+    })
+  ).json();
   await stop();
   await start();
+  const needsAfter = await (
+    await fetch(base + "/api/patient-needs", {
+      headers: { cookie: accountCookie },
+    })
+  ).json();
+  if (
+    JSON.stringify(needsAfter.needs) !== JSON.stringify(needsBefore.needs) ||
+    needsAfter.needs.length !== 2 ||
+    !needsAfter.needs.some((n: { state: string }) => n.state === "SECURED") ||
+    !needsAfter.needs.some((n: { waitlists: { status: string }[] }) =>
+      n.waitlists.some((w) => w.status === "ACTIVE"),
+    )
+  )
+    throw new Error(
+      "Independent needs, external reports, linked booking, waitlist or immutable history failed restart.",
+    );
+  console.log(
+    "Independent needs, unverified external appointments and scoped replacement persisted across production restart.",
+  );
   const medicalAfter = await (
     await fetch(base + "/api/medical-tags", {
       headers: { cookie: staffCookie },

@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { z } from "zod";
-import { eligibility, type RequestWithBooking } from "./matching";
+import {
+  eligibility,
+  schedulingConflicts,
+  type RequestWithBooking,
+} from "./matching";
 import { DomainError, locked } from "./scheduling";
 import { ensureStaffAccess } from "../auth/access";
 
@@ -17,11 +21,12 @@ export function requirementsMet(
       }
     | null
     | undefined,
+  request?: { requiresReferral?: boolean; requiresAuthorization?: boolean },
 ) {
   return (
-    (!slot.requiresReferral ||
+    (!(slot.requiresReferral || request?.requiresReferral) ||
       (priority?.reviewState === "APPROVED" && priority.referralApproved)) &&
-    (!slot.requiresAuthorization ||
+    (!(slot.requiresAuthorization || request?.requiresAuthorization) ||
       (priority?.reviewState === "APPROVED" && priority.authorizationApproved))
   );
 }
@@ -71,6 +76,11 @@ function fingerprint(w: RequestWithBooking) {
     w.endHour,
     w.weekdays,
     w.bookingId,
+    w.needId,
+    w.externalAppointmentId,
+    w.externalAppointment?.version,
+    w.requiresReferral,
+    w.requiresAuthorization,
     w.status,
   ]);
 }
@@ -128,15 +138,14 @@ export async function previewSequence(
       where: { status: "ACTIVE", service: slot.service },
       include: {
         booking: { include: { slot: true } },
+        patientNeed: true,
+        externalAppointment: true,
         patient: { select: { name: true } },
         priorities: { where: { clinicId: slot.clinicId } },
       },
       orderBy: [{ createdAt: "asc" }, { id: "asc" }],
     }),
-    tx.booking.findMany({
-      where: { status: "CONFIRMED" },
-      include: { slot: true },
-    }),
+    schedulingConflicts(tx),
     tx.offer.findMany({
       where: { slotId, status: "DECLINED" },
       select: { waitlistId: true },
@@ -145,7 +154,7 @@ export async function previewSequence(
   const candidates = requests.map((w) => {
     const priority = w.priorities[0];
     const reasons = eligibility(w, slot, bookings, now);
-    const excluded = !requirementsMet(slot, priority)
+    const excluded = !requirementsMet(slot, priority, w)
       ? "Required referral or authorization has not been approved by this clinic"
       : !reasons
         ? "Service, insurance, budget, time or appointment restrictions do not match"
@@ -258,10 +267,7 @@ async function sendDue(
     );
     return;
   }
-  const bookings = await tx.booking.findMany({
-    where: { status: "CONFIRMED" },
-    include: { slot: true },
-  });
+  const bookings = await schedulingConflicts(tx);
   for (const group of seq.groups.filter((g) => g.status === "APPROVED")) {
     const approved = recipientsSchema.parse(group.recipients);
     const valid: { waitlistId: string; patientId: string }[] = [];
@@ -270,6 +276,8 @@ async function sendDue(
         where: { id: recipient.waitlistId },
         include: {
           booking: { include: { slot: true } },
+          patientNeed: true,
+          externalAppointment: true,
           priorities: { where: { clinicId: seq.slot.clinicId } },
         },
       });
@@ -302,7 +310,7 @@ async function sendDue(
         continue;
       }
       if (
-        !requirementsMet(seq.slot, p) ||
+        !requirementsMet(seq.slot, p, w) ||
         !eligibility(w, seq.slot, bookings, now)
       )
         continue;

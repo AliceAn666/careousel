@@ -56,7 +56,9 @@ it("upgrades populated Part A data without changing bookings, consent-free visit
                 sourceRecordId: null,
                 sourceExcerpt: null,
               }
-            : {};
+            : tables[i] === "Booking"
+              ? { needId: null }
+              : {};
       expect(
         (await client.query(`SELECT * FROM "${tables[i]}" ORDER BY 1`)).rows,
       ).toEqual(snapshots[i].map((row) => ({ ...row, ...added })));

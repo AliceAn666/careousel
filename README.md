@@ -2,17 +2,23 @@
 
 Better care, sooner. A functional synthetic cross-clinic appointment and waitlist prototype built from scratch. No previous HTML/CSS/JavaScript frontend is used.
 
+## Independent medical needs and external appointments (Phase 8 Part C)
+
+Patients can manage several needs independently at `/needs`, register clearly unverified external appointments, browse service openings and join a separate shared waitlist for each need. Successful replacement affects only the linked need, preserves other care and never cancels an external appointment. Optional approved clinical evidence supports staff review; P1–P4 remains human-approved. Insurance/requirement warnings stay visible, with server eligibility checks enforced. [API, invariants and walkthrough](docs/patient-needs.md).
+
+Migration **0011_independent_patient_needs** is additive with no automatic backfill. No shared/cloud migration, reset, deployment or automatic merge is performed.
+
 ## Patient-authorized synthetic records (Phase 8 Part B)
 
 Patients can explicitly authorize a clinic-specific synthetic FHIR-compatible sample import, search records and generate unconfirmed local suggestions. Permitted clinicians use **Record review** to correct, approve or reject evidence; only approved tags reach Part A's scheduling evidence. Patients can revoke access immediately while retaining their private source/audit archive. Booking never requires an import. No hospital connection or external AI API is needed; optional loopback AI reliably falls back to local rules. [Walkthrough, API, privacy, retention and limitations](docs/medical-record-import.md).
 
-Migrations **0009_patient_record_import** and **0010_record_review_integrity** are additive and tested in a new isolated database only. No deployment/shared database changes are performed. External bookings and independent multi-need scheduling remain Part C after this PR's review and merge.
+Migrations **0009_patient_record_import** and **0010_record_review_integrity** are additive and tested in a new isolated database only. No deployment/shared database changes are performed. External bookings and independent multi-need scheduling are implemented in Part C; see [patient scheduling contracts](docs/patient-needs.md).
 
 ## Clinician-authored medical tags (Phase 8 Part A)
 
 Authorized clinicians can create visit-linked medical needs and tags, edit drafts, explicitly approve or retire them, and inspect immutable version history under **Medical tags**. Administrators explicitly grant clinical author permission; staff/admin roles alone do not grant it. Patients see their own approved follow-up information under **Health information**. Priority review shows approved same-clinic scheduling evidence without private clinical notes; human-approved P1–P4 and existing scheduling protections remain separate.
 
-Clinical credential verification is simulated. Record import/extraction is implemented separately in Part B; independent scheduling of multiple needs remains Part C. Migration **0008_clinician_medical_tags** is additive and was tested only on a newly isolated PostgreSQL database; applying it to any existing demo/cloud environment requires separate authorization. No deployment or shared-database change is performed. [Contracts, privacy boundaries and walkthrough](docs/medical-tags.md).
+Clinical credential verification is simulated. Record import/extraction is implemented separately in Part B; independent scheduling of multiple needs is implemented in Part C. Migration **0008_clinician_medical_tags** is additive and was tested only on a newly isolated PostgreSQL database; applying it to any existing demo/cloud environment requires separate authorization. No deployment or shared-database change is performed. [Contracts, privacy boundaries and walkthrough](docs/medical-tags.md).
 
 ## Automated priority-group notifications (Phase 7)
 
