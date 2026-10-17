@@ -1,9 +1,10 @@
 name: Careousel notification scheduler
 
-# Temporarily paused during hackathon development to conserve Actions minutes.
-# To resume: restore the previous schedule ("13,43 * * * *") under "on:".
-# Manual workflow_dispatch remains available for controlled tests.
+# Scan for due groups every 30 minutes (UTC).
+# GitHub schedules can be delayed; group eligibility is enforced by the server.
 on:
+  schedule:
+    - cron: "13,43 * * * *"
   workflow_dispatch:
 
 permissions:
