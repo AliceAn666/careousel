@@ -1,0 +1,27 @@
+# Free fallback for the full Careousel Next.js server during hackathon demos.
+# Same persistent Neon database as Vercel. Never run db:seed during deployment.
+# Render's free web service sleeps after 15 min of inactivity.
+services:
+  - type: web
+    name: careousel-live
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: npm ci --ignore-scripts && npm run build
+    startCommand: npm run start -- --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DEMO_MODE
+        value: "true"
+      - key: NOTIFICATION_CRON_SECRET
+        generateValue: true
