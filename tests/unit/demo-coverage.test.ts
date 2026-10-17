@@ -18,7 +18,8 @@ describe("fictional plan-specific benefits", () => {
   });
   it("applies one insurance network consistently across all times at a clinic", () => {
     const otherClinic = { ...slot, clinicId: "summit" };
-    expect(demoCoverage(otherClinic, "Blue Horizon", "PPO").estimate).toBeNull();
+    expect(demoCoverage(otherClinic, "Blue Horizon", "PPO").estimate).not.toBeNull();
+    expect(demoCoverage(otherClinic, "Aster Health", "PPO").estimate).toBeNull();
     expect(demoCoverage(otherClinic, "Pacific Care", "PPO").estimate).not.toBeNull();
     expect(demoCoverage(slot, "Aster Health", "PPO").estimate).toBeNull();
     expect(demoCoverage(slot, "United Demo", "PPO").estimate).not.toBeNull();
