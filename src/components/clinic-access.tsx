@@ -7,6 +7,7 @@ type Dashboard = {
   members: {
     id: string;
     role: string;
+    canAuthorMedicalTags: boolean;
     status: string;
     account: { username: string; email: string; user: { name: string } };
   }[];
@@ -120,6 +121,29 @@ export function ClinicAccess() {
             </p>
           </div>
           <div className={styles.tabs}>
+            {member.status === "ACTIVE" && (
+              <button
+                disabled={busy}
+                onClick={() => {
+                  const reason = prompt(
+                    "Reason for granting or revoking clinical author permission (credential verification is simulated)",
+                  );
+                  if (reason)
+                    void act({
+                      type: "clinicalPermission",
+                      membershipId: member.id,
+                      enabled: !member.canAuthorMedicalTags,
+                      expectedEnabled: member.canAuthorMedicalTags,
+                      reason,
+                    });
+                }}
+              >
+                {member.canAuthorMedicalTags
+                  ? "Revoke clinical author permission"
+                  : "Grant clinical author permission"}
+              </button>
+            )}
+
             {member.status === "PENDING" && (
               <button
                 className="primary"

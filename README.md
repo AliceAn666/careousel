@@ -2,6 +2,12 @@
 
 Better care, sooner. A functional synthetic cross-clinic appointment and waitlist prototype built from scratch. No previous HTML/CSS/JavaScript frontend is used.
 
+## Clinician-authored medical tags (Phase 8 Part A)
+
+Authorized clinicians can create visit-linked medical needs and tags, edit drafts, explicitly approve or retire them, and inspect immutable version history under **Medical tags**. Administrators explicitly grant clinical author permission; staff/admin roles alone do not grant it. Patients see their own approved follow-up information under **Health information**. Priority review shows approved same-clinic scheduling evidence without private clinical notes; human-approved P1–P4 and existing scheduling protections remain separate.
+
+Clinical credential verification is simulated. Record import/extraction and independent scheduling of multiple needs are follow-up PRs. Migration **0008_clinician_medical_tags** is additive and was tested only on a newly isolated PostgreSQL database; applying it to any existing demo/cloud environment requires separate authorization. No deployment or shared-database change is performed. [Contracts, privacy boundaries and walkthrough](docs/medical-tags.md).
+
 ## Automated priority-group notifications (Phase 7)
 
 Clinic Waitlist matches now provides **Automatic priority-group notifications**: select an opening, preview P1–P4 and exclusions, explicitly select recipients, confirm the first group and reason, then **Authorize and start automatic sequence**. Later groups send automatically at least 180 minutes after the previous actual send, including when earlier patients have not responded. One shared cross-clinic pool; no internal-clinic-first window. Use Pause / Resume / Cancel; changed recipient/priority snapshots require fresh preview and explicit reauthorization of unsent groups.
@@ -146,7 +152,7 @@ Prototype limits: one role/clinic per staff account, no password recovery/MFA/ad
 
 ## Patient search-first redesign — October 17, 2026
 
-This user-approved UX requirement supersedes all earlier instructions to require first-visit symptom intake or use a monthly clinic-icon calendar for patient search. No symptom questionnaire is shown in normal patient UI, including optional onboarding. No intake-completion gate applies to search, direct booking, waitlist registration, acceptance or guides. Existing Intake/SymptomTag rows and historical API compatibility are retained without deletion, migration or automatic backfill. Future clinician-authored tags and patient-authorized medical-record imports are separate, unimplemented work; do not invent clinical information.
+This user-approved UX requirement supersedes all earlier instructions to require first-visit symptom intake or use a monthly clinic-icon calendar for patient search. No symptom questionnaire is shown in normal patient UI, including optional onboarding. No intake-completion gate applies to search, direct booking, waitlist registration, acceptance or guides. Existing Intake/SymptomTag rows and historical API compatibility are retained without deletion, migration or automatic backfill. Clinician-authored tags are implemented in Phase 8 Part A; patient-authorized record import remains separate future work. Do not invent clinical information.
 
 Patient navigation centers on Book an Appointment, Find an Earlier Appointment, and Manage My Appointments and Waitlists, plus the durable notification inbox. Search includes a service/specialty text field, categories (Vaccinations, Blood Tests, Routine Checkups mapped to Primary care / Routine examination, Specialist Visits), service/location/insurance/date/listed-cost and fictional estimated-patient-cost filters. Only matching labeled appointment cards appear, earliest first; details/booking and waitlist actions remain available. Vaccination, Blood test and Routine examination are supported request service strings, but current synthetic fixtures may have no matching openings; display an honest empty state. Never relabel a specialist appointment as another service. Clinic operational schedules are preserved.
 

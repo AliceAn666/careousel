@@ -123,8 +123,80 @@ try {
   ).headers
     .get("set-cookie")!
     .split(";")[0];
+  // New records are synthetic and confined to the isolated URL guarded above.
+  process.env.DATABASE_URL = url;
+  process.env.DEMO_MODE = "true";
+  const { db: medicalDb } = await import("../src/server/db");
+  const { mutateMedicalTag, medicalTagsDashboard } =
+    await import("../src/server/services/medical-tags");
+  await medicalDb.slot.create({
+    data: {
+      id: "persistence-medical-slot",
+      clinicId: "cedar",
+      service: "Dermatology",
+      provider: "Synthetic clinician",
+      start: new Date(Date.now() - 86400000),
+      end: new Date(Date.now() - 84000000),
+      price: 10000,
+      plans: ["Blue Horizon"],
+      status: "BOOKED",
+    },
+  });
+  await medicalDb.booking.create({
+    data: {
+      id: "persistence-medical-visit",
+      patientId: "avery",
+      slotId: "persistence-medical-slot",
+    },
+  });
+  const medical = await mutateMedicalTag("staff-cedar", {
+    type: "create",
+    sourceBookingId: "persistence-medical-visit",
+    needTitle: "Persistent follow-up",
+    kind: "FOLLOW_UP",
+    label: "Persistent clinical tag",
+    clinicalNotes: "Synthetic private persistence note",
+    followUpRecommendation: "Arrange synthetic follow-up",
+    recommendedFrom: null,
+    recommendedBy: null,
+    requiresReferral: false,
+    requiresAuthorization: false,
+    reason: "Synthetic persistence rehearsal",
+  });
+  await mutateMedicalTag("staff-cedar", {
+    type: "approve",
+    tagId: medical.tagId,
+    expectedVersion: 1,
+    reason: "Synthetic clinician reviewed",
+  });
+  const medicalBefore = JSON.stringify(
+    (await medicalTagsDashboard("staff-cedar")).tags,
+  );
   await stop();
   await start();
+  const medicalAfter = await (
+    await fetch(base + "/api/medical-tags", {
+      headers: { cookie: staffCookie },
+    })
+  ).json();
+  if (JSON.stringify(medicalAfter.tags) !== medicalBefore)
+    throw new Error(
+      "Medical tags, needs or revision history did not survive production restart.",
+    );
+  const patientMedical = await (
+    await fetch(base + "/api/medical-tags", {
+      headers: { cookie: patientCookie },
+    })
+  ).json();
+  if (
+    !patientMedical.tags.some(
+      (tag: { id: string; state: string }) =>
+        tag.id === medical.tagId && tag.state === "APPROVED",
+    )
+  )
+    throw new Error(
+      "Patient approved clinical information did not survive restart.",
+    );
   const accountState = await (
     await fetch(base + "/api/state", { headers: { cookie: accountCookie } })
   ).json();
@@ -205,7 +277,7 @@ try {
     );
   await stop();
   console.log(
-    "PASS: booking, account/demo sessions, request priority/history and authorized automatic sequence survived production restart; independent restarted worker sent overdue P2 with no browser/web server running.",
+    "PASS: medical tags/needs/revision history, booking, account/demo sessions, request priority/history and authorized automatic sequence survived production restart; independent restarted worker sent overdue P2 with no browser/web server running.",
   );
 } finally {
   await stop();

@@ -56,6 +56,33 @@ function RequestPriority({
           </p>
         )}
       </div>
+      {request.medicalEvidence.length > 0 && (
+        <section aria-label="Approved medical evidence">
+          <h4>Approved medical evidence</h4>
+          <p>
+            Same patient, clinic and service. Confirm relevance to this request;
+            tags do not assign priority or verify referral documents.
+          </p>
+          {request.medicalEvidence.map((tag) => (
+            <div key={tag.id}>
+              <strong>{tag.label}</strong>
+              <p>{tag.followUpRecommendation}</p>
+              <p>
+                {tag.recommendedFrom
+                  ? dateLabel(tag.recommendedFrom)
+                  : "No start"}{" "}
+                →{" "}
+                {tag.recommendedBy
+                  ? dateLabel(tag.recommendedBy)
+                  : "No deadline"}{" "}
+                · Referral {tag.requiresReferral ? "required" : "not specified"}{" "}
+                · Authorization{" "}
+                {tag.requiresAuthorization ? "required" : "not specified"}
+              </p>
+            </div>
+          ))}
+        </section>
+      )}
       <form
         className={styles.form}
         onSubmit={async (event) => {

@@ -63,3 +63,13 @@ PR #8 merged as main 3e498866aca4159fe687e011b5b73c7e91a5c660; main run 39005432
 Started from CI-passing main 2e65bff (run 39006504739) after PR #8/#9 merged. Selectively reused e6a802e's demoCoverage calculator/tests and CoverageSummary. The guide was adapted to the current calendar, combined appointment/waitlist page and clinic priorities instead of restoring old cards, separate waitlist navigation or hidden Activity navigation. A bounded native modal replaces stale spatial-highlight geometry; keyboard/Escape/focus and browser-local persona-scoped progress remain. Launch is disabled before required intake, with an explicit getting-started card afterward.
 
 Calendar search retains original filters, adds fictional PPO/HMO scenario/network/cost controls and captures the viewed scenario in detail review. Per-persona validated browser preferences survive page navigation/refresh and do not mutate saved server plans or sessions. Calendar popover lists scroll within the viewport. Estimated patient costs display cents separately from existing listed-price formatting. Unknown coverage is not zero, and all summaries state their synthetic limitations. No backend, migration, seed or session contract is replaced; registration, batch notifications, real eligibility/insurance and production identity remain future scopes. All development remains user + Codex only.
+
+## Phase 8 Part A integration boundary
+
+The clinician medical-tag service and API contract are documented in
+[medical-tags.md](medical-tags.md). Migration 0008 adds clinical needs, independently
+reviewed tags, append-only revisions and explicit clinical author permission.
+Approved same-clinic evidence is read-only in priority review; it does not mutate
+scheduling decisions or P1–P4. Import/search/extraction and independent per-need
+scheduling links remain PR2/PR3. Existing/cloud databases and deployment are
+outside this PR’s execution authorization.

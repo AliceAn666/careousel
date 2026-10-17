@@ -983,7 +983,7 @@ export async function getState(
       },
       select: { slotId: true, waitlistId: true },
     });
-    const priorityRequests = staff
+    const scopedPriorityRequests = staff
       ? await tx.waitlist.findMany({
           where: priorityRequestScope(user.clinicId!),
           select: {
@@ -991,6 +991,7 @@ export async function getState(
             service: true,
             createdAt: true,
             bookingId: true,
+            patientId: true,
             patient: { select: { name: true } },
             priorities: {
               where: { clinicId: user.clinicId! },
@@ -1000,6 +1001,35 @@ export async function getState(
           orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         })
       : [];
+    // Only approved, same-clinic scheduling evidence is projected here. Never
+    // expose drafts, revision snapshots or private clinical notes through state.
+    const approvedEvidence = staff
+      ? await tx.medicalTag.findMany({
+          where: {
+            clinicId: user.clinicId!,
+            state: "APPROVED",
+            patientId: { in: scopedPriorityRequests.map((r) => r.patientId) },
+          },
+          select: {
+            id: true,
+            patientId: true,
+            label: true,
+            followUpRecommendation: true,
+            recommendedFrom: true,
+            recommendedBy: true,
+            requiresReferral: true,
+            requiresAuthorization: true,
+            reviewedAt: true,
+            need: { select: { service: true } },
+          },
+        })
+      : [];
+    const priorityRequests = scopedPriorityRequests.map((r) => ({
+      ...r,
+      medicalEvidence: approvedEvidence.filter(
+        (t) => t.patientId === r.patientId && t.need.service === r.service,
+      ),
+    }));
     const candidates = suggestions
       .filter(
         (s) =>

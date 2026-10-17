@@ -2,7 +2,7 @@
 
 ## Patient search-first redesign — October 17, 2026
 
-This user-approved UX requirement supersedes all earlier instructions to require first-visit symptom intake or use a monthly clinic-icon calendar for patient search. No symptom questionnaire is shown in normal patient UI, including optional onboarding. No intake-completion gate applies to search, direct booking, waitlist registration, acceptance or guides. Existing Intake/SymptomTag rows and historical API compatibility are retained without deletion, migration or automatic backfill. Future clinician-authored tags and patient-authorized medical-record imports are separate, unimplemented work; do not invent clinical information.
+This user-approved UX requirement supersedes all earlier instructions to require first-visit symptom intake or use a monthly clinic-icon calendar for patient search. No symptom questionnaire is shown in normal patient UI, including optional onboarding. No intake-completion gate applies to search, direct booking, waitlist registration, acceptance or guides. Existing Intake/SymptomTag rows and historical API compatibility are retained without deletion, migration or automatic backfill. Clinician-authored tags are implemented in Phase 8 Part A; patient-authorized record import remains separate future work. Do not invent clinical information.
 
 Patient navigation centers on Book an Appointment, Find an Earlier Appointment, and Manage My Appointments and Waitlists, plus the durable notification inbox. Search includes a service/specialty text field, categories (Vaccinations, Blood Tests, Routine Checkups mapped to Primary care / Routine examination, Specialist Visits), service/location/insurance/date/listed-cost and fictional estimated-patient-cost filters. Only matching labeled appointment cards appear, earliest first; details/booking and waitlist actions remain available. Vaccination, Blood test and Routine examination are supported request service strings, but current synthetic fixtures may have no matching openings; display an honest empty state. Never relabel a specialist appointment as another service. Clinic operational schedules are preserved.
 
@@ -135,4 +135,19 @@ See VALIDATION.md for executed checks and limitations; documentation acceptance 
 
 ### Latest-main PR #15 compatibility
 
-PR #15 merged during development (main f5212eb, successful CI). Preserve its canonical service identifiers Vaccination, Blood test and Routine examination, existing-booking prefilled earlier-request shortcut and /patient, /earlier, /needs, /health-information routes. The task hub remains accessible; normal login opens search directly. The health-information page now shows historical data/future-work explanations only: PR #15's optional questionnaire is explicitly superseded by the latest user requirement and removed. Patient task labels use the three standardized appointment/waitlist activities. Existing/new PR #15 safety tests remain, adapted only for this intentionally removed optional questionnaire and search interface.
+PR #15 merged during development (main f5212eb, successful CI). Preserve its canonical service identifiers Vaccination, Blood test and Routine examination, existing-booking prefilled earlier-request shortcut and /patient, /earlier, /needs, /health-information routes. The task hub remains accessible; normal login opens search directly. The health-information page preserves historical self-report, adds approved clinician tags in Phase 8 Part A, and leaves imports for PR2: PR #15's optional questionnaire is explicitly superseded by the latest user requirement and removed. Patient task labels use the three standardized appointment/waitlist activities. Existing/new PR #15 safety tests remain, adapted only for this intentionally removed optional questionnaire and search interface.
+
+
+## Phase 8 Part A — functional clinician-authored tags
+
+- [x] Start from CI-verified main 3f36058 (merged PR16/PR17); isolated feature branch.
+- [x] Add MedicalNeed, clinician-authored MedicalTag and append-only version snapshots through additive migration 0008. Preserve Intake, SymptomTag, accounts, bookings, priorities and sequences.
+- [x] Explicit administrator clinical-author grant/revoke, active membership checks, same-clinic started-visit sources, patient read-only approved records and minimal scheduling evidence.
+- [x] Functional create/edit/approve/retire clinic UI, audit history, patient health-information view, navigation and guided tours. Editing returns approved content to draft.
+- [x] Preserve search-first no-questionnaire patient UX, staff-approved priorities, eligibility checks, notification intervals and atomic scheduling.
+- [x] Lint/typecheck/build, 51 unit tests, 78 isolated PostgreSQL integration tests, 23 browser tests and production/worker persistence rehearsal passed.
+- [ ] Review and merge Part A PR manually. No automatic merge/deployment or shared database changes.
+- [ ] PR2: patient-authorized synthetic FHIR-compatible record import, local text search/extraction and clinician review.
+- [ ] PR3: external appointment references, independent scheduling for multiple needs and advanced service eligibility.
+
+Implementation is approved. Cloud deployment, Neon initialization, Vercel and Cloudflare configuration remain separate tasks requiring their own authorization. Validation results for this branch are recorded in docs/medical-tags.md after actual checks.

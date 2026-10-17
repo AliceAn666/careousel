@@ -37,6 +37,7 @@ import {
 import { ClinicSchedule, Matches, ActivityFeed } from "./clinic-portal";
 import accountStyles from "./account-access.module.css";
 import { AccountAccess } from "./account-access";
+import { MedicalTags } from "./medical-tags";
 import { ClinicAccess } from "./clinic-access";
 import { PatientEntry, OptionalHealthInformation } from "./patient-entry";
 import { Priorities } from "./clinic-priorities";
@@ -54,6 +55,7 @@ const navPatient = [
   ["/notifications", "Notifications", Bell],
 ] as const;
 const navClinic = [
+  ["/clinic/medical-tags", "Medical tags", Gauge],
   ["/clinic/schedule", "Schedule", LayoutDashboard],
   ["/clinic/waitlists", "Waitlist matches", Users],
   ["/clinic/priorities", "Priorities", Gauge],
@@ -248,15 +250,17 @@ export function CareouselApp() {
             ? "Clinic overview"
             : path === "/clinic/access"
               ? "Clinic staff access"
-              : path === "/clinic/waitlists"
-                ? "Waitlist matches"
-                : path === "/clinic/priorities"
-                  ? "Request priorities"
-                  : path === "/clinic/activity"
-                    ? "Clinic activity"
-                    : path === "/demo"
-                      ? "A better-care walkthrough"
-                      : "Find your next appointment";
+              : path === "/clinic/medical-tags"
+                ? "Clinical medical tags"
+                : path === "/clinic/waitlists"
+                  ? "Waitlist matches"
+                  : path === "/clinic/priorities"
+                    ? "Request priorities"
+                    : path === "/clinic/activity"
+                      ? "Clinic activity"
+                      : path === "/demo"
+                        ? "A better-care walkthrough"
+                        : "Find your next appointment";
   const personaOptions = state.personas.map((p) => (
     <option key={p.id} value={p.id}>
       {personaLabel(p)}
@@ -439,7 +443,9 @@ export function CareouselApp() {
               {path === "/demo" ? (
                 <DemoGuide staff={staff && demoMode} act={act} />
               ) : staff ? (
-                path === "/clinic/access" ? (
+                path === "/clinic/medical-tags" ? (
+                  <MedicalTags key={state.user?.id} />
+                ) : path === "/clinic/access" ? (
                   <ClinicAccess />
                 ) : path === "/clinic/waitlists" ? (
                   <Matches state={state} act={act} />

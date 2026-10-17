@@ -294,3 +294,20 @@ During delivery, PR #15 merged into main f5212eb4f0f33ebc68f8cc78b234a984f7a3596
 Final reconciled results: lint, typecheck, formatting/diff checks passed; **43 unit**, **70 PostgreSQL integration**, and **21 full Chromium E2E** passed. Both main's task-entry cases remain, adapted for cards and read-only history; the new search-first case remains. Final production build and production/independent-worker restart persistence passed. Test target remains this branch's isolated careousel-search-tests on port 5548 only; shared data untouched. No applied migration changes, force push, automatic merge or deployment.
 
 Additional verification corrections: an intermediate local Vitest invocation discovered recovery snapshots under work/ as duplicate test files; renamed those scratch snapshots, with no test exclusions/config changes, then reran all 70 real integration cases successfully. The health-history browser case now explicitly waits for its route before refreshing. An older account case queried the saved cookie immediately after clicking logout, before the DELETE transaction completed; it now awaits the successful DELETE response and home navigation, then retains the exact stale-token denial assertion. The final full 21-case run passed with these stronger completion checks. No safety assertion was removed.
+
+
+## Phase 8 Part A — actual isolated verification (October 17, 2026)
+
+Base: CI-verified main `3f36058`, after merged PR16/PR17. Branch: `feat/phase8-clinician-medical-tags`. This section supersedes earlier future/unconnected tag placeholders; it does not change historical validation results. Record import and complete independent per-need scheduling remain PR2/PR3.
+
+- Lint and typecheck passed. Lint retains one inherited anonymous-export warning in the Cloudflare worker; no deployment configuration was changed.
+- Production webpack build passed.
+- Unit tests: **51 passed**, 10 files.
+- PostgreSQL integration tests: **78 passed**, 9 files. New coverage includes clinical grants/revocation, patient/clinic privacy, started-visit eligibility, concurrent reviews, immutable snapshots/provenance, atomic rollback and additive preservation of populated historical records.
+- Chromium E2E: **23 passed**. New journeys use functional clinic create/approve/edit, patient approved-only visibility, mobile bounds, explicit administrator grants/revocation, anonymous/patient write denial and same-origin protections. Existing search, insurance, guides, booking races, original preservation and automated sequences remain covered.
+- Production persistence rehearsal passed for medical tags, clinical needs, version history, account/demo sessions, bookings, approved priorities/history and independent worker recovery with the web server stopped.
+- Format and diff checks passed. The internal notification route has formatting-only cleanup for an inherited Prettier failure.
+
+All database checks used a newly created isolated PostgreSQL 17 container on local port 5549 with `careousel_test`. No existing Codespaces, cloud or shared demo database was accessed, migrated, reset or reseeded. No deployment or automatic merge. See [medical-tag contracts and limitations](docs/medical-tags.md).
+
+Integration follow-up: main advanced during development to `3a827a6` (PR18–PR20). Merged its existing safe-error diagnostics and Prisma WASM tracing configuration without conflict; no deployment was performed. Final checks were repeated on the combined branch. Formatting-only cleanup also covers the inherited HTTP diagnostics formatting.
