@@ -175,3 +175,7 @@ Acceptance: new patients can browse/book/join/accept without Intake rows; histor
 ### Latest-main PR #15 compatibility
 
 PR #15 merged during development (main f5212eb, successful CI). Preserve its canonical service identifiers Vaccination, Blood test and Routine examination, existing-booking prefilled earlier-request shortcut and /patient, /earlier, /needs, /health-information routes. The task hub remains accessible; normal login opens search directly. The health-information page now shows historical data/future-work explanations only: PR #15's optional questionnaire is explicitly superseded by the latest user requirement and removed. Patient task labels use the three standardized appointment/waitlist activities. Existing/new PR #15 safety tests remain, adapted only for this intentionally removed optional questionnaire and search interface.
+
+### Activating private demo staff invitations
+
+Use the existing administrator bootstrap and the reviewed, idempotent invitation CLI only after explicit target authorization. [Activation, privacy, approval and verification runbook](docs/demo-staff-invitations.md). Private sheets, passwords and token manifests stay outside Git; no ordinary login or startup provisions accounts or resets data.
