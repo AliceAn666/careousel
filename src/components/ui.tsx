@@ -62,40 +62,23 @@ export function Modal({
     </dialog>
   );
 }
-type Tag = {
-  id: string;
-  label: string;
-  score: number;
-  source: string;
-  clinic: { name: string } | null;
-};
-const level = (score: number) =>
-  score >= 7 ? "high" : score >= 4 ? "moderate" : "low";
-// Severity chips; the level is spelled out so it never relies on color alone.
-export function SeverityTags({
+// Historical symptom labels are patient information, not priority levels.
+export function SymptomLabels({
   tags,
-  empty = "No symptom tags yet",
 }: {
-  tags: Tag[];
-  empty?: string;
+  tags: { id: string; label: string }[];
 }) {
-  if (!tags.length) return <p className="tag-empty">{empty}</p>;
+  if (!tags.length)
+    return (
+      <p className="tag-empty">
+        Your answers were saved. Staff review each waitlist request separately.
+      </p>
+    );
   return (
     <ul className="severity-tags">
-      {tags.map((t) => (
-        <li
-          key={t.id}
-          className={`severity-tag ${level(t.score)}`}
-          title={
-            t.source === "CLINIC"
-              ? `Set by ${t.clinic?.name ?? "clinic"}`
-              : "From patient questionnaire"
-          }
-        >
-          <span>{t.label}</span>
-          <strong>
-            {t.score}/10 · {level(t.score)}
-          </strong>
+      {tags.map((tag) => (
+        <li className="severity-tag" key={tag.id}>
+          {tag.label}
         </li>
       ))}
     </ul>

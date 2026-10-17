@@ -1,6 +1,6 @@
 # Priority, group invitations and account integration review
 
-This is a documentation/roadmap slice, not a claim that the planned mechanisms work today. Explicit October 17 requirements supersede earlier proposals. Sole owner: user + Codex.
+This review originated in documentation PR #11. The current R1 feature branch implements request-scoped four-level priorities, history, UI and tests as detailed in PRD R1 implementation boundary; account/group mechanisms below remain planned. Explicit October 17 requirements supersede earlier proposals. Sole owner: user + Codex.
 
 ## Inspected baseline and reusable branches
 
@@ -24,10 +24,14 @@ Shared overlapping files: prisma/schema.prisma, seed-data.ts/seed.ts, src/compon
 
 ## Safe PR order
 
-1. Roadmap/docs review (this PR).
+1. Roadmap/docs review (completed in PR #11).
 2. Request-scoped four-level priorities, no group occupancy relaxation. Introduce history/backfill and staff UI together.
 3. Individual account sessions and explicit Demo Mode, then administrator invitations/approval/revocation. These can be separate PRs, with actual clinic authority ready before activating group delivery.
 4. Group state machine + revised integrity constraints + staff preview/manual send + patient acceptance together if needed to avoid an unsafe partial rollout. Fixed 180-minute timing; no automated next group. Separate UI polish only after the complete safe state machine exists.
 5. Isolated upgrade/concurrency/end-to-end rehearsal and documentation of observed versus simulated behavior; PR review, never automatic merge/deployment.
 
 Each implementation PR starts from the latest successful main, preserves all existing safety assertions (adapting intentional UX expectations with equivalent coverage), and reports actual checks. Schema migration files in review do not authorize running them against the shared database. No shared reset/reseed, account bootstrap, migration or fixture expansion occurs in this documentation slice. No invitations are sent externally.
+
+## R1 feature adaptation
+
+Current R1 does not import either feature branch. It retains current scheduling writers and exclusive Offer constraints, replaces numeric setTag/deleteTag priority mutations with strict setWaitlistPriority, and restricts staff request/history projection to their clinic. Old Intake/SymptomTag rows and migration checksums are preserved. New intake saves raw answers without computed urgency; patients can still see symptom labels. Request preference edits trigger documented re-review with history. New migration 0004_waitlist_priority_levels uses current schema names and is tested only in isolation, not applied to shared data. Accounts and timed group sends follow in separate feature PRs after reviewed merge and green main.

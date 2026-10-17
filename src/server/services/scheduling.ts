@@ -8,14 +8,9 @@ import {
   PLANS,
   SERVICES,
 } from "../../lib/config";
-import {
-  DURATIONS,
-  SYMPTOM_AREAS,
-  WARNING_SIGNS,
-  MAX_SCORE,
-  MIN_SCORE,
-  scoreIntake,
-} from "../../lib/priority";
+import { DURATIONS, SYMPTOM_AREAS, WARNING_SIGNS } from "../../lib/priority";
+import { PRIORITY_LEVELS } from "../../lib/waitlist-priority";
+import { priorityInclude, priorityRequestScope } from "./waitlist-priority";
 import { seedData } from "../../../prisma/seed-data";
 export class DomainError extends Error {
   constructor(
@@ -90,29 +85,20 @@ export const actionSchema = z.discriminatedUnion("type", [
       .max(WARNING_SIGNS.length)
       .default([]),
   }),
-  z.object({
-    type: z.literal("setTag"),
-    patientId: id,
-    tagId: id.optional(),
-    label: z.string().trim().min(1).max(40),
-    score: z.number().int().min(MIN_SCORE).max(MAX_SCORE),
-  }),
-  z.object({ type: z.literal("deleteTag"), tagId: id }),
+  z
+    .object({
+      type: z.literal("setWaitlistPriority"),
+      waitlistId: id,
+      clinicId: id,
+      level: z.enum(PRIORITY_LEVELS),
+      expectedVersion: z.number().int().min(0),
+      reason: z.string().trim().min(3).max(500),
+    })
+    .strict(),
 ]);
 type AreaId = (typeof SYMPTOM_AREAS)[number]["id"];
 type DurationId = (typeof DURATIONS)[number]["id"];
 type SignId = (typeof WARNING_SIGNS)[number]["id"];
-// Returning patients a clinic may prioritize: those it has booked or already tagged.
-function clinicPatientsWhere(clinicId: string): Prisma.UserWhereInput {
-  return {
-    role: "PATIENT",
-    visitType: "FOLLOW_UP",
-    OR: [
-      { bookings: { some: { slot: { clinicId } } } },
-      { tags: { some: { clinicId } } },
-    ],
-  };
-}
 export type Action = z.input<typeof actionSchema>;
 async function audit(
   tx: Prisma.TransactionClient,
@@ -375,6 +361,36 @@ export async function performAction(
           if (existing && existing.id !== w.id)
             fail("You already have an active waitlist for this service.");
           await revokeRequests(tx, { id: w.id });
+          const reviewed = await tx.waitlistPriority.findMany({
+            where: { waitlistId: w.id, reviewState: "APPROVED" },
+          });
+          for (const priority of reviewed) {
+            const version = priority.version + 1;
+            const reason =
+              "Patient edited request preferences; staff re-review required.";
+            await tx.priorityHistory.create({
+              data: {
+                priorityId: priority.id,
+                previousLevel: priority.level,
+                level: null,
+                actorId: user.id,
+                reason,
+                version,
+                createdAt: now,
+              },
+            });
+            await tx.waitlistPriority.update({
+              where: { id: priority.id },
+              data: {
+                level: null,
+                reviewState: "UNREVIEWED",
+                assignedById: null,
+                assignedAt: null,
+                reason,
+                version,
+              },
+            });
+          }
           await tx.waitlist.update({
             where: { id: w.id },
             data: { ...data, bookingId: input.bookingId ?? null },
@@ -626,80 +642,80 @@ export async function performAction(
           warningSigns: input.warningSigns,
         };
         await tx.intake.create({ data: { patientId: user.id, answers } });
-        await tx.symptomTag.createMany({
-          data: scoreIntake(answers).map((t) => ({
-            patientId: user.id,
-            label: t.label,
-            score: t.score,
-            source: "QUESTIONNAIRE",
-          })),
-        });
         message =
-          "Thanks — your questionnaire is saved. Clinics will see your symptom summary when reviewing waitlist matches.";
+          "Thanks — your synthetic questionnaire is saved. Request priority requires separate staff review.";
         break;
       }
-      case "setTag": {
-        staff();
-        const clinicId = user.clinicId!;
-        const target = await tx.user.findFirst({
-          where: { id: input.patientId, ...clinicPatientsWhere(clinicId) },
-        });
-        if (!target)
-          fail("This patient is not a returning patient of your clinic.", 403);
-        const duplicate = await tx.symptomTag.findFirst({
+      case "setWaitlistPriority": {
+        staff(input.clinicId);
+        const request = await tx.waitlist.findFirst({
           where: {
-            patientId: target.id,
-            source: "CLINIC",
-            clinicId,
-            label: { equals: input.label, mode: "insensitive" },
-            ...(input.tagId ? { id: { not: input.tagId } } : {}),
+            id: input.waitlistId,
+            ...priorityRequestScope(input.clinicId),
           },
         });
-        if (duplicate) fail("This patient already has a tag with that name.");
-        if (input.tagId) {
-          const tag = await tx.symptomTag.findUnique({
-            where: { id: input.tagId },
-          });
-          if (
-            !tag ||
-            tag.patientId !== target.id ||
-            tag.source !== "CLINIC" ||
-            tag.clinicId !== clinicId
-          )
-            fail("Only tags created by your clinic can be edited.", 403);
-          await tx.symptomTag.update({
-            where: { id: tag.id },
-            data: { label: input.label, score: input.score },
-          });
-        } else
-          await tx.symptomTag.create({
-            data: {
-              patientId: target.id,
-              clinicId,
-              label: input.label,
-              score: input.score,
-              source: "CLINIC",
+        if (!request)
+          fail("This request is outside your clinic scope or inactive.", 403);
+        const current = await tx.waitlistPriority.findUnique({
+          where: {
+            waitlistId_clinicId: {
+              waitlistId: request.id,
+              clinicId: input.clinicId,
             },
-          });
+          },
+        });
+        // A repeated successful submission is safe, but a different actor,
+        // reason or outdated conflicting decision must not overwrite history.
+        if (
+          current?.reviewState === "APPROVED" &&
+          current.level === input.level &&
+          current.assignedById === user.id &&
+          current.reason === input.reason &&
+          (current.version === input.expectedVersion ||
+            current.version === input.expectedVersion + 1)
+        )
+          return { message: "This request priority is already saved." };
+        if ((current?.version ?? 0) !== input.expectedVersion)
+          fail(
+            "Priority changed. Refresh and review the current decision before saving.",
+          );
+        const data = {
+          level: input.level,
+          reviewState: "APPROVED",
+          assignedById: user.id,
+          assignedAt: now,
+          reason: input.reason,
+          version: input.expectedVersion + 1,
+        };
+        const priority = await tx.waitlistPriority.upsert({
+          where: {
+            waitlistId_clinicId: {
+              waitlistId: request.id,
+              clinicId: input.clinicId,
+            },
+          },
+          create: { waitlistId: request.id, clinicId: input.clinicId, ...data },
+          update: data,
+        });
+        await tx.priorityHistory.create({
+          data: {
+            priorityId: priority.id,
+            previousLevel: current?.level ?? null,
+            level: input.level,
+            actorId: user.id,
+            reason: input.reason,
+            version: priority.version,
+            createdAt: now,
+          },
+        });
         await audit(
           tx,
-          clinicId,
+          input.clinicId,
           user.name,
-          `Updated priority for ${target.name}: ${input.label} ${input.score}/10`,
+          `Assigned ${input.level} to waitlist request ${request.id}: ${input.reason}`,
         );
-        message = "Priority saved.";
-        break;
-      }
-      case "deleteTag": {
-        staff();
-        const tag = await tx.symptomTag.findUnique({
-          where: { id: input.tagId },
-        });
-        if (!tag || tag.source !== "CLINIC" || tag.clinicId !== user.clinicId)
-          fail("Only tags created by your clinic can be removed.", 403);
-        await tx.symptomTag.delete({ where: { id: tag.id } });
-        await audit(tx, user.clinicId!, user.name, `Removed tag ${tag.label}`);
-        message = "Tag removed.";
+        message =
+          "Request priority saved. No appointment or invitation was changed.";
         break;
       }
       case "reset": {
@@ -791,7 +807,7 @@ export async function getState(user: User | null) {
         candidates: [],
         activity: [],
         myTags: [],
-        priorityPatients: [],
+        priorityRequests: [],
       };
     const staff = user.role === "STAFF";
     const [bookings, waitlists, offers, notifications, suggestions, activity] =
@@ -810,6 +826,12 @@ export async function getState(user: User | null) {
           ? Promise.resolve([])
           : tx.waitlist.findMany({
               where: { patientId: user.id },
+              include: {
+                priorities: {
+                  include: priorityInclude,
+                  orderBy: { clinicId: "asc" },
+                },
+              },
               orderBy: { createdAt: "desc" },
             }),
         tx.offer.findMany({
@@ -856,24 +878,21 @@ export async function getState(user: User | null) {
       },
       select: { slotId: true, waitlistId: true },
     });
-    // Severity tags are display-only hints; candidate order stays FIFO.
-    const tagFields = {
-      id: true,
-      label: true,
-      score: true,
-      source: true,
-      clinicId: true,
-      updatedAt: true,
-      clinic: { select: { name: true } },
-    } as const;
-    const tagOrder = [{ score: "desc" }, { label: "asc" }] as const;
-    const candidateTags = staff
-      ? await tx.symptomTag.findMany({
-          where: {
-            patientId: { in: suggestions.map((s) => s.waitlist.patientId) },
+    const priorityRequests = staff
+      ? await tx.waitlist.findMany({
+          where: priorityRequestScope(user.clinicId!),
+          select: {
+            id: true,
+            service: true,
+            createdAt: true,
+            bookingId: true,
+            patient: { select: { name: true } },
+            priorities: {
+              where: { clinicId: user.clinicId! },
+              include: priorityInclude,
+            },
           },
-          select: { ...tagFields, patientId: true },
-          orderBy: [...tagOrder],
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         })
       : [];
     const candidates = suggestions
@@ -891,31 +910,39 @@ export async function getState(user: User | null) {
         visitType: s.waitlist.patient.visitType,
         reasons: s.reasons,
         createdAt: s.waitlist.createdAt,
-        tags: candidateTags.filter((t) => t.patientId === s.waitlist.patientId),
+        priority:
+          priorityRequests.find((w) => w.id === s.waitlistId)?.priorities[0] ??
+          null,
       }));
-    const [myTags, intake, priorityPatients] = await Promise.all([
-      staff
-        ? Promise.resolve([])
-        : tx.symptomTag.findMany({
-            where: { patientId: user.id },
-            select: tagFields,
-            orderBy: [...tagOrder],
-          }),
-      staff
-        ? Promise.resolve(null)
-        : tx.intake.findUnique({ where: { patientId: user.id } }),
-      staff
-        ? tx.user.findMany({
-            where: clinicPatientsWhere(user.clinicId!),
-            select: {
-              id: true,
-              name: true,
-              tags: { select: tagFields, orderBy: [...tagOrder] },
-            },
-            orderBy: { name: "asc" },
-          })
-        : Promise.resolve([]),
-    ]);
+    let myTags = staff
+      ? []
+      : await tx.symptomTag.findMany({
+          where: { patientId: user.id },
+          select: { id: true, label: true, source: true },
+          orderBy: { label: "asc" },
+        });
+    const intake = staff
+      ? null
+      : await tx.intake.findUnique({ where: { patientId: user.id } });
+    // Display the patient's saved self-report labels, without computing a
+    // severity score or exposing another clinic's historical tags to staff.
+    if (
+      intake?.answers &&
+      typeof intake.answers === "object" &&
+      !Array.isArray(intake.answers)
+    ) {
+      const parsed = actionSchema.safeParse({
+        ...intake.answers,
+        type: "intake",
+      });
+      if (parsed.success && parsed.data.type === "intake") {
+        myTags = parsed.data.symptoms.map((symptom) => ({
+          id: `intake-${symptom.area}`,
+          label: SYMPTOM_AREAS.find((area) => area.id === symptom.area)!.label,
+          source: "QUESTIONNAIRE",
+        }));
+      }
+    }
     return {
       user: {
         id: user.id,
@@ -927,7 +954,7 @@ export async function getState(user: User | null) {
         intakeCompleted: !!intake,
       },
       myTags,
-      priorityPatients,
+      priorityRequests,
       clinics,
       slots: slots.filter((s) =>
         staff ? s.clinicId === user.clinicId : s.status === "AVAILABLE",

@@ -29,15 +29,17 @@ Sole owner: user + Codex. Base main 2e65bff, CI 39006504739 passed before work; 
 - [x] Run lint/typecheck/unit/PostgreSQL integration/browser/build and record actual results in VALIDATION.md; all passed, including 37 unit, 34 integration and 13 browser tests; preserve all Phase 1/2 assertions.
 - [x] User reviewed and merged Phase 3 PR #10; no automatic merge/deploy. No shared database changes or schema/migration work.
 
-## Current October 17 roadmap update — not runtime implementation
+## October 17 roadmap and current R1 implementation
 
 - [x] Inspect main 74e6c90 after PR #10 and require successful main CI run 39007746312 before branching.
 - [x] Review batch 51fcedc and registration 37189f7 without wholesale integration; record reusable work and rejected assumptions in docs/priority-account-integration.md.
 - [x] Add PRD R1–R4 contracts and AT-R0/R1/R2a/R2b/R3/R4/R5 acceptance mapping; update agent instructions.
-- [ ] Implement R1 request/clinic-scoped P1–P4 priorities, history/backfill and authorized UI/API.
+- [x] Verify PR #11 merged and main 842c156 CI 39008257784 passed before the R1 feature branch.
+- [x] Implement R1 request/clinic-scoped P1–P4 priorities, history/backfill and authorized UI/API on feat/request-priority-levels (pending PR review). Validation evidence is recorded in VALIDATION.md; accounts/group notifications remain unimplemented.
 - [ ] Implement R3 persisted accounts, session/logout and explicit Demo Mode; then R4 clinic-admin invitations, approval/revocation and access checks.
 - [ ] Implement R2a/R2b manual simultaneous group invitations with 180-minute timing and complete competitive capacity invariants.
-- [ ] Execute R5 isolated upgrade, SQL/concurrency and full regression gates per feature PR; report actual evidence.
+- [x] Execute R1 slice of R5: isolated upgrade/SQL/concurrency, 39 unit, 38 PostgreSQL and 14 browser tests, lint/typecheck/build and production restart persistence; see VALIDATION.md.
+- [ ] Repeat R5 gates for each subsequent account/authorization/group feature PR.
 
 Sole owner is user + Codex. Feature PRs follow the dependency order in the PRD October 17 table. Documentation tests do not establish that runtime requirements pass. No shared migration, reset/reseed or account provisioning in this PR.
 

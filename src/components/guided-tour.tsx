@@ -36,8 +36,8 @@ const clinicSteps = [
   },
   {
     route: "/clinic/priorities",
-    title: "Understand synthetic priority hints",
-    body: "View your clinic's follow-up tags. Questionnaire scores and seeded hints are synthetic demonstrations, not medical-grade urgency or clinical clearance. Candidate order remains FIFO.",
+    title: "Review request priorities",
+    body: "Review P1–P4 levels for individual waitlist requests at your clinic. Authorized staff approve each assignment; patients and AI cannot set priority. Historical questionnaire scores are not clinical urgency. Candidate order remains FIFO.",
   },
 ];
 export function GuidedTour({

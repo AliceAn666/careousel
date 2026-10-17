@@ -88,6 +88,23 @@ try {
     patientCookie,
   );
   await post("/api/actions", { type: "book", slotId: "slot-0" }, patientCookie);
+  // Build the own-clinic candidate projection just as the staff UI does.
+  const preview = await fetch(base + "/api/state", {
+    headers: { cookie: staffCookie },
+  });
+  if (!preview.ok) throw new Error("Staff priority preview failed.");
+  await post(
+    "/api/actions",
+    {
+      type: "setWaitlistPriority",
+      waitlistId: "wait-2",
+      clinicId: "cedar",
+      level: "P2",
+      expectedVersion: 0,
+      reason: "Synthetic persistence rehearsal review",
+    },
+    staffCookie,
+  );
   await stop();
   await start();
   const state = await (
@@ -100,8 +117,22 @@ try {
     )
   )
     throw new Error("Booking did not survive server restart.");
+  const staffState = await (
+    await fetch(base + "/api/state", { headers: { cookie: staffCookie } })
+  ).json();
+  const priority = staffState.priorityRequests.find(
+    (request: { id: string }) => request.id === "wait-2",
+  )?.priorities[0];
+  if (
+    priority?.level !== "P2" ||
+    priority.assignedById !== "staff-cedar" ||
+    priority.history.length !== 1
+  )
+    throw new Error(
+      "Staff request priority/history did not survive server restart.",
+    );
   console.log(
-    "PASS: confirmed booking and signed session survived a production-server restart against PostgreSQL.",
+    "PASS: confirmed booking, signed patient/staff sessions and request priority/history survived a production-server restart against PostgreSQL.",
   );
 } finally {
   await stop();

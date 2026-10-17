@@ -1,6 +1,8 @@
 import { Prisma } from "@prisma/client";
 import { OFFER_MINUTES, PLANS, SERVICES } from "../src/lib/config";
 export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
+  await tx.priorityHistory.deleteMany();
+  await tx.waitlistPriority.deleteMany();
   await tx.notification.deleteMany();
   await tx.offer.deleteMany();
   await tx.suggestion.deleteMany();
@@ -67,7 +69,7 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
         role: "PATIENT",
         plan: PLANS[i % 4],
         // Avery is a new patient who must complete the intake questionnaire;
-        // everyone else is a returning patient with clinic-entered priorities.
+        // everyone else is a returning synthetic patient.
         visitType: i === 0 ? "FIRST" : "FOLLOW_UP",
       },
     });
@@ -317,8 +319,8 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
       body: "This synthetic demo invitation illustrates offer status.",
     })),
   });
-  // Clinic-entered priorities for returning patients. One patient can carry
-  // several tags, each with its own severity score (1–10).
+  // Historical legacy tags are retained verbatim for compatibility; they are
+  // not approved request priorities and no longer drive the priority UI.
   const clinicTags: [string, string, string, number][] = [
     ["patient-1", "cedar", "Chest pain", 7],
     ["patient-1", "cedar", "Foot abrasion", 2],
