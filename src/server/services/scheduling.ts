@@ -3,7 +3,9 @@ import { z } from "zod";
 import { db } from "../db";
 import { eligibility, overlaps } from "./matching";
 import {
+  dateLabel,
   DEMO_PERSONAS,
+  INTAKE_REQUIRED,
   OFFER_MINUTES,
   PLANS,
   SERVICES,
@@ -59,6 +61,7 @@ export const actionSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("respond"), offerId: id, accept: z.boolean() }),
   z.object({ type: z.literal("read"), notificationId: id }),
+  z.object({ type: z.literal("readClinic"), notificationId: id }),
   z.object({
     type: z.literal("createSlot"),
     service: z.enum(SERVICES),
@@ -99,6 +102,11 @@ export const actionSchema = z.discriminatedUnion("type", [
   }),
   z.object({ type: z.literal("deleteTag"), tagId: id }),
 ]);
+// Seeded personas first, in their configured order, then registered ones.
+function personaRank(id: string) {
+  const i = DEMO_PERSONAS.indexOf(id as (typeof DEMO_PERSONAS)[number]);
+  return i === -1 ? DEMO_PERSONAS.length : i;
+}
 type AreaId = (typeof SYMPTOM_AREAS)[number]["id"];
 type DurationId = (typeof DURATIONS)[number]["id"];
 type SignId = (typeof WARNING_SIGNS)[number]["id"];
@@ -121,6 +129,15 @@ async function audit(
   action: string,
 ) {
   await tx.audit.create({ data: { clinicId, actor, action } });
+}
+// Clinic-side inbox entry for bookings and invitation responses.
+async function notifyClinic(
+  tx: Prisma.TransactionClient,
+  clinicId: string,
+  title: string,
+  body: string,
+) {
+  await tx.clinicNotification.create({ data: { clinicId, title, body } });
 }
 // A single transaction-scoped advisory lock serializes demo scheduling operations.
 // This deliberately favors reviewable correctness over throughput for 50 demo slots.
@@ -253,6 +270,7 @@ export async function performAction(
     const intakeDone = async () => {
       patient();
       if (
+        INTAKE_REQUIRED &&
         user.visitType === "FIRST" &&
         !(await tx.intake.findUnique({ where: { patientId: user.id } }))
       )
@@ -293,6 +311,12 @@ export async function performAction(
         for (const o of pending)
           if (overlaps(s, o.slot)) await releaseOffer(tx, o, "REVOKED");
         await audit(tx, s.clinicId, user.name, "Appointment booked");
+        await notifyClinic(
+          tx,
+          s.clinicId,
+          "New appointment booked",
+          `${user.name} booked the ${s.service} opening on ${dateLabel(s.start)} with ${s.provider}.`,
+        );
         message = "Appointment confirmed. You’re all set.";
         break;
       }
@@ -498,6 +522,12 @@ export async function performAction(
             user.name,
             "Patient declined invitation",
           );
+          await notifyClinic(
+            tx,
+            o.slot.clinicId,
+            "Waitlist invitation declined",
+            `${user.name} declined the ${o.slot.service} opening on ${dateLabel(o.slot.start)}. The slot is available again for another candidate.`,
+          );
           message =
             "Invitation declined. Your original appointment is unchanged.";
           break;
@@ -569,6 +599,12 @@ export async function performAction(
           user.name,
           "Earlier appointment accepted and confirmed",
         );
+        await notifyClinic(
+          tx,
+          o.slot.clinicId,
+          "Waitlist invitation accepted",
+          `${user.name} accepted and booked the ${o.slot.service} opening on ${dateLabel(o.slot.start)}.`,
+        );
         message =
           "Earlier appointment confirmed. Your schedule has been updated.";
         break;
@@ -577,6 +613,15 @@ export async function performAction(
         patient();
         const updated = await tx.notification.updateMany({
           where: { id: input.notificationId, patientId: user.id },
+          data: { read: true },
+        });
+        if (!updated.count) fail("Notification not found.", 404);
+        break;
+      }
+      case "readClinic": {
+        staff();
+        const updated = await tx.clinicNotification.updateMany({
+          where: { id: input.notificationId, clinicId: user.clinicId! },
           data: { read: true },
         });
         if (!updated.count) fail("Notification not found.", 404);
@@ -595,6 +640,9 @@ export async function performAction(
           },
         });
         if (conflict) fail("This provider already has a slot at this time.");
+        const clinic = await tx.clinic.findUnique({
+          where: { id: user.clinicId! },
+        });
         await tx.slot.create({
           data: {
             clinicId: user.clinicId!,
@@ -603,7 +651,8 @@ export async function performAction(
             start: input.start,
             end,
             price: input.price,
-            plans: [...PLANS],
+            // Registered clinics only accept the plans they signed up with.
+            plans: clinic?.plans.length ? clinic.plans : [...PLANS],
           },
         });
         await audit(
@@ -757,7 +806,10 @@ export async function getState(user: User | null) {
       process.env.DEMO_MODE === "true"
         ? (
             await tx.user.findMany({
-              where: { id: { in: [...DEMO_PERSONAS] } },
+              // The four seeded personas plus anyone registered this session.
+              where: {
+                OR: [{ id: { in: [...DEMO_PERSONAS] } }, { registered: true }],
+              },
               select: {
                 id: true,
                 name: true,
@@ -766,11 +818,7 @@ export async function getState(user: User | null) {
                 visitType: true,
               },
             })
-          ).sort(
-            (a, b) =>
-              DEMO_PERSONAS.indexOf(a.id as (typeof DEMO_PERSONAS)[number]) -
-              DEMO_PERSONAS.indexOf(b.id as (typeof DEMO_PERSONAS)[number]),
-          )
+          ).sort((a, b) => personaRank(a.id) - personaRank(b.id))
         : [];
     if (!user)
       return {
@@ -784,6 +832,7 @@ export async function getState(user: User | null) {
         notifications: [],
         candidates: [],
         activity: [],
+        clinicNotifications: [],
         myTags: [],
         priorityPatients: [],
       };
@@ -922,6 +971,13 @@ export async function getState(user: User | null) {
       },
       myTags,
       priorityPatients,
+      clinicNotifications: staff
+        ? await tx.clinicNotification.findMany({
+            where: { clinicId: user.clinicId! },
+            orderBy: { createdAt: "desc" },
+            take: 50,
+          })
+        : [],
       clinics,
       slots: slots.filter((s) =>
         staff ? s.clinicId === user.clinicId : s.status === "AVAILABLE",

@@ -15,6 +15,9 @@ export const DEMO_PERSONAS = [
   "staff-harbor",
 ] as const;
 export const VISIT_TYPES = { FIRST: "First visit", FOLLOW_UP: "Follow-up" };
+// Temporarily off: first-visit patients are not asked for the intake
+// questionnaire. Set to true to require it again (UI and server).
+export const INTAKE_REQUIRED = false;
 export function dateLabel(value: string | Date) {
   return new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Los_Angeles",

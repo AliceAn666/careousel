@@ -15,6 +15,7 @@ model User {
   clinicId String?
   clinic Clinic? @relation(fields: [clinicId], references: [id])
   visitType String?
+  registered Boolean @default(false)
   intake Intake?
   tags SymptomTag[]
   bookings Booking[]
@@ -29,10 +30,23 @@ model Clinic {
   address String
   description String
   timezone String @default("America/Los_Angeles")
+  specialty String?
+  plans String[] @default([])
   users User[]
   slots Slot[]
   audits Audit[]
   tags SymptomTag[]
+  notifications ClinicNotification[]
+}
+model ClinicNotification {
+  id String @id @default(cuid())
+  clinicId String
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+  title String
+  body String
+  read Boolean @default(false)
+  createdAt DateTime @default(now())
+  @@index([clinicId, createdAt])
 }
 model Slot {
   id String @id @default(cuid())

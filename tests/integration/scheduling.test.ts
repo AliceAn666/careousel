@@ -21,15 +21,8 @@ const preferences = {
   weekdays: [0, 1, 2, 3, 4, 5, 6],
   bookingId: "avery-original",
 };
-const intake = {
-  type: "intake",
-  symptoms: [{ area: "skin", pain: 4, duration: "month", worsening: false }],
-  warningSigns: [],
-};
 beforeEach(async () => {
   await locked((tx) => seedData(tx, now));
-  // Avery is a first-visit patient and must finish intake before scheduling.
-  await performAction("avery", intake);
 });
 afterAll(async () => {
   await db.$disconnect();

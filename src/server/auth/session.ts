@@ -56,7 +56,18 @@ export function assertOrigin(request: Request) {
   const proxyOrigins = trustedCodespaceProxy
     ? [`https://${codespaceHost}`, ...(host ? [`http://${host}`] : [])]
     : [];
+  // Explicit opt-in for a public tunnel or demo host, e.g.
+  // TRUSTED_ORIGINS=https://example.trycloudflare.com (comma-separated).
+  const trustedOrigins = (process.env.TRUSTED_ORIGINS ?? "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
   const requestOrigin = `${new URL(request.url).protocol}//${host}`;
-  if (!origin || (origin !== requestOrigin && !proxyOrigins.includes(origin)))
+  if (
+    !origin ||
+    (origin !== requestOrigin &&
+      !proxyOrigins.includes(origin) &&
+      !trustedOrigins.includes(origin))
+  )
     throw new DomainError("Cross-origin requests are not allowed.", 403);
 }

@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowRight,
   Bell,
+  Building2,
   CalendarDays,
   CheckCircle2,
   Gauge,
@@ -13,11 +14,12 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
+  UserPlus,
   Users,
   X,
 } from "lucide-react";
 import type { Action, AppState, Waitlist, SlotView } from "@/lib/types";
-import { dateLabel, money, VISIT_TYPES } from "@/lib/config";
+import { dateLabel, INTAKE_REQUIRED, money, VISIT_TYPES } from "@/lib/config";
 import { request } from "@/lib/api";
 import { FeedbackContext, Modal, SeverityTags } from "./ui";
 import {
@@ -28,9 +30,15 @@ import {
   ClinicIcon,
 } from "./patient-portal";
 import { IntakeQuestionnaire } from "./patient-intake";
-import { ClinicSchedule, Matches, ActivityFeed } from "./clinic-portal";
+import {
+  ClinicSchedule,
+  Matches,
+  ActivityFeed,
+  ClinicInbox,
+} from "./clinic-portal";
 import { Priorities } from "./clinic-priorities";
 import { DemoGuide } from "./demo-guide";
+import { Register } from "./register";
 // Demo guide and Activity stay reachable by URL but are hidden from navigation.
 const navPatient = [
   ["/search", "Find care", Search],
@@ -41,6 +49,7 @@ const navClinic = [
   ["/clinic/schedule", "Schedule", LayoutDashboard],
   ["/clinic/waitlists", "Waitlist matches", Users],
   ["/clinic/priorities", "Priorities", Gauge],
+  ["/clinic/notifications", "Notifications", Bell],
 ] as const;
 const initials = (name: string) =>
   name
@@ -82,23 +91,33 @@ export function CareouselApp() {
       clearInterval(timer);
     };
   }, [load]);
-  // Every visit (first load or browser refresh) starts on the home page.
-  // The ref keeps this to the initial load, not later in-app navigation.
+  // Arriving on the home page (first load, browser refresh or "Back to home")
+  // signs out and restores the demo baseline, removing registered personas,
+  // questionnaires, bookings and priority edits. Sidebar persona switches keep
+  // data so cross-role flows can be tested.
+  const [ready, setReady] = useState(false);
+  const restart = useCallback(async () => {
+    try {
+      await request("/api/demo/restart");
+      await load();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setReady(true);
+    }
+  }, [load]);
   const entryChecked = useRef(false);
   useEffect(() => {
     if (entryChecked.current) return;
     entryChecked.current = true;
     if (window.location.pathname !== "/") router.replace("/");
-  }, [router]);
-  // Choosing a persona on the home page restores the demo baseline first, so
-  // questionnaires, bookings and priorities can be tested again from scratch.
-  // Switching personas from the sidebar keeps data for cross-role flows.
-  async function selectPersona(id: string, fresh = false) {
+    void restart();
+  }, [router, restart]);
+  async function selectPersona(id: string) {
     setNotice("");
     setBusy(true);
     setError("");
     try {
-      if (fresh) await request("/api/demo/restart");
       await request("/api/session", { id });
       await load();
       router.push(id.startsWith("staff-") ? "/clinic/schedule" : "/search");
@@ -134,32 +153,48 @@ export function CareouselApp() {
     setWaitlist(w ?? null);
     setShowWaitlist(true);
   }
-  if (!state)
+  if (!state || !ready)
     return (
       <main className="boot">
         <div className="brand">
           <Heart />
           careousel<span>✳</span>
         </div>
-        <p>{error || "Getting your care workspace ready…"}</p>
+        <p>{error || "Preparing a fresh demo…"}</p>
         {error && (
-          <button onClick={() => void load().catch((e) => setError(e.message))}>
-            Retry connection
-          </button>
+          <button onClick={() => void restart()}>Retry connection</button>
         )}
       </main>
     );
   function goHome() {
     if (
-      confirm(
-        "Return to the home page? Choosing a persona there resets all demo data, including questionnaires.",
+      !confirm(
+        "Return to the home page? All demo data, including registered personas and questionnaires, will be reset.",
       )
     )
-      router.push("/");
+      return;
+    setReady(false);
+    setNotice("");
+    router.push("/");
+    void restart();
   }
+  if (path === "/register/patient" || path === "/register/clinic")
+    return (
+      <Register
+        kind={path === "/register/clinic" ? "clinic" : "patient"}
+        state={state}
+        onBack={() => router.push("/")}
+        onDone={async (kind) => {
+          await load();
+          router.push(kind === "clinic" ? "/clinic/schedule" : "/search");
+        }}
+      />
+    );
   const user = path === "/" ? null : state.user,
     staff = user?.role === "STAFF",
-    unread = state.notifications.filter((n) => !n.read).length;
+    unread = (staff ? state.clinicNotifications : state.notifications).filter(
+      (n) => !n.read,
+    ).length;
   if (!user)
     return (
       <main className="landing">
@@ -199,26 +234,25 @@ export function CareouselApp() {
             <span className="eyebrow">EXPLORE CAREOUSEL</span>
             <h2>Choose your demo workspace</h2>
             <p>
-              All people and clinics here are fictional. Choosing a persona here
-              starts a fresh demo: questionnaires, bookings and priorities are
-              reset.
+              All people and clinics here are fictional. Returning to this page
+              resets the demo, including registered personas and questionnaires.
             </p>
             <button
               disabled={busy}
               className="entry-option"
-              onClick={() => void selectPersona("avery", true)}
+              onClick={() => void selectPersona("avery")}
             >
               <span className="avatar mint">AM</span>
               <span>
                 <strong>Continue as Avery</strong>
-                <small>Patient · First visit</small>
+                <small>Patient · Follow-up</small>
               </span>
               <ArrowRight />
             </button>
             <button
               disabled={busy}
               className="entry-option"
-              onClick={() => void selectPersona("staff-cedar", true)}
+              onClick={() => void selectPersona("staff-cedar")}
             >
               <span className="avatar lavender">
                 <Heart size={20} />
@@ -229,12 +263,30 @@ export function CareouselApp() {
               </span>
               <ArrowRight />
             </button>
+            <div className="register-row">
+              <button
+                disabled={busy}
+                className="secondary"
+                onClick={() => router.push("/register/patient")}
+              >
+                <UserPlus size={16} />
+                Register a new patient
+              </button>
+              <button
+                disabled={busy}
+                className="secondary"
+                onClick={() => router.push("/register/clinic")}
+              >
+                <Building2 size={16} />
+                Register a new clinic
+              </button>
+            </div>
             <label className="field">
               Other demo personas
               <select
                 defaultValue=""
                 onChange={(e) =>
-                  e.target.value && void selectPersona(e.target.value, true)
+                  e.target.value && void selectPersona(e.target.value)
                 }
                 disabled={busy}
               >
@@ -259,9 +311,13 @@ export function CareouselApp() {
         </section>
       </main>
     );
-  // First-visit patients see only the intake questionnaire until it is done.
+  // First-visit patients see only the intake questionnaire until it is done
+  // (while INTAKE_REQUIRED is on).
   const needsIntake =
-    !staff && user.visitType === "FIRST" && !user.intakeCompleted;
+    INTAKE_REQUIRED &&
+    !staff &&
+    user.visitType === "FIRST" &&
+    !user.intakeCompleted;
   const nav = staff ? navClinic : navPatient;
   const heading = needsIntake
     ? "Welcome to Careousel"
@@ -275,11 +331,13 @@ export function CareouselApp() {
             ? "Waitlist matches"
             : path === "/clinic/priorities"
               ? "Patient priorities"
-              : path === "/clinic/activity"
-                ? "Clinic activity"
-                : path === "/demo"
-                  ? "A better-care walkthrough"
-                  : "Find your next appointment";
+              : path === "/clinic/notifications"
+                ? "Clinic notifications"
+                : path === "/clinic/activity"
+                  ? "Clinic activity"
+                  : path === "/demo"
+                    ? "A better-care walkthrough"
+                    : "Find your next appointment";
   const personaOptions = state.personas.map((p) => (
     <option key={p.id} value={p.id}>
       {personaLabel(p)}
@@ -315,7 +373,7 @@ export function CareouselApp() {
               >
                 <Icon size={19} />
                 {label}
-                {href === "/notifications" && unread > 0 && (
+                {href.endsWith("/notifications") && unread > 0 && (
                   <span className="count">{unread}</span>
                 )}
               </button>
@@ -376,16 +434,16 @@ export function CareouselApp() {
               <span className="timezone">Pacific time</span>
               <button
                 className="icon-button"
-                aria-label={
-                  staff ? "Open waitlist matches" : "Open notifications"
-                }
+                aria-label={"Open notifications"}
                 disabled={needsIntake}
                 onClick={() =>
-                  router.push(staff ? "/clinic/waitlists" : "/notifications")
+                  router.push(
+                    staff ? "/clinic/notifications" : "/notifications",
+                  )
                 }
               >
                 <Bell size={20} />
-                {!staff && unread > 0 && <i />}
+                {unread > 0 && <i />}
               </button>
             </div>
           </header>
@@ -407,12 +465,6 @@ export function CareouselApp() {
                     : "A simpler path to the care you need."}
                 </p>
               </div>
-              {!staff && (
-                <span className="plan-pill">
-                  <ShieldCheck size={16} />
-                  {user.plan} · Demo plan
-                </span>
-              )}
             </div>
             {error && (
               <div role="alert" className="alert error">
@@ -442,6 +494,8 @@ export function CareouselApp() {
               ) : staff ? (
                 path === "/clinic/waitlists" ? (
                   <Matches state={state} act={act} />
+                ) : path === "/clinic/notifications" ? (
+                  <ClinicInbox state={state} act={act} />
                 ) : path === "/clinic/priorities" ? (
                   <Priorities state={state} act={act} />
                 ) : path === "/clinic/activity" ? (

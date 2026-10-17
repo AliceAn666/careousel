@@ -3,15 +3,18 @@ import { useState } from "react";
 import {
   ArrowDownLeft,
   ArrowRight,
+  Bell,
   CalendarDays,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Plus,
   Sparkles,
   Users,
 } from "lucide-react";
 import type { Action, AppState } from "@/lib/types";
-import { dateLabel, money, SERVICES } from "@/lib/config";
-import { request } from "@/lib/api";
+import { dateLabel, money, pacificDate, SERVICES } from "@/lib/config";
+import { monthDays, monthKey, shiftMonth, WEEKDAYS } from "./patient-portal";
 import { Status, Empty, Modal, SeverityTags } from "./ui";
 export function ClinicSchedule({
   state,
@@ -203,19 +206,35 @@ export function ClinicSchedule({
   );
 }
 export function Matches({ state, act }: { state: AppState; act: Action }) {
-  const [selected, setSelected] = useState(""),
-    [summary, setSummary] = useState<{
-      source: string;
-      summary: string;
-    } | null>(null),
-    [loading, setLoading] = useState(false),
-    [aiError, setAiError] = useState("");
-  const slots = state.slots.filter((s) => s.status === "AVAILABLE");
+  const count = (slotId: string) =>
+    state.candidates.filter((c) => c.slotId === slotId).length;
+  const open = state.slots.filter((s) => s.status === "AVAILABLE");
+  const [selected, setSelected] = useState("");
   const slot =
-    slots.find((s) => s.id === selected) ??
-    slots.find((s) => s.id === "earlier") ??
-    slots[0];
+    open.find((s) => s.id === selected) ??
+    open.find((s) => s.id === "earlier") ??
+    open.find((s) => count(s.id) > 0) ??
+    open[0];
   const candidates = state.candidates.filter((c) => c.slotId === slot?.id);
+  const today = pacificDate(new Date());
+  const lastDay = state.slots.length
+    ? pacificDate(state.slots[state.slots.length - 1].start)
+    : today;
+  const [month, setMonth] = useState(
+    monthKey(slot ? pacificDate(slot.start) : today),
+  );
+  // One numbered icon per opening, grouped by Pacific calendar day.
+  const byDay = new Map<string, typeof state.slots>();
+  for (const s of state.slots) {
+    const key = pacificDate(s.start);
+    byDay.set(key, [...(byDay.get(key) ?? []), s]);
+  }
+  const { lead, days } = monthDays(month);
+  const monthTitle = new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${month}-01T12:00:00Z`));
   return (
     <>
       <div className="info-banner">
@@ -230,154 +249,186 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
           </p>
         </div>
       </div>
-      <div className="matches-layout">
-        <section className="card openings">
+      <div className="section-title">
+        <div>
           <h2>Available openings</h2>
-          <p className="muted">Select a slot to review matches</p>
-          {slots.map((s) => (
-            <button
-              key={s.id}
-              className={`opening ${slot?.id === s.id ? "selected" : ""}`}
-              onClick={() => {
-                setSelected(s.id);
-                setSummary(null);
-                setAiError("");
-              }}
-            >
-              <span className="eyebrow">{s.service}</span>
-              <strong>{dateLabel(s.start)}</strong>
-              <span>
-                {state.candidates.filter((c) => c.slotId === s.id).length}{" "}
-                eligible candidates
-              </span>
-            </button>
-          ))}
-          {!slots.length && (
-            <p>No available openings. Cancel a booking or create a slot.</p>
-          )}
-        </section>
-        <section>
-          {slot && (
-            <>
-              <div className="section-title">
-                <div>
-                  <h2>
-                    Suggested patients{" "}
-                    <span className="result-count">{candidates.length}</span>
-                  </h2>
-                  <p>
-                    {slot.service} · {dateLabel(slot.start)}
-                  </p>
-                </div>
-              </div>
-              <div className="recommendation">
-                <span className="eyebrow">
-                  <Sparkles size={14} />
-                  ASSISTED REVIEW
-                </span>
-                <p>
-                  {summary?.summary ??
-                    "Get a concise explanation of the eligible candidates before making your decision. Matching works even without an external AI service."}
-                </p>
-                <button
-                  className="secondary"
-                  disabled={loading}
-                  onClick={async () => {
-                    setLoading(true);
-                    setAiError("");
-                    try {
-                      setSummary(
-                        await request("/api/recommendations", {
-                          slotId: slot.id,
-                        }),
-                      );
-                    } catch (e) {
-                      setAiError((e as Error).message);
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                >
-                  {loading ? "Preparing…" : "Explain recommendations"}
-                  <Sparkles size={15} />
-                </button>
-                {summary && (
-                  <small>
-                    {summary.source === "ai"
-                      ? "AI-assisted explanation — verify before approval"
-                      : "Local rules fallback · no external AI required"}
-                  </small>
-                )}
-                {aiError && <p role="alert">{aiError}</p>}
-              </div>
-              {!candidates.length ? (
-                <Empty
-                  title="No eligible candidates yet"
-                  body="The opening remains available for direct booking. Candidates must match all required preferences."
-                />
-              ) : (
-                <div className="stack">
-                  {candidates.map((c, i) => (
-                    <article className="card candidate" key={c.id}>
-                      <div className="candidate-heading">
-                        <span className="avatar mint">
-                          {c.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </span>
-                        <div>
-                          <h3>{c.name}</h3>
-                          <p>Waitlist priority #{i + 1}</p>
-                        </div>
-                        <span className="status active">Eligible</span>
-                      </div>
-                      <div className="priority-hint">
-                        <span className="eyebrow">
-                          PRIORITY HINT ·{" "}
-                          {c.visitType === "FIRST"
-                            ? "SELF-REPORTED, FIRST VISIT"
-                            : "CLINIC-ASSESSED, FOLLOW-UP"}
-                        </span>
-                        <SeverityTags
-                          tags={c.tags}
-                          empty="No severity information recorded"
-                        />
-                      </div>
-                      <div className="reason-list">
-                        {c.reasons.map((r) => (
-                          <span key={r}>
-                            <CheckCircle2 size={14} />
-                            {r}
-                          </span>
-                        ))}
-                      </div>
-                      <button
-                        className="primary"
-                        onClick={() => {
-                          const reason = prompt(
-                            "Reason for approving this eligible patient:",
-                            "Reviewed eligibility and scheduling preferences",
-                          );
-                          if (reason)
-                            void act({
-                              type: "approve",
-                              slotId: slot.id,
-                              waitlistId: c.waitlistId,
-                              reason,
-                            });
-                        }}
-                      >
-                        Approve & send offer <ArrowRight size={16} />
-                      </button>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </section>
+          <p>
+            Each number is one opening and how many eligible candidates it has.
+            Hover for details; choose one to review its candidates.
+          </p>
+        </div>
       </div>
+      <section
+        className="card care-calendar slot-calendar"
+        aria-label="Openings calendar"
+      >
+        <div className="calendar-toolbar">
+          <button
+            className="icon-button"
+            aria-label="Previous month"
+            disabled={month <= monthKey(today)}
+            onClick={() => setMonth(shiftMonth(month, -1))}
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <h3>{monthTitle}</h3>
+          <button
+            className="icon-button"
+            aria-label="Next month"
+            disabled={month >= monthKey(lastDay)}
+            onClick={() => setMonth(shiftMonth(month, 1))}
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+        <ul className="clinic-legend">
+          <li>
+            <span className="slot-num">3</span>Open · eligible candidates
+          </li>
+          <li>
+            <span className="slot-num selected">3</span>Selected
+          </li>
+          <li>
+            <span className="slot-num dim">0</span>Booked or invitation pending
+          </li>
+        </ul>
+        <div className="calendar-grid">
+          {WEEKDAYS.map((d) => (
+            <div className="calendar-weekday" key={d}>
+              {d}
+            </div>
+          ))}
+          {Array.from({ length: lead }, (_, i) => (
+            <div className="calendar-day blank" key={`lead-${i}`} />
+          ))}
+          {days.map(({ day, weekday, key }) => (
+            <div
+              key={key}
+              className={`calendar-day ${key < today ? "past" : ""} ${key === today ? "today" : ""}`}
+            >
+              <span className="day-number">{day}</span>
+              <div className="day-clinics">
+                {(byDay.get(key) ?? []).map((s) => {
+                  const n = count(s.id);
+                  const closed = s.status !== "AVAILABLE";
+                  const status =
+                    s.status === "HELD"
+                      ? "Invitation pending"
+                      : s.status === "BOOKED"
+                        ? "Booked"
+                        : `${n} eligible candidate${n === 1 ? "" : "s"}`;
+                  const side =
+                    weekday >= 4 ? "end" : weekday === 3 ? "middle" : "";
+                  return (
+                    <div className={`cal-clinic ${side}`} key={s.id}>
+                      <button
+                        className={`slot-num ${closed ? "dim" : ""} ${slot?.id === s.id ? "selected" : ""}`}
+                        disabled={closed}
+                        aria-pressed={slot?.id === s.id}
+                        aria-label={`${s.service}, ${dateLabel(s.start)}: ${status}`}
+                        onClick={() => setSelected(s.id)}
+                      >
+                        {closed ? "–" : n > 9 ? "9+" : n}
+                      </button>
+                      <div className="cal-pop slot-pop" role="tooltip">
+                        <strong>{s.service}</strong>
+                        <small>
+                          {dateLabel(s.start)} · {s.provider}
+                        </small>
+                        <span>{status}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+        {!open.length && (
+          <p className="calendar-note">
+            No available openings. Cancel a booking or create a slot.
+          </p>
+        )}
+      </section>
+      {slot && (
+        <>
+          <div className="section-title">
+            <div>
+              <h2>
+                Suggested patients{" "}
+                <span className="result-count">{candidates.length}</span>
+              </h2>
+              <p>
+                {slot.service} · {dateLabel(slot.start)}
+              </p>
+            </div>
+          </div>
+          {!candidates.length ? (
+            <Empty
+              title="No eligible candidates yet"
+              body="The opening remains available for direct booking. Candidates must match all required preferences."
+            />
+          ) : (
+            <div className="stack">
+              {candidates.map((c, i) => (
+                <article className="card candidate" key={c.id}>
+                  <div className="candidate-heading">
+                    <span className="avatar mint">
+                      {c.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </span>
+                    <div>
+                      <h3>{c.name}</h3>
+                      <p>Waitlist priority #{i + 1}</p>
+                    </div>
+                    <span className="status active">Eligible</span>
+                  </div>
+                  <div className="priority-hint">
+                    <span className="eyebrow">
+                      PRIORITY HINT ·{" "}
+                      {c.visitType === "FIRST"
+                        ? "SELF-REPORTED, FIRST VISIT"
+                        : "CLINIC-ASSESSED, FOLLOW-UP"}
+                    </span>
+                    <SeverityTags
+                      tags={c.tags}
+                      empty="No severity information recorded"
+                    />
+                  </div>
+                  <div className="reason-list">
+                    {c.reasons.map((r) => (
+                      <span key={r}>
+                        <CheckCircle2 size={14} />
+                        {r}
+                      </span>
+                    ))}
+                  </div>
+                  <button
+                    className="primary"
+                    onClick={() => {
+                      const reason = prompt(
+                        "Reason for approving this eligible patient:",
+                        "Reviewed eligibility and scheduling preferences",
+                      );
+                      if (reason)
+                        void act({
+                          type: "approve",
+                          slotId: slot.id,
+                          waitlistId: c.waitlistId,
+                          reason,
+                        });
+                    }}
+                  >
+                    Approve & send offer <ArrowRight size={16} />
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
+        </>
+      )}
       <section className="section-title">
         <h2>Recent invitations</h2>
       </section>
@@ -395,6 +446,42 @@ export function Matches({ state, act }: { state: AppState; act: Action }) {
         ))}
       </div>
     </>
+  );
+}
+export function ClinicInbox({ state, act }: { state: AppState; act: Action }) {
+  return !state.clinicNotifications.length ? (
+    <Empty
+      title="No notifications yet"
+      body="You’ll be told here when a patient books one of your openings or declines a waitlist invitation."
+    />
+  ) : (
+    <div className="stack">
+      {state.clinicNotifications.map((n) => (
+        <article
+          className={`card notification ${n.read ? "" : "unread"}`}
+          key={n.id}
+        >
+          <span className="clinic-symbol">
+            <Bell />
+          </span>
+          <div className="grow">
+            <span className="eyebrow">{dateLabel(n.createdAt)}</span>
+            <h3>{n.title}</h3>
+            <p>{n.body}</p>
+            {!n.read && (
+              <button
+                className="text-button"
+                onClick={() =>
+                  void act({ type: "readClinic", notificationId: n.id })
+                }
+              >
+                Mark as read
+              </button>
+            )}
+          </div>
+        </article>
+      ))}
+    </div>
   );
 }
 export function ActivityFeed({ state }: { state: AppState }) {

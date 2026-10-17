@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { OFFER_MINUTES, PLANS, SERVICES } from "../src/lib/config";
 export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
+  await tx.clinicNotification.deleteMany();
   await tx.notification.deleteMany();
   await tx.offer.deleteMany();
   await tx.suggestion.deleteMany();
@@ -66,9 +67,9 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
         name: names[i],
         role: "PATIENT",
         plan: PLANS[i % 4],
-        // Avery is a new patient who must complete the intake questionnaire;
-        // everyone else is a returning patient with clinic-entered priorities.
-        visitType: i === 0 ? "FIRST" : "FOLLOW_UP",
+        // Seeded patients are returning patients with clinic-entered
+        // priorities; newly registered patients are first visits.
+        visitType: "FOLLOW_UP",
       },
     });
   for (const [id, name] of clinics)
@@ -317,9 +318,113 @@ export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
       body: "This synthetic demo invitation illustrates offer status.",
     })),
   });
+  // ---- Extra demo population -------------------------------------------
+  // More returning patients, afternoon openings, a few confirmed bookings and
+  // waitlists. Waitlists prefer 2–6 pm Pacific, so they match these afternoon
+  // openings without changing the scripted morning scenarios above.
+  const extraPatients: [string, (typeof PLANS)[number]][] = [
+    ["Morgan Hayes", "Blue Horizon"],
+    ["Parker Quinn", "Aster Health"],
+    ["Reese Kim", "United Demo"],
+    ["Hayden Cole", "Pacific Care"],
+    ["Emerson Ward", "Blue Horizon"],
+    ["Rowan Ortiz", "Aster Health"],
+    ["Sage Turner", "Blue Horizon"],
+    ["Finley Shaw", "Pacific Care"],
+  ];
+  for (const [i, [name, plan]] of extraPatients.entries())
+    await tx.user.create({
+      data: {
+        id: `patient-${12 + i}`,
+        name,
+        role: "PATIENT",
+        plan,
+        visitType: "FOLLOW_UP",
+      },
+    });
+  const doctors = ["Dr. Ana Flores", "Dr. Ben Okafor", "Dr. Chloe Wu"];
+  for (let d = 0; d < 30; d++)
+    for (const k of [0, 1]) {
+      const start = date(3 + d, 22 + k);
+      const n = d * 2 + k;
+      await tx.slot.create({
+        data: {
+          id: `extra-${d}-${k}`,
+          clinicId: clinics[(d + k * 2) % 4][0],
+          service: SERVICES[(d + k) % 3],
+          provider: doctors[n % 3],
+          start,
+          end: new Date(+start + 1800000),
+          price: 9500 + (n % 3) * 2000,
+          plans: n % 2 ? [...PLANS] : [PLANS[n % 4], "Self-pay"],
+        },
+      });
+    }
+  const extraBookings: [string, string][] = [
+    ["patient-12", "extra-2-0"],
+    ["patient-13", "extra-5-1"],
+    ["patient-14", "extra-9-0"],
+    ["patient-15", "extra-12-1"],
+    ["patient-16", "extra-16-0"],
+    ["patient-17", "extra-20-1"],
+  ];
+  for (const [patientId, slotId] of extraBookings) {
+    await tx.booking.create({ data: { patientId, slotId } });
+    await tx.slot.update({ where: { id: slotId }, data: { status: "BOOKED" } });
+  }
+  const extraWaitlists: [string, string, string[]][] = [
+    ["patient-12", "Dermatology", []],
+    ["patient-13", "Cardiology", []],
+    ["patient-14", "Primary care", ["cedar", "harbor"]],
+    ["patient-15", "Dermatology", ["cedar"]],
+    ["patient-16", "Cardiology", ["harbor", "willow"]],
+    ["patient-17", "Primary care", []],
+    ["patient-18", "Dermatology", []],
+    ["patient-19", "Cardiology", ["cedar", "summit"]],
+    ["patient-18", "Primary care", ["harbor"]],
+  ];
+  for (const [i, [patientId, service, clinicIds]] of extraWaitlists.entries())
+    await tx.waitlist.create({
+      data: {
+        id: `extra-wait-${i}`,
+        patientId,
+        service,
+        plan: extraPatients[Number(patientId.slice(8)) - 12][1],
+        city: "",
+        clinicIds,
+        maxPrice: 20000,
+        earliest: now,
+        latest: date(35, 23),
+        startHour: 14,
+        endHour: 18,
+        weekdays: [0, 1, 2, 3, 4, 5, 6],
+        createdAt: new Date(+now + 20000 + i * 1000),
+      },
+    });
+  const extraTags: [string, string, string, number][] = [
+    ["patient-12", "cedar", "Psoriasis", 5],
+    ["patient-12", "cedar", "Itchy rash", 3],
+    ["patient-13", "summit", "Palpitations", 8],
+    ["patient-13", "summit", "Shortness of breath", 6],
+    ["patient-14", "harbor", "Persistent cough", 4],
+    ["patient-15", "cedar", "Acne flare", 2],
+    ["patient-15", "cedar", "Mole change", 7],
+    ["patient-16", "willow", "High blood pressure", 6],
+    ["patient-17", "harbor", "Migraine", 5],
+    ["patient-17", "harbor", "Sprained ankle", 3],
+    ["patient-17", "harbor", "Fatigue", 2],
+    ["patient-18", "cedar", "Skin infection", 8],
+    ["patient-18", "harbor", "Sore throat", 3],
+    ["patient-19", "summit", "Chest tightness", 9],
+  ];
+  for (const [patientId, clinicId, label, score] of extraTags)
+    await tx.symptomTag.create({
+      data: { patientId, clinicId, label, score, source: "CLINIC" },
+    });
   // Clinic-entered priorities for returning patients. One patient can carry
   // several tags, each with its own severity score (1–10).
   const clinicTags: [string, string, string, number][] = [
+    ["avery", "harbor", "Mole check", 4],
     ["patient-1", "cedar", "Chest pain", 7],
     ["patient-1", "cedar", "Foot abrasion", 2],
     ["patient-2", "cedar", "Eczema flare", 5],

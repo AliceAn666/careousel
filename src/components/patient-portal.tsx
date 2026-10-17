@@ -3,11 +3,9 @@ import { useState } from "react";
 import {
   Anchor,
   ArrowRight,
-  ArrowUpRight,
   Bell,
   CalendarDays,
   Check,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -53,14 +51,14 @@ export function ClinicIcon({
   const Icon = CLINIC_ICONS[clinicId] ?? Heart;
   return <Icon size={size} aria-hidden="true" />;
 }
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const monthKey = (key: string) => key.slice(0, 7);
-function shiftMonth(month: string, delta: number) {
+export const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+export const monthKey = (key: string) => key.slice(0, 7);
+export function shiftMonth(month: string, delta: number) {
   const [y, m] = month.split("-").map(Number);
   const d = new Date(Date.UTC(y, m - 1 + delta, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
-function monthDays(month: string) {
+export function monthDays(month: string) {
   const [y, m] = month.split("-").map(Number);
   const first = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
   const count = new Date(Date.UTC(y, m, 0)).getUTCDate();
@@ -89,20 +87,23 @@ export function SearchCare({
     [city, setCity] = useState(""),
     [plan, setPlan] = useState(""),
     [price, setPrice] = useState(""),
-    [date, setDate] = useState("");
+    [from, setFrom] = useState(""),
+    [to, setTo] = useState("");
   const today = pacificDate(new Date());
   const firstSlot = state.slots[0] ? pacificDate(state.slots[0].start) : today;
   const lastSlot = state.slots.length
     ? pacificDate(state.slots[state.slots.length - 1].start)
     : today;
   const [month, setMonth] = useState(monthKey(firstSlot));
-  const filtering = !!(service || city || plan || price || date);
+  const filtering = !!(service || city || plan || price || from || to);
+  // Inclusive Pacific date range; either end may be left open.
+  const inRange = (key: string) => (!from || key >= from) && (!to || key <= to);
   const matches = (s: SlotView) =>
     (!service || s.service === service) &&
     (!city || s.clinic.city === city) &&
     (!plan || s.plans.includes(plan)) &&
     (!price || s.price <= Number(price) * 100) &&
-    (!date || pacificDate(s.start) === date);
+    inRange(pacificDate(s.start));
   const matchCount = state.slots.filter(matches).length;
   // Group each day's openings by clinic so one icon represents one clinic.
   const byDay = new Map<string, Map<string, SlotView[]>>();
@@ -123,45 +124,17 @@ export function SearchCare({
     setCity("");
     setPlan("");
     setPrice("");
-    setDate("");
+    setFrom("");
+    setTo("");
   };
   return (
     <>
-      <section className="hero">
-        <div>
-          <span className="pill">
-            <span className="live-dot" />
-            CARE THAT FITS YOUR LIFE
-          </span>
-          <h2>
-            Your next chapter
-            <br />
-            shouldn’t have to wait.
-          </h2>
-          <p>
-            Explore appointments across trusted local clinics.
-            <br />
-            Find a time that works for you.
-          </p>
-          <button className="hero-link" onClick={onWaitlist}>
-            Looking for something sooner? Join a waitlist{" "}
-            <ArrowUpRight size={18} />
-          </button>
-        </div>
-        <div className="hero-art" aria-hidden="true">
-          <div className="orbit orbit-one" />
-          <div className="orbit orbit-two" />
-          <div className="art-cross">✚</div>
-          <div className="floating-card">
-            <CheckCircle2 />
-            <span>
-              Earlier care.
-              <br />
-              <strong>More possibilities.</strong>
-            </span>
-          </div>
-          <span className="art-star">✳</span>
-        </div>
+      <section className="plan-card" aria-label="Your insurance">
+        <ShieldCheck size={20} aria-hidden="true" />
+        <span>
+          Currently using <strong>{state.user?.plan}</strong> insurance
+        </span>
+        <span className="tiny">Demo plan · no real insurance checks</span>
       </section>
       <section className="filter-card">
         <label>
@@ -214,13 +187,28 @@ export function SearchCare({
           />
         </label>
         <label>
-          Appointment date
+          From date
           <input
             type="date"
-            value={date}
+            aria-label="From date"
+            value={from}
+            max={to || undefined}
             onChange={(e) => {
-              setDate(e.target.value);
+              setFrom(e.target.value);
               if (e.target.value) setMonth(monthKey(e.target.value));
+            }}
+          />
+        </label>
+        <label>
+          To date
+          <input
+            type="date"
+            aria-label="To date"
+            value={to}
+            min={from || undefined}
+            onChange={(e) => {
+              setTo(e.target.value);
+              if (e.target.value && !from) setMonth(monthKey(e.target.value));
             }}
           />
         </label>
@@ -299,7 +287,7 @@ export function SearchCare({
               "calendar-day",
               key < today ? "past" : "",
               key === today ? "today" : "",
-              date === key ? "selected" : "",
+              (from || to) && inRange(key) ? "in-range" : "",
               filtering && clinics && !dayMatches ? "dim" : "",
             ];
             return (

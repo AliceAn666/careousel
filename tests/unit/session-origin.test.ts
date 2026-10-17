@@ -71,3 +71,16 @@ it("does not allow the Codespace proxy origin in production", () => {
     "Cross-origin requests are not allowed.",
   );
 });
+
+it("allows only origins listed in TRUSTED_ORIGINS", () => {
+  vi.stubEnv("TRUSTED_ORIGINS", "https://demo.example.com, https://b.example");
+  const tunnel = (origin: string) =>
+    new Request("http://localhost:3000/api/session", {
+      headers: { host: "localhost:3000", origin },
+    });
+  expect(() => assertOrigin(tunnel("https://demo.example.com"))).not.toThrow();
+  expect(() => assertOrigin(tunnel("https://b.example"))).not.toThrow();
+  expect(() => assertOrigin(tunnel("https://evil.example"))).toThrow(
+    /Cross-origin/,
+  );
+});
