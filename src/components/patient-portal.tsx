@@ -93,11 +93,7 @@ export function SearchCare({
     update({ service });
   const setCity = (city: string) => update({ city });
   const setPlan = (plan: SearchPreferences["plan"]) =>
-    update({
-      plan,
-      coveredOnly: plan && plan !== "Self-pay" ? coveredOnly : false,
-      patientCost: plan ? patientCost : "",
-    });
+    update({ plan, coveredOnly: false, patientCost: "" });
   const setPrice = (price: string) => update({ price });
   const setDate = (date: string) => update({ date });
   useEffect(() => {
