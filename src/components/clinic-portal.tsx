@@ -180,7 +180,7 @@ export function ClinicSchedule({
                               ))}
                               {unreviewed > 0 && (
                                 <span className="schedule-unreviewed">
-                                  Needs review: {unreviewed}
+                                  Review / clearance: {unreviewed}
                                 </span>
                               )}
                             </div>
