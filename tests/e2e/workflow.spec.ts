@@ -125,15 +125,17 @@ test("search filters keep clinics visible, prioritize insurer matches and suppor
   const insurer = page.getByLabel("Insurance company (demo)");
   await insurer.selectOption("Pacific Care");
   await expect(openings).toHaveCount(baseline);
+  await expect(
+    page.locator(".appointment-results .insurance-match-warning").first(),
+  ).toBeVisible();
   await insurer.selectOption("Blue Horizon");
   await page.getByLabel("Specialty", { exact: true }).selectOption("Cardiology");
   await expect(openings).toHaveCount(4);
   await expect(
     page.locator(".appointment-results .insurance-match-good").first(),
   ).toBeVisible();
-  await expect(
-    page.locator(".appointment-results .insurance-match-warning").first(),
-  ).toBeVisible();
+  await expect(page.locator(".appointment-results .insurance-match-warning"))
+    .toHaveCount(0);
   const selectedTime = openings.first().locator(".clinic-time-choice").first();
   const id = await selectedTime.getAttribute("data-slot-id");
   const snapshot = await (await page.request.get("/api/state")).json();
