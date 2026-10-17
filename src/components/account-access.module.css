@@ -103,3 +103,46 @@
   background: #e7f6ee;
   color: #14613d;
 }
+
+/* Roomier account flows keep the bigger type readable and errors near inputs. */
+.card {
+  width: min(100%, 610px);
+  gap: 28px;
+  padding: 38px;
+}
+.card h1 {
+  font-size: 2rem;
+  line-height: 1.25;
+}
+.form {
+  gap: 22px;
+}
+.form > label {
+  margin-block: 0;
+}
+.tabs {
+  gap: 14px;
+}
+.form input,
+.form select {
+  min-height: 50px;
+}
+.hint,
+.fieldError {
+  margin-top: -8px;
+}
+@media (max-width: 600px) {
+  .page {
+    padding: 24px 14px;
+  }
+  .card {
+    gap: 23px;
+    padding: 24px;
+  }
+  .form {
+    gap: 20px;
+  }
+  .tabs button {
+    flex: 1 1 150px;
+  }
+}
