@@ -138,12 +138,8 @@ test("all clinics remain visible and out-of-network booking requires explicit se
   await expect(insurer).toHaveValue("Blue Horizon");
   await insurer.selectOption("Aster Health");
   expect((await state(page)).user.plan).toBe("Blue Horizon");
-  await page.getByRole("button", { name: "Careousel home page" }).click();
+  await page.goto("/search");
   await page.reload();
-  await page
-    .getByRole("button", { name: "Find Care", exact: true })
-    .first()
-    .click();
   await expect(insurer).toHaveValue("Aster Health");
   await page.getByLabel("Switch demo persona").selectOption("patient-1");
   await expect(page.getByLabel("Insurance company (demo)")).toHaveValue(
