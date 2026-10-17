@@ -194,7 +194,7 @@ test("accepting a scoped invitation secures only that need and never cancels an 
             title,
             service: "Vaccination",
             preferences,
-            requiresReferral: false,
+            requiresReferral: title === "Targeted follow-up",
             requiresAuthorization: false,
             tagIds: [],
             original: {
@@ -243,6 +243,25 @@ test("accepting a scoped invitation secures only that need and never cancels an 
         status: "AVAILABLE",
       },
     });
+    await request.get("/api/state");
+    if (n.requiresReferral)
+      expect(
+        (
+          await request.post("/api/actions", {
+            headers,
+            data: {
+              type: "setWaitlistPriority",
+              waitlistId: w.id,
+              clinicId: "cedar",
+              level: "P3",
+              expectedVersion: 0,
+              referralApproved: true,
+              authorizationApproved: false,
+              reason: "Authorized staff reviewed this need’s referral",
+            },
+          })
+        ).ok(),
+      ).toBe(true);
     expect(
       (
         await request.post("/api/actions", {
@@ -265,6 +284,7 @@ test("accepting a scoped invitation secures only that need and never cancels an 
       has: page.getByRole("button", { name: "Accept earlier appointment" }),
     });
   await expect(first).toContainText("unverified");
+  await expect(first).toContainText("Referral: required; clinic-reviewed");
   page.once("dialog", (d) => d.accept());
   await first
     .getByRole("button", { name: "Accept earlier appointment" })
@@ -363,17 +383,17 @@ test("incompatible clinic stays visible with a warning while booking remains pro
   await card
     .getByRole("button", { name: "Browse appointments for this need" })
     .click();
+  const incompatible = card.locator(
+    '[data-slot-id="incompatible-need-opening"]',
+  );
   await expect(
-    card.getByText("Insurance plan not listed — confirm coverage", {
+    incompatible.getByText("Insurance plan not listed — confirm coverage", {
       exact: true,
     }),
   ).toBeVisible();
   const response = page.waitForResponse(
     (r) => r.url().endsWith("/api/actions") && r.request().method() === "POST",
   );
-  const incompatible = card
-    .locator(".card")
-    .filter({ hasText: "Insurance plan not listed — confirm coverage" });
   await incompatible
     .getByRole("button", { name: "Book for this need" })
     .click();

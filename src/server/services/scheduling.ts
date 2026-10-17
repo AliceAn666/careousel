@@ -419,6 +419,12 @@ export async function performAction(
               bookingId: booked.id,
               previousBookingId: original?.id,
               externalUnchanged: external?.id,
+              insuranceComparison: {
+                provider: selectedInsurer,
+                planType: input.planType ?? "PPO",
+                selfPayAcknowledged: selfPay,
+                listedPrice: s.price,
+              },
             },
           );
         }
@@ -1156,6 +1162,8 @@ export async function getState(
               select: {
                 needId: true,
                 externalAppointmentId: true,
+                requiresReferral: true,
+                requiresAuthorization: true,
                 patientNeed: { select: { title: true } },
               },
             },

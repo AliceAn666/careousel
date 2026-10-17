@@ -18,7 +18,6 @@ import {
   Trees,
   type LucideIcon,
 } from "lucide-react";
-import { CoverageSummary } from "./coverage-summary";
 import { demoCoverage, type PlanType } from "@/lib/demo-coverage";
 import {
   readSearchPreferences,
@@ -26,7 +25,6 @@ import {
   defaultSearchPreferences,
   type SearchPreferences,
 } from "@/lib/search-preferences";
-import onboarding from "./onboarding.module.css";
 import type {
   Action,
   AppState,
@@ -949,11 +947,13 @@ export function Inbox({ state, act }: { state: AppState; act: Action }) {
                       )}
                       <p>
                         Referral:{" "}
-                        {offer.slot.requiresReferral
+                        {offer.slot.requiresReferral ||
+                        offer.waitlist.requiresReferral
                           ? "required; clinic-reviewed"
                           : "not required for this opening"}
                         . Authorization:{" "}
-                        {offer.slot.requiresAuthorization
+                        {offer.slot.requiresAuthorization ||
+                        offer.waitlist.requiresAuthorization
                           ? "required; clinic-reviewed"
                           : "not required for this opening"}
                         . Your saved fictional plan and scheduling restrictions

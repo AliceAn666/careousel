@@ -104,7 +104,9 @@ test("all clinics remain visible and out-of-network booking requires explicit se
   const matching = page.locator(".appointment-results button[data-slot-id]");
   const insurer = page.getByLabel("Insurance company (demo)");
   await expect(insurer).toHaveValue("Blue Horizon");
-  await page.getByLabel("Specialty", { exact: true }).selectOption("Cardiology");
+  await page
+    .getByLabel("Specialty", { exact: true })
+    .selectOption("Cardiology");
   await page.getByLabel("Insurance plan type").selectOption("HMO");
   await expect(matching).toHaveCount(4);
   await expect(page.locator(".insurance-match-warning")).toHaveCount(4);
@@ -117,8 +119,9 @@ test("all clinics remain visible and out-of-network booking requires explicit se
   const selected = matching.first();
   await selected.click();
   const details = page.getByRole("dialog", { name: "Appointment details" });
-  await expect(details.getByLabel("Insurance company for appointment"))
-    .toHaveValue("Blue Horizon");
+  await expect(
+    details.getByLabel("Insurance company for appointment"),
+  ).toHaveValue("Blue Horizon");
   await expect(details.locator(".insurance-booking-warning")).toContainText(
     "full listed price",
   );

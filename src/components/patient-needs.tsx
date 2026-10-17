@@ -715,7 +715,7 @@ export function PatientNeeds({ act }: { act: Action }) {
                           : []),
                       ];
                       return (
-                        <div className="card" key={s.id}>
+                        <div className="card" key={s.id} data-slot-id={s.id}>
                           <h4>{s.clinic.name}</h4>
                           <p>
                             {s.clinic.city} · {dateLabel(s.start)} ·{" "}
