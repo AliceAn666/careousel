@@ -1,5 +1,31 @@
-// Fictional benefit scenarios for the hackathon; never real coverage verification.
+// Synthetic clinic insurance networks for the hackathon demo.
+// Keep acceptance at the CLINIC level, independent of individual appointment times.
 export type PlanType = "PPO" | "HMO";
+
+const DEMO_NETWORKS: Record<string, readonly string[]> = {
+  harbor: ["Blue Horizon", "Aster Health"],
+  cedar: ["Blue Horizon", "United Demo"],
+  summit: ["Pacific Care", "United Demo"],
+  willow: ["Aster Health", "Pacific Care"],
+};
+
+export function demoClinicPlans(clinicId: string): string[] {
+  return [...(DEMO_NETWORKS[clinicId] ?? []), "Self-pay"];
+}
+
+export function demoClinicAccepts(
+  clinicId: string,
+  provider: string,
+  type: PlanType,
+  fallbackPlans: readonly string[] = [],
+) {
+  if (!provider || provider === "Self-pay") return false;
+  const insurers = DEMO_NETWORKS[clinicId] ?? fallbackPlans;
+  // Fictional HMO has a narrower clinic network.
+  return insurers.includes(provider) &&
+    (type === "PPO" || clinicId === "cedar" || clinicId === "harbor");
+}
+
 export function demoCoverage(
   slot: { clinicId: string; service: string; price: number; plans: string[] },
   provider: string,
@@ -17,23 +43,19 @@ export function demoCoverage(
       estimate: slot.price,
       reason: "Full listed visit price; no insurance benefit applied.",
     };
-  // HMO scenarios deliberately have a narrower network than the PPO variants.
-  const network =
-    slot.plans.includes(provider) &&
-    (type === "PPO" || slot.clinicId === "cedar" || slot.clinicId === "harbor");
-  if (!network)
+  if (!demoClinicAccepts(slot.clinicId, provider, type, slot.plans))
     return {
       status: "Out-of-network · demo",
       estimate: null,
       reason:
-        "This specific demo plan has no in-network benefit at this clinic. Out-of-network costs are unknown.",
+        "This fictional clinic is outside the selected plan network. Self-pay remains an option; out-of-network benefit amounts are unknown.",
     };
   if (type === "HMO" && slot.service === "Cardiology")
     return {
       status: "Service not covered · demo",
       estimate: null,
       reason:
-        "Cardiology is excluded in this fictional HMO benefit scenario, even at an in-network clinic.",
+        "This clinic is in-network, but Cardiology is excluded in this fictional HMO plan. You may choose self-pay.",
     };
   if (type === "HMO")
     return {
