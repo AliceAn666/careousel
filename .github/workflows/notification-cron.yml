@@ -3,6 +3,7 @@ name: Careousel notification scheduler
 on:
   schedule:
     # UTC; staggered to avoid GitHub Actions' top-of-hour congestion.
+    # Processor commits notifications atomically and safely retries after failures.
     - cron: "13,43 * * * *"
   workflow_dispatch:
   # Run once immediately on initial setup or scheduler-file updates.
