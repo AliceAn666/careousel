@@ -48,6 +48,25 @@ function RequestPriority({
             ? "Original appointment protected"
             : "No linked appointment"}
         </p>
+        {request.patientNeed && (
+          <p>
+            Medical need: {request.patientNeed.title}. Patient-reported referral
+            requirement: {request.requiresReferral ? "yes" : "not specified"};
+            prior authorization:{" "}
+            {request.requiresAuthorization ? "yes" : "not specified"}.
+          </p>
+        )}
+        {request.externalAppointment && (
+          <p>
+            External original: {request.externalAppointment.clinicName} ·{" "}
+            {dateLabel(request.externalAppointment.start)} · Patient-reported,
+            unverified;{" "}
+            {request.externalAppointment.reportedConfirmed
+              ? "reported confirmed"
+              : "not reported confirmed"}
+            . Careousel cannot cancel it.
+          </p>
+        )}
         <p className={styles.badge}>{priorityLabel(current?.level)}</p>
         {current?.assignedBy && (
           <p className="muted">
