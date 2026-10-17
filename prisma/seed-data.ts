@@ -1,6 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { OFFER_MINUTES, PLANS, SERVICES } from "../src/lib/config";
 export async function seedData(tx: Prisma.TransactionClient, now = new Date()) {
+  await tx.accountSession.deleteMany();
+  await tx.staffInvitation.deleteMany();
+  await tx.clinicMembership.deleteMany();
+  await tx.loginThrottle.deleteMany();
+  await tx.account.deleteMany();
   await tx.priorityHistory.deleteMany();
   await tx.waitlistPriority.deleteMany();
   await tx.notification.deleteMany();

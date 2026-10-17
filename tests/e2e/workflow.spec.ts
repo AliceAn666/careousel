@@ -1,7 +1,7 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./demo-fixture";
 async function reset(request: import("@playwright/test").APIRequestContext) {
   await request.post("/api/session", {
-    data: { id: "staff-cedar" },
+    data: { id: "staff-cedar", demo: true },
     headers: { origin: "http://localhost:3100" },
   });
   const r = await request.post("/api/actions", {
@@ -188,7 +188,7 @@ test("API rejects missing session and cross-origin mutations", async ({
   expect(
     (
       await request.post("/api/session", {
-        data: { id: "avery" },
+        data: { id: "avery", demo: true },
         headers: { origin: "https://wrong.example" },
       })
     ).status(),
@@ -199,7 +199,10 @@ async function prepareInvitation(
   request: import("@playwright/test").APIRequestContext,
 ) {
   const headers = { origin: "http://localhost:3100" };
-  await request.post("/api/session", { data: { id: "avery" }, headers });
+  await request.post("/api/session", {
+    data: { id: "avery", demo: true },
+    headers,
+  });
   const intake = await request.post("/api/actions", {
     headers,
     data: {
@@ -232,7 +235,10 @@ async function prepareInvitation(
   expect(joined.ok()).toBe(true);
   const patientState = await (await request.get("/api/state")).json();
   const waitlistId = patientState.waitlists[0].id;
-  await request.post("/api/session", { data: { id: "staff-cedar" }, headers });
+  await request.post("/api/session", {
+    data: { id: "staff-cedar", demo: true },
+    headers,
+  });
   await request.post("/api/actions", {
     data: { type: "cancel", bookingId: "cedar-cancellation" },
     headers,
@@ -247,7 +253,10 @@ async function prepareInvitation(
     headers,
   });
   expect(approved.ok()).toBe(true);
-  await request.post("/api/session", { data: { id: "avery" }, headers });
+  await request.post("/api/session", {
+    data: { id: "avery", demo: true },
+    headers,
+  });
   return (await (await request.get("/api/state")).json()).offers[0]
     .id as string;
 }

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./demo-fixture";
 const headers = { origin: "http://localhost:3100" };
 
 test.beforeEach(async ({ request }) => {
@@ -6,7 +6,7 @@ test.beforeEach(async ({ request }) => {
     (
       await request.post("/api/session", {
         headers,
-        data: { id: "staff-cedar" },
+        data: { id: "staff-cedar", demo: true },
       })
     ).ok(),
   ).toBe(true);

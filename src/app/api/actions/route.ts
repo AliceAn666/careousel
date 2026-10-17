@@ -5,7 +5,7 @@ export async function POST(request: Request) {
   try {
     assertOrigin(request);
     const user = await currentUser();
-    if (!user) throw new DomainError("Select a demo persona to continue.", 401);
+    if (!user) throw new DomainError("Log in to continue.", 401);
     return Response.json(await performAction(user.id, await request.json()));
   } catch (e) {
     return apiError(e);

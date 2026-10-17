@@ -1,0 +1,66 @@
+.page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: start center;
+  padding: 48px 20px;
+  background: #f5f9f7;
+}
+.card {
+  width: min(100%, 520px);
+  display: grid;
+  gap: 20px;
+  padding: 28px;
+  background: white;
+  border: 1px solid #dce7e2;
+  border-radius: 18px;
+}
+.card h1 {
+  font-size: 30px;
+}
+.form {
+  display: grid;
+  gap: 16px;
+}
+.tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.member {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 20px;
+}
+.member p {
+  overflow-wrap: anywhere;
+}
+.token {
+  padding: 16px;
+  background: #edf6f2;
+  overflow-wrap: anywhere;
+}
+.identity {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.topbar {
+  height: auto;
+  min-height: 77px;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-block: 12px;
+}
+.topbar > div {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100%;
+}
+.topbar > span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
