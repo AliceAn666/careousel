@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { NotificationManager } from "./notification-manager";
 import {
   ArrowDownLeft,
@@ -210,12 +211,12 @@ export function ClinicSchedule({
                             {priorityLabel(candidate.priority?.level)} · Staff review / clearance may be required
                           </small>
                         </div>
-                        <a
+                        <Link
                           className="secondary overview-review-slot"
                           href={"/clinic/waitlists?slotId=" + encodeURIComponent(candidate.slotId)}
                         >
                           Review this slot
-                        </a>
+                        </Link>
                       </li>
                     );
                   })}
@@ -223,9 +224,9 @@ export function ClinicSchedule({
               ) : (
                 <Empty title="No matched waitlist requests" body="Matched waitlist candidates will appear here." />
               )}
-              <a className="secondary overview-review-link" href="/clinic/waitlists">
+              <Link className="secondary overview-review-link" href="/clinic/waitlists">
                 Review waitlist matches <ArrowRight size={17} aria-hidden="true" />
-              </a>
+              </Link>
             </>
           )}
         </section>
