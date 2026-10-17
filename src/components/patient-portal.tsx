@@ -437,7 +437,7 @@ export function SearchCare({
                     </p>
                   )}
                   <p className="muted">
-                    Listed visit prices from {money(Math.min(...slots.map((slot) => slot.price))}.
+                    Listed visit prices from {money(Math.min(...slots.map((slot) => slot.price)))}.
                     Demo insurers are not verified.
                   </p>
                 </div>
