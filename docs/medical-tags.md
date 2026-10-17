@@ -70,3 +70,5 @@ Actual final results (October 17, 2026):
 | Format / diff checks | Pass |
 
 Coverage includes same-clinic and cross-patient privacy, explicit permission grant/revoke, source eligibility, concurrent reviews/version conflicts, immutable history/provenance, edit-to-draft, rollback when revision persistence fails, migration preservation of populated account/intake/legacy tags/booking/waitlist/priority/history/sequence rows, scheduling evidence, browser clinical/patient/admin flows and the existing scheduling regressions. The existing pg driver emits a deprecation warning about concurrent queries on one client; it does not fail these checks. The internal notification route received formatting only to repair an inherited format-check failure; no cron or deployment behavior changed.
+
+Integration follow-up: main advanced during development to `3a827a6` (PR18–PR20). Merged its existing safe-error diagnostics and Prisma WASM tracing configuration without conflict; no deployment was performed. Final checks were repeated on the combined branch. Formatting-only cleanup also covers the inherited HTTP diagnostics formatting.

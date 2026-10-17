@@ -309,3 +309,5 @@ Base: CI-verified main `3f36058`, after merged PR16/PR17. Branch: `feat/phase8-c
 - Format and diff checks passed. The internal notification route has formatting-only cleanup for an inherited Prettier failure.
 
 All database checks used a newly created isolated PostgreSQL 17 container on local port 5549 with `careousel_test`. No existing Codespaces, cloud or shared demo database was accessed, migrated, reset or reseeded. No deployment or automatic merge. See [medical-tag contracts and limitations](docs/medical-tags.md).
+
+Integration follow-up: main advanced during development to `3a827a6` (PR18–PR20). Merged its existing safe-error diagnostics and Prisma WASM tracing configuration without conflict; no deployment was performed. Final checks were repeated on the combined branch. Formatting-only cleanup also covers the inherited HTTP diagnostics formatting.
