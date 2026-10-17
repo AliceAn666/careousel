@@ -14,15 +14,17 @@ test.beforeEach(async ({ request }) => {
   await reset(request);
 });
 
-async function completeIntake(page: import("@playwright/test").Page) {
+async function expectImmediateSearchAccess(
+  page: import("@playwright/test").Page,
+) {
   await expect(
-    page.getByRole("button", { name: "My appointments", exact: true }),
-  ).toBeDisabled();
-  await page.getByLabel("Skin problem", { exact: true }).check();
-  await page.getByRole("button", { name: "Submit questionnaire" }).click();
-  await page.getByRole("button", { name: "Continue to find care" }).click();
+    page.getByText("Tell us how you’re feeling", { exact: true }),
+  ).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "My appointments", exact: true }),
+    page.getByRole("button", {
+      name: "Manage My Appointments and Waitlists",
+      exact: true,
+    }),
   ).toBeEnabled();
 }
 test("complete patient → cancellation → staff approval → accepted replacement", async ({
@@ -33,9 +35,12 @@ test("complete patient → cancellation → staff approval → accepted replacem
     .getByRole("button", { name: "Find Care", exact: true })
     .first()
     .click();
-  await completeIntake(page);
+  await expectImmediateSearchAccess(page);
   await page
-    .getByRole("button", { name: "My appointments", exact: true })
+    .getByRole("button", {
+      name: "Manage My Appointments and Waitlists",
+      exact: true,
+    })
     .click();
   await page
     .getByRole("button", { name: "Join a waitlist", exact: true })
@@ -79,7 +84,10 @@ test("complete patient → cancellation → staff approval → accepted replacem
     "Earlier appointment confirmed",
   );
   await page
-    .getByRole("button", { name: "My appointments", exact: true })
+    .getByRole("button", {
+      name: "Manage My Appointments and Waitlists",
+      exact: true,
+    })
     .click();
   await expect(page).toHaveURL(/\/appointments$/);
   await page.reload();
@@ -98,10 +106,10 @@ test("search filters, detail review, direct booking and mobile layout", async ({
     .getByRole("button", { name: "Find Care", exact: true })
     .first()
     .click();
-  await completeIntake(page);
-  const openings = page.locator(".cal-pop li button[data-slot-id]");
+  await expectImmediateSearchAccess(page);
+  const openings = page.locator(".appointment-results button[data-slot-id]");
   await expect(
-    page.getByRole("region", { name: "Appointment calendar" }),
+    page.getByRole("region", { name: "Appointment results" }),
   ).toBeVisible();
   const baseline = await openings.count();
   expect(baseline).toBeGreaterThan(0);
@@ -113,16 +121,16 @@ test("search filters, detail review, direct booking and mobile layout", async ({
   await expect(
     page.getByText("No openings match these filters.", { exact: false }),
   ).toBeVisible();
-  await expect(openings).toHaveCount(baseline);
+  await expect(openings).toHaveCount(0);
   expect(
-    await page.locator(".cal-pop li button[data-slot-id]:not(.dim)").count(),
+    await page.locator(".appointment-results button[data-slot-id]").count(),
   ).toBe(0);
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(openings).toHaveCount(baseline);
   await page
     .getByLabel("Insurance", { exact: true })
     .selectOption("Blue Horizon");
-  const matching = page.locator(".cal-pop li button[data-slot-id]:not(.dim)");
+  const matching = page.locator(".appointment-results button[data-slot-id]");
   await expect.poll(() => matching.count()).toBeGreaterThan(0);
   expect(await matching.count()).toBeLessThan(baseline);
   const id = await matching.first().getAttribute("data-slot-id");
@@ -152,16 +160,13 @@ test("search filters, detail review, direct booking and mobile layout", async ({
   }
   await page.getByRole("button", { name: "Clear filters" }).click();
   const chosen = page.locator(`button[data-slot-id="${id}"]`);
-  await chosen
-    .locator("xpath=ancestor::div[contains(@class,'cal-clinic')]")
-    .getByRole("button")
-    .first()
-    .click();
   await chosen.click();
   await page.getByRole("button", { name: "Confirm appointment" }).click();
   await expect(page.getByRole("status")).toContainText("Appointment confirmed");
   await page.setViewportSize({ width: 375, height: 812 });
-  await page.getByRole("button", { name: "Find care", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Book an Appointment", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Find your next appointment." }),
   ).toBeVisible();
@@ -275,7 +280,10 @@ test("declining through the inbox preserves the original appointment", async ({
   await expect(page.getByRole("status")).toContainText("Invitation declined");
   await expect(page.locator(".offer-box")).toContainText("declined");
   await page
-    .getByRole("button", { name: "My appointments", exact: true })
+    .getByRole("button", {
+      name: "Manage My Appointments and Waitlists",
+      exact: true,
+    })
     .click();
   await expect(
     page.locator(".booking-card").filter({ hasText: "Harbor Medical" }),
@@ -308,7 +316,10 @@ test("expired invitation is visibly inactive after refresh", async ({
     page.getByRole("button", { name: "Accept earlier appointment" }),
   ).toHaveCount(0);
   await page
-    .getByRole("button", { name: "My appointments", exact: true })
+    .getByRole("button", {
+      name: "Manage My Appointments and Waitlists",
+      exact: true,
+    })
     .click();
   await expect(
     page.locator(".booking-card").filter({ hasText: "Harbor Medical" }),

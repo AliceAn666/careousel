@@ -5,7 +5,7 @@ const patientSteps = [
   {
     route: "/search",
     title: "Find care that fits",
-    body: "Choose a service, location and available date. The month calendar groups openings by clinic: tap or focus a clinic icon to see times. Gray openings do not match your filters. Maximum cost is the full listed visit price.",
+    body: "Choose a service, location and available date. Matching results are ordered earliest first. Open a labeled appointment card to review details and book. Maximum cost is the full listed visit price.",
   },
   {
     route: "/search",

@@ -21,15 +21,8 @@ const preferences = {
   weekdays: [0, 1, 2, 3, 4, 5, 6],
   bookingId: "avery-original",
 };
-const intake = {
-  type: "intake",
-  symptoms: [{ area: "skin", pain: 4, duration: "month", worsening: false }],
-  warningSigns: [],
-};
 beforeEach(async () => {
   await locked((tx) => seedData(tx, now));
-  // Avery is a first-visit patient and must finish intake before scheduling.
-  await performAction("avery", intake);
 });
 afterAll(async () => {
   await db.$disconnect();
@@ -55,6 +48,7 @@ async function offer() {
 }
 describe("real PostgreSQL scheduling", () => {
   it("completes the cross-clinic workflow and persists notification/audit", async () => {
+    expect(await db.intake.count({ where: { patientId: "avery" } })).toBe(0);
     const o = await offer();
     expect(await db.notification.count({ where: { patientId: "avery" } })).toBe(
       1,

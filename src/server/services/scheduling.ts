@@ -258,20 +258,10 @@ export async function performAction(
       if (user.role !== "PATIENT")
         fail("Select a patient persona for this action.", 403);
     };
-    // First-visit patients must finish the intake questionnaire before
-    // booking, joining a waitlist or accepting an offer.
-    const intakeDone = async () => {
-      patient();
-      if (
-        user.visitType === "FIRST" &&
-        !(await tx.intake.findUnique({ where: { patientId: user.id } }))
-      )
-        fail("Please complete your intake questionnaire first.", 403);
-    };
     let message = "Changes saved.";
     switch (input.type) {
       case "book": {
-        await intakeDone();
+        patient();
         const existing = await tx.booking.findFirst({
           where: {
             patientId: user.id,
@@ -365,7 +355,7 @@ export async function performAction(
         break;
       }
       case "waitlist": {
-        await intakeDone();
+        patient();
         if (
           input.earliest >= input.latest ||
           input.endHour <= input.startHour ||
@@ -550,8 +540,7 @@ export async function performAction(
         break;
       }
       case "respond": {
-        if (input.accept) await intakeDone();
-        else patient();
+        patient();
         const o = await tx.offer.findUnique({
           where: { id: input.offerId },
           include: {

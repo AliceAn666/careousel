@@ -86,11 +86,14 @@ test("patient individual account, onboarding, logout and navigation never switch
   ).toBeVisible();
   await expect(page.getByLabel("Switch demo persona")).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "My appointments", exact: true }),
-  ).toBeDisabled();
-  await page.getByLabel("Skin problem", { exact: true }).check();
-  await page.getByRole("button", { name: "Submit questionnaire" }).click();
-  await page.getByRole("button", { name: "Continue to find care" }).click();
+    page.getByRole("button", {
+      name: "Manage My Appointments and Waitlists",
+      exact: true,
+    }),
+  ).toBeEnabled();
+  await expect(
+    page.getByText("Tell us how you’re feeling", { exact: true }),
+  ).toHaveCount(0);
   await page.setViewportSize({ width: 375, height: 812 });
   expect(
     await page.evaluate(

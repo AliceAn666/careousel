@@ -1,5 +1,15 @@
 # Careousel proposal-aligned development roadmap
 
+## Patient search-first redesign — October 17, 2026
+
+This user-approved UX requirement supersedes all earlier instructions to require first-visit symptom intake or use a monthly clinic-icon calendar for patient search. No symptom questionnaire is shown in normal patient UI, including optional onboarding. No intake-completion gate applies to search, direct booking, waitlist registration, acceptance or guides. Existing Intake/SymptomTag rows and historical API compatibility are retained without deletion, migration or automatic backfill. Future clinician-authored tags and patient-authorized medical-record imports are separate, unimplemented work; do not invent clinical information.
+
+Patient navigation centers on Book an Appointment, Find an Earlier Appointment, and Manage My Appointments and Waitlists, plus the durable notification inbox. Search includes a service/specialty text field, categories (Vaccinations, Blood Tests, Routine Checkups mapped to Primary care, Specialist Visits), service/location/insurance/date/listed-cost and fictional estimated-patient-cost filters. Only matching labeled appointment cards appear, earliest first; details/booking and waitlist actions remain available. Vaccinations and Blood Tests are supported request service strings, but current synthetic fixtures may have no matching openings; display an honest empty state. Never relabel a specialist appointment as another service. Clinic operational schedules are preserved.
+
+Service-specific referral/authorization, saved-plan eligibility, availability, request/clinic human-approved P1–P4, account/clinic scope, atomic replacement, occupancy constraints and authorized automatic 180-minute group sequences remain enforced. No shared database reset/reseed, automatic migration, clinical inference or real insurance-verification claim.
+
+Acceptance: new patients can browse/book/join/accept without Intake rows; historical intake survives normal operations; search results combine filters, show readable clinic/service/location/time/price, exclude nonmatches and sort chronologically; empty categories allow waitlist registration; navigation/home/refresh preserve account and bookings; existing clinic/group/concurrency/expiry/rollback regressions continue passing in isolation.
+
 ## Phase 7 — current authoritative notification policy
 
 This section supersedes ALL older internal-clinic-first/release-stage plans and requirements for a separate manual send per group below. Historical proposal comparisons and validation records are retained as history, not active acceptance criteria. Base: PR #13 merged main `0de5aaaf175b10fe86bed5cb7c8cbaa44e598192`; [main CI 39013494376](https://github.com/AliceAn666/careousel/actions/runs/39013494376) succeeded before the feature branch.
@@ -113,3 +123,12 @@ See PRD October 17 R1–R4 requirements and incremental PR/AT-R* table for the s
 - [ ] Later impact dashboard: explicitly not started; wait for Phase 7 review/merge.
 
 See VALIDATION.md for executed checks and limitations; documentation acceptance tables from older phases do not establish Phase 7 test results.
+
+## Patient UX redesign implementation
+
+- [x] Remove the symptom questionnaire and summary from normal patient screens; remove intake completion gates on booking, waitlist and acceptance. Retain historical data and legacy compatibility without migration/deletion.
+- [x] Replace patient monthly/icon calendar with earliest-first text/category search and readable appointment cards; preserve insurance/date/location/cost comparisons and actual detail/booking actions.
+- [x] Add honest empty categories and service-prefilled waitlist registration. Keep Vaccinations/Blood Tests available as request/slot service strings without reseeding existing data.
+- [x] Center navigation on booking, earlier-care requests and management; retain inbox and optional Quick tour, remove duplicate onboarding panel, provide immediate earlier-request action.
+- [x] Adapt obsolete questionnaire/calendar assertions while preserving acceptance checks; add search ordering/categories/zero-intake/navigation/original-protection browser coverage.
+- [ ] User review and merge of the focused feature PR. No automatic merge, deployment or shared database reset/reseed.

@@ -22,7 +22,7 @@ test.beforeEach(async ({ request }) => {
 const findCare = (page: Page) =>
   page.getByRole("button", { name: "Find Care", exact: true }).first();
 
-test("public anchors, both role entrances, intake gate and existing-session continuity", async ({
+test("public anchors, both role entrances, immediate patient access and existing-session continuity", async ({
   page,
 }) => {
   await page.goto("/");
@@ -82,11 +82,14 @@ test("public anchors, both role entrances, intake gate and existing-session cont
   await findCare(page).click();
   await expect(page).toHaveURL(/\/search$/);
   await expect(
-    page.getByRole("heading", { name: "Tell us how you’re feeling" }),
+    page.getByRole("heading", { name: "Book an appointment", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "My appointments", exact: true }),
-  ).toBeDisabled();
+    page.getByRole("button", {
+      name: "Manage My Appointments and Waitlists",
+      exact: true,
+    }),
+  ).toBeEnabled();
   await page.getByRole("button", { name: "Careousel home page" }).click();
   await page.getByText("Explore other demo personas", { exact: true }).click();
   await page

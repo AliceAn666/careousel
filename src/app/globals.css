@@ -2072,3 +2072,46 @@ span.cal-icon {
   width: auto;
   flex-shrink: 0;
 }
+
+/* Search-first patient results; clinic schedule styles are unchanged. */
+.search-intro {
+  margin-bottom: 24px;
+  padding: 24px;
+}
+.search-intro .field {
+  margin: 20px 0;
+}
+.search-result {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 24px;
+}
+.search-result .grow {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .search-result {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .search-intro .button-row {
+    flex-wrap: wrap;
+  }
+}
+
+.patient-navigation svg {
+  flex-shrink: 0;
+}
+@media (max-width: 850px) {
+  .sidebar nav.patient-navigation {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    overflow: visible;
+  }
+  .patient-navigation .nav-item {
+    white-space: normal;
+    align-items: center;
+  }
+}

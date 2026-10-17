@@ -37,10 +37,9 @@ afterAll(async () => {
 });
 
 describe("request-scoped four-level priority", () => {
-  it("preserves first-visit intake gating and raw answers without assigning clinical priority", async () => {
-    await expect(
-      performAction("avery", { type: "book", slotId: "slot-0" }),
-    ).rejects.toThrow(/intake questionnaire/);
+  it("allows booking without intake and preserves historical raw answers without assigning clinical priority", async () => {
+    await performAction("avery", { type: "book", slotId: "slot-0" });
+    expect(await db.intake.count({ where: { patientId: "avery" } })).toBe(0);
     await performAction("avery", intake);
     await performAction("avery", {
       ...intake,
