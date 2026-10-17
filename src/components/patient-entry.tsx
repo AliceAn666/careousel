@@ -1,5 +1,7 @@
 "use client";
+import { useState } from "react";
 import type { AppState } from "@/lib/types";
+import { MedicalRecords } from "./medical-records";
 import { MedicalTags } from "./medical-tags";
 import { SymptomLabels } from "./ui";
 export function PatientEntry({
@@ -51,6 +53,7 @@ export function PatientEntry({
   );
 }
 export function OptionalHealthInformation({ state }: { state: AppState }) {
+  const [recordVersion, setRecordVersion] = useState(0);
   return (
     <section className="stack" aria-label="Optional patient health information">
       <p>
@@ -78,16 +81,12 @@ export function OptionalHealthInformation({ state }: { state: AppState }) {
           </p>
         </section>
       )}
-      <MedicalTags key={state.user?.id} patient />
-      <section className="card">
-        <h2>Patient-authorized medical record imports</h2>
-        <p>
-          Planned for Phase 8. Import will require your explicit authorization,
-          a stated source and review. No upload, import or record-access
-          permission is enabled here. Do not upload real medical records to this
-          synthetic demo.
-        </p>
-      </section>
+      <MedicalTags key={`${state.user?.id}:${recordVersion}`} patient />
+      <MedicalRecords
+        key={`records:${state.user?.id}`}
+        patient
+        onChanged={() => setRecordVersion((v) => v + 1)}
+      />
     </section>
   );
 }
