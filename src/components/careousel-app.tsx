@@ -24,12 +24,7 @@ import type {
   SlotView,
   Booking,
 } from "@/lib/types";
-import {
-  dateLabel,
-  money,
-  PLANS,
-  VISIT_TYPES,
-} from "@/lib/config";
+import { dateLabel, money, PLANS, VISIT_TYPES } from "@/lib/config";
 import { demoCoverage } from "@/lib/demo-coverage";
 import { request } from "@/lib/api";
 import { FeedbackContext, Modal } from "./ui";

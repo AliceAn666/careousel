@@ -18,7 +18,11 @@ import {
   Trees,
   type LucideIcon,
 } from "lucide-react";
-import { demoClinicAccepts, demoCoverage, type PlanType } from "@/lib/demo-coverage";
+import {
+  demoClinicAccepts,
+  demoCoverage,
+  type PlanType,
+} from "@/lib/demo-coverage";
 import {
   readSearchPreferences,
   saveSearchPreferences,
@@ -375,32 +379,37 @@ export function SearchCare({
                   <span className="eyebrow">{first.service}</span>
                   <div className="clinic-title-row">
                     <h3>{first.clinic.name}</h3>
-                  {plan && plan !== "Self-pay" && (
-                    <p
-                      className={
-                        clinicInNetwork && compatible > 0
-                          ? "insurance-match insurance-match-good"
-                          : "insurance-match insurance-match-warning"
-                      }
-                    >
-                      {clinicInNetwork
-                        ? compatible > 0
-                          ? `Accepts ${plan} ${planType} · demo network`
-                          : `Accepts ${plan} ${planType} · ${first.service} excluded by this fictional plan`
-                        : `Does not accept ${plan} ${planType} · Self-pay available`}
-                    </p>
-                  )}
-                  {plan === "Self-pay" && (
-                    <p className="insurance-match">
-                      Self-pay: full listed price, no insurance benefit applied
-                    </p>
-                  )}
+                    {plan && plan !== "Self-pay" && (
+                      <p
+                        className={
+                          clinicInNetwork && compatible > 0
+                            ? "insurance-match insurance-match-good"
+                            : "insurance-match insurance-match-warning"
+                        }
+                      >
+                        {clinicInNetwork
+                          ? compatible > 0
+                            ? `Accepts ${plan} ${planType} · demo network`
+                            : `Accepts ${plan} ${planType} · ${first.service} excluded by this fictional plan`
+                          : `Does not accept ${plan} ${planType} · Self-pay available`}
+                      </p>
+                    )}
+                    {plan === "Self-pay" && (
+                      <p className="insurance-match">
+                        Self-pay: full listed price, no insurance benefit
+                        applied
+                      </p>
+                    )}
                   </div>
-                  <p>{first.clinic.address}, {first.clinic.city}</p>
+                  <p>
+                    {first.clinic.address}, {first.clinic.city}
+                  </p>
                   <p>
                     {slots.length} available appointment{" "}
                     {slots.length === 1 ? "time" : "times"} ·{" "}
-                    {[...new Set(slots.map((slot) => slot.provider))].join(", ")}
+                    {[...new Set(slots.map((slot) => slot.provider))].join(
+                      ", ",
+                    )}
                   </p>
                   <p className="muted">
                     Select an available time to confirm your appointment
@@ -449,8 +458,9 @@ export function SearchCare({
                     })}
                   </div>
                   <p className="muted">
-                    Listed visit prices from {money(Math.min(...slots.map((slot) => slot.price)))}.
-                    Demo insurers are not verified.
+                    Listed visit prices from{" "}
+                    {money(Math.min(...slots.map((slot) => slot.price)))}. Demo
+                    insurers are not verified.
                   </p>
                 </div>
               </article>

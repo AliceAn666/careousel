@@ -2645,7 +2645,7 @@ fieldset {
 .clinic-date-label {
   flex: 0 0 100px;
   padding-top: 10px;
-  font-size: 13px;
+  font-size: 0.875rem;
   color: var(--ink);
 }
 .clinic-date-group .clinic-time-options {
@@ -2656,7 +2656,7 @@ fieldset {
 .clinic-date-group .clinic-time-choice {
   min-width: 84px;
   min-height: 44px;
-  font-size: 13px;
+  font-size: 1rem;
 }
 @media (max-width: 680px) {
   .clinic-date-label {

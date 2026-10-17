@@ -1,4 +1,5 @@
 import { test, expect } from "./demo-fixture";
+import { dateLabel } from "../../src/lib/config";
 const headers = { origin: "http://localhost:3100" };
 test("clinic-first service grouping, selectable times, and optional waitlist preserve identity and original booking", async ({
   page,
@@ -37,6 +38,9 @@ test("clinic-first service grouping, selectable times, and optional waitlist pre
     .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-slot-id")));
   expect(ids.length).toBeGreaterThan(0);
   expect(new Set(ids).size).toBe(ids.length);
+  expect([...ids].sort()).toEqual(
+    state.slots.map((s: { id: string }) => s.id).sort(),
+  );
   for (const id of ids)
     expect(state.slots.some((s: { id: string }) => s.id === id)).toBe(true);
   for (const card of await cards.all()) {
@@ -56,8 +60,13 @@ test("clinic-first service grouping, selectable times, and optional waitlist pre
   const chosenId = await choices.nth(2).getAttribute("data-slot-id");
   const chosenSlot = state.slots.find((s: { id: string }) => s.id === chosenId);
   await choices.nth(2).click();
-  const bookingDialog = page.getByRole("dialog", { name: "Appointment details" });
+  const bookingDialog = page.getByRole("dialog", {
+    name: "Appointment details",
+  });
   await expect(bookingDialog).toContainText(chosenSlot.provider);
+  await expect(bookingDialog.locator(".detail-grid")).toContainText(
+    dateLabel(chosenSlot.start),
+  );
   await expect(
     bookingDialog.getByRole("group", { name: "Available appointment times" }),
   ).toHaveCount(0);

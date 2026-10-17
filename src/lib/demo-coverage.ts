@@ -22,8 +22,10 @@ export function demoClinicAccepts(
   if (!provider || provider === "Self-pay") return false;
   const insurers = DEMO_NETWORKS[clinicId] ?? fallbackPlans;
   // Fictional HMO has a narrower clinic network.
-  return insurers.includes(provider) &&
-    (type === "PPO" || clinicId === "cedar" || clinicId === "harbor");
+  return (
+    insurers.includes(provider) &&
+    (type === "PPO" || clinicId === "cedar" || clinicId === "harbor")
+  );
 }
 
 export function demoCoverage(
