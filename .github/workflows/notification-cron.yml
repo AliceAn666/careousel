@@ -32,8 +32,6 @@ jobs:
             -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=careousel-notification-cron-v1" \
             | python3 -c 'import sys,json; print(json.load(sys.stdin)["value"])')"
-          # Log only non-secret OIDC claim metadata for initial integration validation.
-          TOKEN="$TOKEN" python3 -c 'import os,json,base64; p=os.environ["TOKEN"].split(".")[1]; p += "=" * ((-len(p)) % 4); x=json.loads(base64.urlsafe_b64decode(p)); print("OIDC claim check:",{k:x.get(k) for k in ("iss","aud","repository","repository_id","ref","sub","workflow_ref","event_name")})'
           response="$(curl -fsS --retry 3 --retry-delay 3 --max-time 55 \
             -X POST -H "Authorization: Bearer ${TOKEN}" \
             -H "Accept: application/json" \
